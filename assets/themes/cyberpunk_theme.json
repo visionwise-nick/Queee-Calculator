@@ -1,0 +1,279 @@
+{
+  "id": "cyberpunk_calc",
+  "name": "赛博朋克计算器",
+  "description": "黑底配霓虹蓝的按键，未来感十足",
+  "version": "1.0.0",
+  "createdAt": "2024-01-01T00:00:00.000Z",
+  "authorPrompt": "我想要一个赛博朋克风格的计算器，黑底配霓虹蓝的按键",
+  "theme": {
+    "name": "赛博朋克",
+    "backgroundColor": "#0a0a0a",
+    "displayBackgroundColor": "#1a1a2e",
+    "displayTextColor": "#00f5ff",
+    "primaryButtonColor": "#16213e",
+    "primaryButtonTextColor": "#00f5ff",
+    "secondaryButtonColor": "#0f3460",
+    "secondaryButtonTextColor": "#00f5ff",
+    "operatorButtonColor": "#e94560",
+    "operatorButtonTextColor": "#ffffff",
+    "fontFamily": "JetBrains Mono",
+    "fontSize": 24.0,
+    "buttonBorderRadius": 12.0,
+    "hasGlowEffect": true,
+    "shadowColor": "#00f5ff"
+  },
+  "layout": {
+    "name": "标准布局",
+    "rows": 6,
+    "columns": 4,
+    "hasDisplay": true,
+    "displayRowSpan": 1,
+    "description": "经典的4x5计算器布局",
+    "buttons": [
+      {
+        "id": "clear",
+        "label": "AC",
+        "action": {
+          "type": "clearAll"
+        },
+        "gridPosition": {
+          "row": 1,
+          "column": 0
+        },
+        "type": "secondary"
+      },
+      {
+        "id": "negate",
+        "label": "±",
+        "action": {
+          "type": "negate"
+        },
+        "gridPosition": {
+          "row": 1,
+          "column": 1
+        },
+        "type": "secondary"
+      },
+      {
+        "id": "percentage",
+        "label": "%",
+        "action": {
+          "type": "percentage"
+        },
+        "gridPosition": {
+          "row": 1,
+          "column": 2
+        },
+        "type": "secondary"
+      },
+      {
+        "id": "divide",
+        "label": "÷",
+        "action": {
+          "type": "operator",
+          "value": "/"
+        },
+        "gridPosition": {
+          "row": 1,
+          "column": 3
+        },
+        "type": "operator"
+      },
+      {
+        "id": "seven",
+        "label": "7",
+        "action": {
+          "type": "input",
+          "value": "7"
+        },
+        "gridPosition": {
+          "row": 2,
+          "column": 0
+        },
+        "type": "primary"
+      },
+      {
+        "id": "eight",
+        "label": "8",
+        "action": {
+          "type": "input",
+          "value": "8"
+        },
+        "gridPosition": {
+          "row": 2,
+          "column": 1
+        },
+        "type": "primary"
+      },
+      {
+        "id": "nine",
+        "label": "9",
+        "action": {
+          "type": "input",
+          "value": "9"
+        },
+        "gridPosition": {
+          "row": 2,
+          "column": 2
+        },
+        "type": "primary"
+      },
+      {
+        "id": "multiply",
+        "label": "×",
+        "action": {
+          "type": "operator",
+          "value": "*"
+        },
+        "gridPosition": {
+          "row": 2,
+          "column": 3
+        },
+        "type": "operator"
+      },
+      {
+        "id": "four",
+        "label": "4",
+        "action": {
+          "type": "input",
+          "value": "4"
+        },
+        "gridPosition": {
+          "row": 3,
+          "column": 0
+        },
+        "type": "primary"
+      },
+      {
+        "id": "five",
+        "label": "5",
+        "action": {
+          "type": "input",
+          "value": "5"
+        },
+        "gridPosition": {
+          "row": 3,
+          "column": 1
+        },
+        "type": "primary"
+      },
+      {
+        "id": "six",
+        "label": "6",
+        "action": {
+          "type": "input",
+          "value": "6"
+        },
+        "gridPosition": {
+          "row": 3,
+          "column": 2
+        },
+        "type": "primary"
+      },
+      {
+        "id": "subtract",
+        "label": "−",
+        "action": {
+          "type": "operator",
+          "value": "-"
+        },
+        "gridPosition": {
+          "row": 3,
+          "column": 3
+        },
+        "type": "operator"
+      },
+      {
+        "id": "one",
+        "label": "1",
+        "action": {
+          "type": "input",
+          "value": "1"
+        },
+        "gridPosition": {
+          "row": 4,
+          "column": 0
+        },
+        "type": "primary"
+      },
+      {
+        "id": "two",
+        "label": "2",
+        "action": {
+          "type": "input",
+          "value": "2"
+        },
+        "gridPosition": {
+          "row": 4,
+          "column": 1
+        },
+        "type": "primary"
+      },
+      {
+        "id": "three",
+        "label": "3",
+        "action": {
+          "type": "input",
+          "value": "3"
+        },
+        "gridPosition": {
+          "row": 4,
+          "column": 2
+        },
+        "type": "primary"
+      },
+      {
+        "id": "add",
+        "label": "+",
+        "action": {
+          "type": "operator",
+          "value": "+"
+        },
+        "gridPosition": {
+          "row": 4,
+          "column": 3
+        },
+        "type": "operator"
+      },
+      {
+        "id": "zero",
+        "label": "0",
+        "action": {
+          "type": "input",
+          "value": "0"
+        },
+        "gridPosition": {
+          "row": 5,
+          "column": 0,
+          "columnSpan": 2
+        },
+        "type": "primary",
+        "isWide": true
+      },
+      {
+        "id": "decimal",
+        "label": ".",
+        "action": {
+          "type": "decimal"
+        },
+        "gridPosition": {
+          "row": 5,
+          "column": 2
+        },
+        "type": "primary"
+      },
+      {
+        "id": "equals",
+        "label": "=",
+        "action": {
+          "type": "equals"
+        },
+        "gridPosition": {
+          "row": 5,
+          "column": 3
+        },
+        "type": "operator"
+      }
+    ]
+  }
+} 
