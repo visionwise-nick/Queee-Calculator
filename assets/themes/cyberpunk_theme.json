@@ -55,19 +55,16 @@
         "type": "secondary"
       },
       {
-        "id": "square",
-        "label": "x²",
+        "id": "percentage",
+        "label": "%",
         "action": {
-          "type": "macro",
-          "macro": "input * input"
+          "type": "percentage"
         },
         "gridPosition": {
           "row": 1,
           "column": 2
         },
-        "type": "special",
-        "customColor": "#e94560",
-        "customTextColor": "#ffffff"
+        "type": "secondary"
       },
       {
         "id": "divide",

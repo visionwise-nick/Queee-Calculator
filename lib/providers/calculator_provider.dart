@@ -27,76 +27,14 @@ class CalculatorProvider extends ChangeNotifier {
       orElse: () => throw Exception('Button not found: $buttonId'),
     );
     
-    // 检查是否是进制切换按钮
-    if (_isBaseChangeButton(button.label)) {
-      _handleBaseChange(button.label);
-      return;
-    }
-
-    // 检查是否是十六进制字符输入（A-F）
-    if (_isHexInput(button.label)) {
-      execute(CalculatorAction(type: CalculatorActionType.input, value: button.label));
-      return;
-    }
-    
     execute(button.action);
-  }
-
-  /// 检查是否是进制切换按钮
-  bool _isBaseChangeButton(String label) {
-    return ['Hex', 'Dec', 'Oct', 'Bin', 'HEX', 'DEC', 'OCT', 'BIN'].contains(label);
-  }
-
-  /// 检查是否是十六进制字符输入
-  bool _isHexInput(String label) {
-    return ['A', 'B', 'C', 'D', 'E', 'F'].contains(label.toUpperCase());
-  }
-
-  /// 处理进制切换
-  void _handleBaseChange(String baseLabel) {
-    String newBase;
-    switch (baseLabel.toUpperCase()) {
-      case 'HEX':
-        newBase = 'hex';
-        break;
-      case 'DEC':
-        newBase = 'decimal';
-        break;
-      case 'OCT':
-        newBase = 'octal';
-        break;
-      case 'BIN':
-        newBase = 'binary';
-        break;
-      default:
-        return;
-    }
-    
-    _engine.handleBaseChange(newBase);
-    _playSound('buttonPress');
-    notifyListeners();
   }
 
   /// 更新计算器配置
   void updateConfig(CalculatorConfig newConfig) {
     _config = newConfig;
-    
-    // 如果是程序员计算器，自动设置为十六进制模式
-    if (_config.name.toLowerCase().contains('程序员') || 
-        _config.name.toLowerCase().contains('programmer') ||
-        _hasHexButtons()) {
-      _engine.handleBaseChange('hex');
-    }
-    
     ConfigService.saveCurrentConfig(newConfig);
     notifyListeners();
-  }
-
-  /// 检查是否包含十六进制按钮
-  bool _hasHexButtons() {
-    return _config.layout.buttons.any((button) => 
-      ['A', 'B', 'C', 'D', 'E', 'F'].contains(button.label.toUpperCase())
-    );
   }
 
   /// 初始化配置

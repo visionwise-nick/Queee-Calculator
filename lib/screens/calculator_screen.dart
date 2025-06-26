@@ -4,6 +4,7 @@ import '../providers/calculator_provider.dart';
 import '../widgets/calculator_display.dart';
 import '../widgets/calculator_button_grid.dart';
 import 'theme_settings_screen.dart';
+import 'ai_customize_screen.dart';
 
 class CalculatorScreen extends StatelessWidget {
   const CalculatorScreen({super.key});
@@ -31,19 +32,41 @@ class CalculatorScreen extends StatelessWidget {
                           color: provider.getDisplayTextColor(),
                         ),
                       ),
-                      IconButton(
-                        icon: Icon(
-                          Icons.settings,
-                          color: provider.getDisplayTextColor(),
-                        ),
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const ThemeSettingsScreen(),
+                      Row(
+                        children: [
+                          // AI 定制按钮
+                          IconButton(
+                            icon: Icon(
+                              Icons.auto_awesome,
+                              color: provider.getDisplayTextColor(),
                             ),
-                          );
-                        },
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const AICustomizeScreen(),
+                                ),
+                              );
+                            },
+                            tooltip: 'AI 定制',
+                          ),
+                          // 设置按钮
+                          IconButton(
+                            icon: Icon(
+                              Icons.settings,
+                              color: provider.getDisplayTextColor(),
+                            ),
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const ThemeSettingsScreen(),
+                                ),
+                              );
+                            },
+                            tooltip: '主题设置',
+                          ),
+                        ],
                       ),
                     ],
                   ),

@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import '../providers/calculator_provider.dart';
 import '../services/config_service.dart';
 import '../models/calculator_dsl.dart';
-import 'ai_customize_screen.dart';
 
 class ThemeSettingsScreen extends StatefulWidget {
   const ThemeSettingsScreen({super.key});
@@ -71,7 +70,7 @@ class _ThemeSettingsScreenState extends State<ThemeSettingsScreen> {
                     const SizedBox(height: 24),
                     
                     // AI 定制按钮
-                    _buildAICustomizeButton(context, provider),
+                    _buildAICustomizeButton(provider),
                   ],
                 ),
         );
@@ -116,7 +115,7 @@ class _ThemeSettingsScreenState extends State<ThemeSettingsScreen> {
             ),
             const SizedBox(height: 4),
             Text(
-              config.description ?? '',
+              config.description,
               style: TextStyle(
                 fontSize: 14,
                 color: provider.getDisplayTextColor().withValues(alpha: 0.7),
@@ -239,7 +238,7 @@ class _ThemeSettingsScreenState extends State<ThemeSettingsScreen> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          config.description ?? '',
+                          config.description,
                           style: TextStyle(
                             fontSize: 14,
                             color: provider.getDisplayTextColor().withValues(alpha: 0.7),
@@ -269,50 +268,36 @@ class _ThemeSettingsScreenState extends State<ThemeSettingsScreen> {
     );
   }
 
-  Widget _buildAICustomizeButton(BuildContext context, CalculatorProvider provider) {
+  Widget _buildAICustomizeButton(CalculatorProvider provider) {
     return Card(
-      elevation: 0,
-      color: Colors.transparent,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(
-          color: _parseColor(provider.config.theme.operatorButtonColor).withOpacity(0.5), 
-          width: 2
-        ),
-      ),
+      color: provider.getDisplayBackgroundColor(),
       child: InkWell(
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const AICustomizeScreen()),
-          );
-        },
-        borderRadius: BorderRadius.circular(12),
+        onTap: () => _showAICustomizeDialog(),
+        borderRadius: BorderRadius.circular(8),
         child: Padding(
           padding: const EdgeInsets.all(20),
           child: Row(
             children: [
               Container(
-                width: 50,
-                height: 50,
+                width: 60,
+                height: 60,
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      _parseColor(provider.config.theme.operatorButtonColor),
-                      _parseColor(provider.config.theme.secondaryButtonColor),
-                    ],
+                  borderRadius: BorderRadius.circular(8),
+                  gradient: const LinearGradient(
+                    colors: [Colors.purple, Colors.blue],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
-                  borderRadius: BorderRadius.circular(10),
                 ),
                 child: const Icon(
-                  Icons.auto_awesome, 
+                  Icons.auto_awesome,
                   color: Colors.white,
-                  size: 28,
+                  size: 30,
                 ),
               ),
+              
               const SizedBox(width: 16),
+              
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -330,15 +315,16 @@ class _ThemeSettingsScreenState extends State<ThemeSettingsScreen> {
                       '用自然语言描述你想要的计算器',
                       style: TextStyle(
                         fontSize: 14,
-                        color: provider.getDisplayTextColor().withOpacity(0.7),
+                        color: provider.getDisplayTextColor().withValues(alpha: 0.7),
                       ),
                     ),
                   ],
                 ),
               ),
+              
               Icon(
                 Icons.arrow_forward_ios,
-                color: provider.getDisplayTextColor().withOpacity(0.7),
+                color: provider.getDisplayTextColor().withValues(alpha: 0.5),
               ),
             ],
           ),
@@ -357,23 +343,20 @@ class _ThemeSettingsScreenState extends State<ThemeSettingsScreen> {
     );
   }
 
-  void _showComingSoonDialog(BuildContext context) {
+  void _showAICustomizeDialog() {
+    // TODO: 实现 AI 定制对话框
     showDialog(
       context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('AI 定制计算器'),
-          content: const Text('即将推出：用自然语言定制你的专属计算器！'),
-          actions: <Widget>[
-            TextButton(
-              child: const Text('期待中'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-          ],
-        );
-      },
+      builder: (context) => AlertDialog(
+        title: const Text('AI 定制计算器'),
+        content: const Text('即将推出：用自然语言定制你的专属计算器！'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('期待中'),
+          ),
+        ],
+      ),
     );
   }
 

@@ -1,5 +1,4 @@
 import 'dart:math' as Math;
-import 'package:math_expressions/math_expressions.dart';
 
 /// 计算器操作类型
 enum CalculatorActionType {
@@ -16,9 +15,6 @@ enum CalculatorActionType {
   memory,     // 内存操作 (MS, MR, MC, M+, M-)
   scientific, // 科学计算 (sin, cos, sqrt, pow, etc.)
   bitwise,    // 位运算 (AND, OR, XOR, NOT)
-  function,   // 函数操作 (自定义函数)
-  constant,   // 常数 (π, e, etc.)
-  conversion, // 单位转换
 }
 
 /// 计算器操作定义
@@ -36,18 +32,13 @@ class CalculatorAction {
   });
 
   factory CalculatorAction.fromJson(Map<String, dynamic> json) {
-    if (json.isEmpty || json['type'] == null) {
-      // 返回默认的输入操作
-      return const CalculatorAction(type: CalculatorActionType.input, value: '0');
-    }
-    
     return CalculatorAction(
       type: CalculatorActionType.values.firstWhere(
         (e) => e.toString() == 'CalculatorActionType.${json['type']}',
         orElse: () => CalculatorActionType.input,
       ),
-      value: json['value'],
-      macro: json['macro'],
+      value: json['value']?.toString(),
+      macro: json['macro']?.toString(),
       params: json['params'],
     );
   }
@@ -141,34 +132,8 @@ class CalculatorEngine {
           return _handleScientific(action.value!, action.params);
         case CalculatorActionType.bitwise:
           return _handleBitwise(action.value!, action.params);
-        case CalculatorActionType.function:
-          return _handleFunction(action.value!, action.params);
-        case CalculatorActionType.constant:
-          return _handleConstant(action.value!);
-        case CalculatorActionType.conversion:
-          return _handleConversion(action.value!, action.params);
       }
     } catch (e) {
-      print('Calculator error: $e');
-      return _state.copyWith(display: 'Error', isError: true);
-    }
-  }
-
-  /// 处理进制切换的特殊操作
-  CalculatorState handleBaseChange(String newBase) {
-    try {
-      // 将当前显示值转换为十进制
-      double decimalValue = _parseDisplayValue(_state.display);
-      
-      // 更新进制
-      _state = _state.copyWith(base: newBase.toLowerCase());
-      
-      // 格式化并显示新进制的值
-      String newDisplay = _formatResult(decimalValue);
-      
-      return _state.copyWith(display: newDisplay);
-    } catch (e) {
-      print('Base change error: $e');
       return _state.copyWith(display: 'Error', isError: true);
     }
   }
@@ -176,12 +141,6 @@ class CalculatorEngine {
   CalculatorState _handleInput(String digit) {
     if (_state.isError) {
       _state = const CalculatorState();
-    }
-
-    // 验证输入是否有效（数字或十六进制字符）
-    if (!_isValidInput(digit)) {
-      print('Invalid input: $digit for base: ${_state.base}');
-      return _state;
     }
 
     if (_state.waitingForOperand) {
@@ -197,22 +156,6 @@ class CalculatorEngine {
       }
     }
     return _state;
-  }
-
-  /// 验证输入是否对当前进制有效
-  bool _isValidInput(String input) {
-    switch (_state.base) {
-      case 'hex':
-      case 'hexadecimal':
-        return RegExp(r'^[0-9A-Fa-f]$').hasMatch(input);
-      case 'binary':
-        return RegExp(r'^[01]$').hasMatch(input);
-      case 'octal':
-        return RegExp(r'^[0-7]$').hasMatch(input);
-      case 'decimal':
-      default:
-        return RegExp(r'^[0-9]$').hasMatch(input);
-    }
   }
 
   CalculatorState _handleOperator(String operator) {
@@ -260,8 +203,8 @@ class CalculatorEngine {
   String? _calculate() {
     if (_state.previousValue == null || _state.operator == null) return null;
 
-    double prev = _parseDisplayValue(_state.previousValue!);
-    double current = _parseDisplayValue(_state.display);
+    double prev = double.parse(_state.previousValue!);
+    double current = double.parse(_state.display);
     double result;
 
     switch (_state.operator) {
@@ -285,40 +228,11 @@ class CalculatorEngine {
     return _formatResult(result);
   }
 
-  /// 根据当前进制解析显示值
-  double _parseDisplayValue(String display) {
-    switch (_state.base) {
-      case 'hex':
-      case 'hexadecimal':
-        return int.parse(display, radix: 16).toDouble();
-      case 'binary':
-        return int.parse(display, radix: 2).toDouble();
-      case 'octal':
-        return int.parse(display, radix: 8).toDouble();
-      case 'decimal':
-      default:
-        return double.parse(display);
-    }
-  }
-
   String _formatResult(double result) {
-    int intResult = result.round();
-    
-    switch (_state.base) {
-      case 'hex':
-      case 'hexadecimal':
-        return intResult.toRadixString(16).toUpperCase();
-      case 'binary':
-        return intResult.toRadixString(2);
-      case 'octal':
-        return intResult.toRadixString(8);
-      case 'decimal':
-      default:
-        if (result == result.toInt()) {
-          return result.toInt().toString();
-        } else {
-          return result.toStringAsFixed(8).replaceAll(RegExp(r'0*$'), '').replaceAll(RegExp(r'\.$'), '');
-        }
+    if (result == result.toInt()) {
+      return result.toInt().toString();
+    } else {
+      return result.toStringAsFixed(8).replaceAll(RegExp(r'0*$'), '').replaceAll(RegExp(r'\.$'), '');
     }
   }
 
@@ -383,58 +297,37 @@ class CalculatorEngine {
   CalculatorState _handleMacro(String macro, Map<String, dynamic>? params) {
     // 解析并执行宏命令，例如 "input * 0.15" (计算小费)
     try {
-      final double currentValue = double.parse(_state.display);
+      double currentValue = double.parse(_state.display);
+      String expression = macro.replaceAll('input', currentValue.toString());
       
-      // 使用更强大的数学表达式引擎
-      final result = _evaluateExpression(macro, currentValue);
-
+      // 简单的表达式计算器
+      double result = _evaluateExpression(expression);
       return _state.copyWith(display: _formatResult(result));
     } catch (e) {
-      print('Macro execution error: $e');
       return _state.copyWith(display: 'Error', isError: true);
     }
   }
 
-  double _evaluateExpression(String expression, double inputValue) {
-    try {
-      // 处理特殊宏命令
-      if (expression == 'input * input' || expression == 'input^2' || expression == 'pow(input, 2)') {
-        return inputValue * inputValue;
-      }
-      
-      if (expression == 'sqrt(input)') {
-        return Math.sqrt(inputValue);
-      }
-      
-      // 替换 input 为实际值
-      String processedExpression = expression.replaceAll('input', inputValue.toString());
-      
-      // 创建解析器和数学模型
-      final Parser p = Parser();
-      final Expression exp = p.parse(processedExpression);
-      final ContextModel cm = ContextModel();
-
-      // 计算结果
-      final double eval = exp.evaluate(EvaluationType.REAL, cm);
-      return eval;
-    } catch(e) {
-      print('Error evaluating macro expression "$expression": $e');
-      
-      // 如果表达式解析失败，尝试简单计算
-      try {
-        if (expression.contains('*') && expression.contains('0.15')) {
-          // 小费计算：input * 0.15
-          return inputValue * 0.15;
-        } else if (expression.contains('input') && expression.contains('input')) {
-          // 平方计算
-          return inputValue * inputValue;
-        }
-      } catch (e2) {
-        print('Fallback calculation also failed: $e2');
-      }
-      
-      throw Exception('Invalid macro expression');
+  double _evaluateExpression(String expression) {
+    // 这里可以实现更复杂的表达式解析
+    // 简单示例：支持基本的算术运算
+    expression = expression.replaceAll(' ', '');
+    
+    if (expression.contains('*')) {
+      var parts = expression.split('*');
+      return double.parse(parts[0]) * double.parse(parts[1]);
+    } else if (expression.contains('/')) {
+      var parts = expression.split('/');
+      return double.parse(parts[0]) / double.parse(parts[1]);
+    } else if (expression.contains('+')) {
+      var parts = expression.split('+');
+      return double.parse(parts[0]) + double.parse(parts[1]);
+    } else if (expression.contains('-')) {
+      var parts = expression.split('-');
+      return double.parse(parts[0]) - double.parse(parts[1]);
     }
+    
+    return double.parse(expression);
   }
 
   CalculatorState _handleMemory(String operation) {
@@ -532,110 +425,5 @@ class CalculatorEngine {
   /// 重置计算器状态
   void reset() {
     _state = const CalculatorState();
-  }
-
-  /// 处理函数操作
-  CalculatorState _handleFunction(String functionName, Map<String, dynamic>? params) {
-    try {
-      double currentValue = double.parse(_state.display);
-      double result;
-      
-      switch (functionName.toLowerCase()) {
-        case 'abs':
-          result = currentValue.abs();
-          break;
-        case 'round':
-          result = currentValue.round().toDouble();
-          break;
-        case 'floor':
-          result = currentValue.floor().toDouble();
-          break;
-        case 'ceil':
-          result = currentValue.ceil().toDouble();
-          break;
-        case 'reciprocal':
-        case '1/x':
-          if (currentValue == 0) throw Exception('Division by zero');
-          result = 1.0 / currentValue;
-          break;
-        case 'factorial':
-          if (currentValue < 0 || currentValue > 20) throw Exception('Invalid factorial input');
-          result = _factorial(currentValue.toInt()).toDouble();
-          break;
-        default:
-          return _state.copyWith(display: 'Error', isError: true);
-      }
-      
-      return _state.copyWith(display: _formatResult(result));
-    } catch (e) {
-      return _state.copyWith(display: 'Error', isError: true);
-    }
-  }
-  
-  /// 处理常数
-  CalculatorState _handleConstant(String constantName) {
-    double value;
-    
-    switch (constantName.toLowerCase()) {
-      case 'pi':
-      case 'π':
-        value = Math.pi;
-        break;
-      case 'e':
-        value = Math.e;
-        break;
-      case 'phi':
-      case 'φ':
-        value = (1 + Math.sqrt(5)) / 2; // 黄金比例
-        break;
-      case 'sqrt2':
-        value = Math.sqrt(2);
-        break;
-      default:
-        return _state.copyWith(display: 'Error', isError: true);
-    }
-    
-    return _state.copyWith(display: _formatResult(value));
-  }
-  
-  /// 处理单位转换
-  CalculatorState _handleConversion(String conversionType, Map<String, dynamic>? params) {
-    try {
-      double currentValue = double.parse(_state.display);
-      double result;
-      
-      switch (conversionType.toLowerCase()) {
-        case 'deg_to_rad':
-          result = currentValue * Math.pi / 180;
-          break;
-        case 'rad_to_deg':
-          result = currentValue * 180 / Math.pi;
-          break;
-        case 'c_to_f':
-          result = currentValue * 9 / 5 + 32;
-          break;
-        case 'f_to_c':
-          result = (currentValue - 32) * 5 / 9;
-          break;
-        case 'km_to_miles':
-          result = currentValue * 0.621371;
-          break;
-        case 'miles_to_km':
-          result = currentValue * 1.60934;
-          break;
-        default:
-          return _state.copyWith(display: 'Error', isError: true);
-      }
-      
-      return _state.copyWith(display: _formatResult(result));
-    } catch (e) {
-      return _state.copyWith(display: 'Error', isError: true);
-    }
-  }
-  
-  /// 计算阶乘
-  int _factorial(int n) {
-    if (n <= 1) return 1;
-    return n * _factorial(n - 1);
   }
 } 

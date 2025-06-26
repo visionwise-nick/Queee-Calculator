@@ -24,7 +24,6 @@ class ConfigService {
     return [
       'cyberpunk_theme',
       'tip_calculator_theme',
-      'enhanced_test_theme',
     ];
   }
 
@@ -41,8 +40,8 @@ class ConfigService {
 
   /// 加载当前配置
   static Future<CalculatorConfig> loadCurrentConfig() async {
-    final prefs = await SharedPreferences.getInstance();
     try {
+      final prefs = await SharedPreferences.getInstance();
       final configJson = prefs.getString(_currentConfigKey);
       
       if (configJson != null) {
@@ -50,12 +49,10 @@ class ConfigService {
         return CalculatorConfig.fromJson(configMap);
       }
     } catch (e) {
-      print('加载已保存的配置失败: $e. 将删除损坏的配置。');
-      // 如果解析失败，删除损坏的配置，防止应用卡在错误状态
-      await prefs.remove(_currentConfigKey);
+      print('Failed to load current config: $e');
     }
     
-    // 如果没有找到配置，或加载失败，则加载一个安全的默认主题
+    // 如果没有保存的配置，加载赛博朋克主题作为默认配置
     return loadPresetConfig('cyberpunk_theme');
   }
 

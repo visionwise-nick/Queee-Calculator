@@ -1,14 +1,17 @@
 # FastAPI 核心库
-fastapi
+fastapi>=0.110.0
 
 # ASGI 服务器，用于运行 FastAPI
-uvicorn
+uvicorn>=0.27.0
 
 # Google Gemini AI SDK
-google-generativeai
+google-generativeai>=0.7.2
 
-# Pydantic，用于数据验证 (FastAPI 附带，但明确指出)
-pydantic
+# Pydantic，用于数据验证 - 使用最新版本
+pydantic>=2.10.0
 
 # 用于处理环境变量 (可选，但推荐)
-python-dotenv 
+python-dotenv
+
+# 用于处理文件上传 (可选，但推荐)
+python-multipart>=0.0.6 

@@ -1,45 +1,90 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/calculator_dsl.dart';
+import 'dart:async';
 
 class AIService {
-  static const String _baseUrl = 'https://queee-calculator-backend-v2-685339952769.us-central1.run.app';
+  // Cloud Run 服务的 URL
+  static const String _baseUrl = 'https://queee-calculator-ai-backend-685339952769.us-central1.run.app';
 
-  /// 调用后端 AI 服务生成计算器配置
-  /// 
-  /// [prompt] 是用户输入的自然语言描述
-  /// 返回一个 [CalculatorConfig] 对象，如果失败则返回 null
-  Future<CalculatorConfig?> generateConfig(String prompt) async {
-    final url = Uri.parse('$_baseUrl/generate-calculator');
-    
+  /// 根据用户描述生成计算器配置
+  static Future<CalculatorConfig?> generateCalculatorFromPrompt(String userPrompt) async {
     try {
+      // 构建请求
+      final url = Uri.parse('$_baseUrl/generate-config');
+      final headers = {
+        'Content-Type': 'application/json',
+      };
+      final body = json.encode({
+        'prompt': userPrompt,
+      });
+
+      print('🚀 正在调用 AI 服务...');
+      print('URL: $url');
+      print('请求内容: $userPrompt');
+
+      // 发送请求到 Cloud Run 服务
       final response = await http.post(
         url,
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({'description': prompt}),
-      );
+        headers: headers,
+        body: body,
+      ).timeout(const Duration(seconds: 120)); // 增加超时到120秒
 
+      print('📡 收到响应: ${response.statusCode}');
+      
       if (response.statusCode == 200) {
-        // 使用 UTF-8 解码响应体以正确处理中文字符
-        final responseBody = utf8.decode(response.bodyBytes);
+        // 解析响应
+        final responseData = json.decode(response.body) as Map<String, dynamic>;
         
-        // 调试：打印从服务器收到的原始JSON
-        print('--- AI Response JSON ---');
-        print(responseBody);
-        print('------------------------');
-
-        final configMap = json.decode(responseBody) as Map<String, dynamic>;
+        // 使用我们的 DSL 模型解析 AI 返回的配置
+        final config = CalculatorConfig.fromJson(responseData);
         
-        // 自我修复和验证
-        return CalculatorConfig.fromJson(configMap);
+        print('✅ AI 配置生成成功: ${config.name}');
+        return config;
       } else {
-        print('AI Service Error: ${response.statusCode}');
-        print('Response: ${response.body}');
+        print('❌ AI 服务响应错误: ${response.statusCode}');
+        print('错误详情: ${response.body}');
         return null;
       }
+    } on TimeoutException {
+      print('❌ AI 服务调用超时');
+      throw Exception('AI 服务调用超时，请稍后重试');
     } catch (e) {
-      print('Failed to connect to AI service: $e');
-      return null;
+      print('❌ AI 服务调用失败: $e');
+      throw Exception('调用 AI 服务失败: $e');
     }
+  }
+
+  /// 测试 AI 服务连接
+  static Future<bool> testConnection() async {
+    try {
+      final url = Uri.parse('$_baseUrl/');
+      final response = await http.get(url).timeout(const Duration(seconds: 10));
+      
+      if (response.statusCode == 200) {
+        print('✅ AI 服务连接正常');
+        return true;
+      } else {
+        print('❌ AI 服务连接失败: ${response.statusCode}');
+        return false;
+  }
+    } catch (e) {
+      print('❌ AI 服务连接测试失败: $e');
+      return false;
+    }
+  }
+
+  /// 获取一些预设的示例提示
+  static List<String> getSamplePrompts() {
+    return [
+      '我想要一个赛博朋克风格的计算器，黑底配霓虹蓝的按键',
+      '给我一个温暖的橙色主题计算器',
+      '我需要一个简洁的白色极简风格计算器',
+      '创建一个绿色护眼主题的计算器',
+      '我想要一个深色模式的专业计算器',
+      '给我一个彩虹渐变色的有趣计算器',
+      '我需要一个适合夜晚使用的暗色计算器',
+      '创建一个红色和金色的豪华主题计算器',
+    ];
   }
 } 

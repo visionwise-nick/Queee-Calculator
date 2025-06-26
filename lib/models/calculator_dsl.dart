@@ -22,15 +22,15 @@ class CalculatorTheme {
 
   const CalculatorTheme({
     required this.name,
-    required this.backgroundColor,
-    required this.displayBackgroundColor,
-    required this.displayTextColor,
-    required this.primaryButtonColor,
-    required this.primaryButtonTextColor,
-    required this.secondaryButtonColor,
-    required this.secondaryButtonTextColor,
-    required this.operatorButtonColor,
-    required this.operatorButtonTextColor,
+    this.backgroundColor = '#000000',
+    this.displayBackgroundColor = '#222222',
+    this.displayTextColor = '#FFFFFF',
+    this.primaryButtonColor = '#333333',
+    this.primaryButtonTextColor = '#FFFFFF',
+    this.secondaryButtonColor = '#555555',
+    this.secondaryButtonTextColor = '#FFFFFF',
+    this.operatorButtonColor = '#FF9F0A',
+    this.operatorButtonTextColor = '#FFFFFF',
     this.backgroundImage,
     this.fontFamily,
     this.fontSize = 24.0,
@@ -42,46 +42,26 @@ class CalculatorTheme {
 
   factory CalculatorTheme.fromJson(Map<String, dynamic> json) {
     return CalculatorTheme(
-      name: json['name']?.toString() ?? 'AI 主题',
-      backgroundColor: json['backgroundColor']?.toString() ?? '#000000',
-      displayBackgroundColor: json['displayBackgroundColor']?.toString() ?? '#1a1a1a',
-      displayTextColor: json['displayTextColor']?.toString() ?? '#ffffff',
-      primaryButtonColor: json['primaryButtonColor']?.toString() ?? '#333333',
-      primaryButtonTextColor: json['primaryButtonTextColor']?.toString() ?? '#ffffff',
-      secondaryButtonColor: json['secondaryButtonColor']?.toString() ?? '#666666',
-      secondaryButtonTextColor: json['secondaryButtonTextColor']?.toString() ?? '#ffffff',
-      operatorButtonColor: json['operatorButtonColor']?.toString() ?? '#ff9500',
-      operatorButtonTextColor: json['operatorButtonTextColor']?.toString() ?? '#ffffff',
-      backgroundImage: json['backgroundImage']?.toString(),
-      fontFamily: json['fontFamily']?.toString(),
-      fontSize: _parseDouble(json['fontSize']) ?? 24.0,
-      buttonBorderRadius: _parseDouble(json['buttonBorderRadius']) ?? 8.0,
+      name: json['name'] ?? '未命名主题',
+      backgroundColor: json['backgroundColor'] ?? '#000000',
+      displayBackgroundColor: json['displayBackgroundColor'] ?? '#222222',
+      displayTextColor: json['displayTextColor'] ?? '#FFFFFF',
+      primaryButtonColor: json['primaryButtonColor'] ?? '#333333',
+      primaryButtonTextColor: json['primaryButtonTextColor'] ?? '#FFFFFF',
+      secondaryButtonColor: json['secondaryButtonColor'] ?? '#555555',
+      secondaryButtonTextColor: json['secondaryButtonTextColor'] ?? '#FFFFFF',
+      operatorButtonColor: json['operatorButtonColor'] ?? '#FF9F0A',
+      operatorButtonTextColor: json['operatorButtonTextColor'] ?? '#FFFFFF',
+      backgroundImage: json['backgroundImage'],
+      fontFamily: json['fontFamily'],
+      fontSize: (json['fontSize'] as num?)?.toDouble() ?? 24.0,
+      buttonBorderRadius: (json['buttonBorderRadius'] as num?)?.toDouble() ?? 8.0,
       hasGlowEffect: json['hasGlowEffect'] ?? false,
-      shadowColor: json['shadowColor']?.toString(),
-      soundEffects: (json['soundEffects'] as List<dynamic>?)
-          ?.map((e) => SoundEffect.fromJson(e as Map<String, dynamic>))
+      shadowColor: json['shadowColor'],
+      soundEffects: (json['soundEffects'] as List?)
+          ?.map((e) => SoundEffect.fromJson(e))
           .toList(),
     );
-  }
-
-  /// 安全解析数值，支持字符串转换
-  static double? _parseDouble(dynamic value) {
-    if (value == null) return null;
-    if (value is num) return value.toDouble();
-    if (value is String) {
-      return double.tryParse(value);
-    }
-    return null;
-  }
-
-  /// 安全解析整数，支持字符串转换
-  static int? _parseInt(dynamic value) {
-    if (value == null) return null;
-    if (value is num) return value.toInt();
-    if (value is String) {
-      return int.tryParse(value);
-    }
-    return null;
   }
 
   Map<String, dynamic> toJson() {
@@ -122,9 +102,9 @@ class SoundEffect {
 
   factory SoundEffect.fromJson(Map<String, dynamic> json) {
     return SoundEffect(
-      trigger: json['trigger']?.toString() ?? 'buttonPress',
-      soundUrl: json['soundUrl']?.toString() ?? '',
-      volume: CalculatorTheme._parseDouble(json['volume']) ?? 1.0,
+      trigger: json['trigger'],
+      soundUrl: json['soundUrl'],
+      volume: json['volume']?.toDouble() ?? 1.0,
     );
   }
 
@@ -164,13 +144,11 @@ class CalculatorButton {
   });
 
   factory CalculatorButton.fromJson(Map<String, dynamic> json) {
-    String label = json['label']?.toString() ?? '';
-    
     return CalculatorButton(
-      id: json['id']?.toString() ?? 'btn-${DateTime.now().millisecondsSinceEpoch}',
-      label: label,
-      action: _parseAction(json['action'] as Map<String, dynamic>?, label),
-      gridPosition: GridPosition.fromJson(json['gridPosition'] as Map<String, dynamic>? ?? {}),
+      id: json['id']?.toString() ?? 'unknown',
+      label: json['label']?.toString() ?? '',
+      action: CalculatorAction.fromJson(json['action'] ?? {}),
+      gridPosition: GridPosition.fromJson(json['gridPosition'] ?? {}),
       type: ButtonType.values.firstWhere(
         (e) => e.toString() == 'ButtonType.${json['type']}',
         orElse: () => ButtonType.primary,
@@ -181,67 +159,6 @@ class CalculatorButton {
       isWide: json['isWide'] ?? false,
       isHigh: json['isHigh'] ?? false,
     );
-  }
-
-  /// 智能解析action，如果没有提供则根据label自动生成
-  static CalculatorAction _parseAction(Map<String, dynamic>? actionJson, String label) {
-    if (actionJson != null && actionJson.isNotEmpty) {
-      try {
-        return CalculatorAction.fromJson(actionJson);
-      } catch (e) {
-        print('Failed to parse action from JSON: $e');
-      }
-    }
-    
-    // 根据label自动生成action
-    return _inferActionFromLabel(label);
-  }
-
-  /// 根据按钮标签推断操作类型
-  static CalculatorAction _inferActionFromLabel(String label) {
-    // 数字输入
-    if (RegExp(r'^[0-9A-F]$').hasMatch(label)) {
-      return CalculatorAction(type: CalculatorActionType.input, value: label);
-    }
-    
-    // 运算符
-    switch (label) {
-      case '+':
-      case '-':
-      case '*':
-      case '/':
-        return CalculatorAction(type: CalculatorActionType.operator, value: label);
-      case '=':
-        return CalculatorAction(type: CalculatorActionType.equals);
-      case '.':
-        return CalculatorAction(type: CalculatorActionType.decimal);
-      case 'C':
-      case 'Clear':
-        return CalculatorAction(type: CalculatorActionType.clear);
-      case 'AC':
-      case 'Clear All':
-        return CalculatorAction(type: CalculatorActionType.clearAll);
-      case '⌫':
-      case 'Backspace':
-        return CalculatorAction(type: CalculatorActionType.backspace);
-      case '%':
-        return CalculatorAction(type: CalculatorActionType.percentage);
-      case '±':
-      case '+/-':
-        return CalculatorAction(type: CalculatorActionType.negate);
-      
-      // 内存操作
-      case 'MS':
-      case 'MR':
-      case 'MC':
-      case 'M+':
-      case 'M-':
-        return CalculatorAction(type: CalculatorActionType.memory, value: label);
-      
-      // 默认情况：当作特殊按钮处理
-      default:
-        return CalculatorAction(type: CalculatorActionType.input, value: '0');
-    }
   }
 
   Map<String, dynamic> toJson() {
@@ -284,10 +201,10 @@ class GridPosition {
 
   factory GridPosition.fromJson(Map<String, dynamic> json) {
     return GridPosition(
-      row: CalculatorTheme._parseInt(json['row']) ?? 0,
-      column: CalculatorTheme._parseInt(json['column']) ?? 0,
-      rowSpan: CalculatorTheme._parseInt(json['rowSpan']),
-      columnSpan: CalculatorTheme._parseInt(json['columnSpan']),
+      row: (json['row'] as num?)?.toInt() ?? 0,
+      column: (json['column'] as num?)?.toInt() ?? 0,
+      rowSpan: (json['rowSpan'] as num?)?.toInt(),
+      columnSpan: (json['columnSpan'] as num?)?.toInt(),
     );
   }
 
@@ -323,16 +240,15 @@ class CalculatorLayout {
 
   factory CalculatorLayout.fromJson(Map<String, dynamic> json) {
     return CalculatorLayout(
-      name: json['name']?.toString() ?? 'AI 布局',
-      rows: CalculatorTheme._parseInt(json['rows']) ?? 6,
-      columns: CalculatorTheme._parseInt(json['columns']) ?? 4,
-      buttons: (json['buttons'] as List<dynamic>?)
-              ?.map((e) => CalculatorButton.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          [],
+      name: json['name']?.toString() ?? '标准布局',
+      rows: (json['rows'] as num?)?.toInt() ?? 6,
+      columns: (json['columns'] as num?)?.toInt() ?? 4,
+      buttons: (json['buttons'] as List?)
+          ?.map((e) => CalculatorButton.fromJson(e))
+          .toList() ?? [],
       hasDisplay: json['hasDisplay'] ?? true,
-      displayRowSpan: CalculatorTheme._parseInt(json['displayRowSpan']) ?? 1,
-      description: json['description']?.toString() ?? '',
+      displayRowSpan: (json['displayRowSpan'] as num?)?.toInt() ?? 1,
+      description: json['description']?.toString() ?? '由AI生成的计算器布局',
     );
   }
 
@@ -353,38 +269,39 @@ class CalculatorLayout {
 class CalculatorConfig {
   final String id;
   final String name;
-  final String? description;
-  final int version;
+  final String description;
   final CalculatorTheme theme;
   final CalculatorLayout layout;
   final Map<String, dynamic>? metadata;
+  final String version;
   final DateTime createdAt;
   final String? authorPrompt; // 用户的原始描述
 
   const CalculatorConfig({
     required this.id,
     required this.name,
-    this.description,
-    this.version = 1,
-    required this.createdAt,
-    this.authorPrompt,
+    required this.description,
     required this.theme,
     required this.layout,
     this.metadata,
+    this.version = '1.0.0',
+    required this.createdAt,
+    this.authorPrompt,
   });
 
   factory CalculatorConfig.fromJson(Map<String, dynamic> json) {
     return CalculatorConfig(
-      id: json['id']?.toString() ?? 'ai-config-${DateTime.now().millisecondsSinceEpoch}',
-      name: json['name']?.toString() ?? 'AI 生成计算器',
-      description: json['description']?.toString(),
-      version: CalculatorTheme._parseInt(json['version']) ?? 1,
-      createdAt: json['createdAt'] != null
+      id: json['id']?.toString() ?? 'generated-${DateTime.now().millisecondsSinceEpoch}',
+      name: json['name']?.toString() ?? '未命名计算器',
+      description: json['description']?.toString() ?? '',
+      theme: CalculatorTheme.fromJson(json['theme'] ?? {}),
+      layout: CalculatorLayout.fromJson(json['layout'] ?? {}),
+      metadata: json['metadata'],
+      version: json['version']?.toString() ?? '1.0.0',
+      createdAt: json['createdAt'] != null 
           ? DateTime.tryParse(json['createdAt'].toString()) ?? DateTime.now()
           : DateTime.now(),
       authorPrompt: json['authorPrompt']?.toString(),
-      theme: CalculatorTheme.fromJson(json['theme'] as Map<String, dynamic>? ?? {}),
-      layout: CalculatorLayout.fromJson(json['layout'] as Map<String, dynamic>? ?? {}),
     );
   }
 
