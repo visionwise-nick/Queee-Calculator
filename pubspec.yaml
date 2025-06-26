@@ -12,6 +12,7 @@ dependencies:
   cupertino_icons: ^1.0.8
   provider: ^6.1.2
   shared_preferences: ^2.2.3
+  math_expressions: ^3.0.0
   # audioplayers: ^6.1.0  # 临时注释以解决Android编译问题
 
 dev_dependencies:

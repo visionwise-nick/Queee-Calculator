@@ -1,34 +1,33 @@
 {
-  "id": "cyberpunk_calc",
-  "name": "赛博朋克计算器",
-  "description": "黑底配霓虹蓝的按键，未来感十足",
+  "id": "enhanced_test",
+  "name": "增强功能测试计算器",
+  "description": "展示所有新功能的测试计算器",
   "version": "1.0.0",
   "createdAt": "2024-01-01T00:00:00.000Z",
-  "authorPrompt": "我想要一个赛博朋克风格的计算器，黑底配霓虹蓝的按键",
+  "authorPrompt": "创建一个全功能的科学计算器，包含小费计算、平方、常数和单位转换",
   "theme": {
-    "name": "赛博朋克",
-    "backgroundColor": "#0a0a0a",
-    "displayBackgroundColor": "#1a1a2e",
-    "displayTextColor": "#00f5ff",
-    "primaryButtonColor": "#16213e",
-    "primaryButtonTextColor": "#00f5ff",
-    "secondaryButtonColor": "#0f3460",
-    "secondaryButtonTextColor": "#00f5ff",
-    "operatorButtonColor": "#e94560",
+    "name": "科技蓝",
+    "backgroundColor": "#0f1419",
+    "displayBackgroundColor": "#1e2328",
+    "displayTextColor": "#61afef",
+    "primaryButtonColor": "#282c34",
+    "primaryButtonTextColor": "#abb2bf",
+    "secondaryButtonColor": "#3e4451",
+    "secondaryButtonTextColor": "#61afef",
+    "operatorButtonColor": "#e06c75",
     "operatorButtonTextColor": "#ffffff",
-    "fontFamily": "JetBrains Mono",
-    "fontSize": 24.0,
-    "buttonBorderRadius": 12.0,
+    "fontSize": 20.0,
+    "buttonBorderRadius": 10.0,
     "hasGlowEffect": true,
-    "shadowColor": "#00f5ff"
+    "shadowColor": "#61afef"
   },
   "layout": {
-    "name": "标准布局",
-    "rows": 6,
-    "columns": 4,
+    "name": "增强科学布局",
+    "rows": 7,
+    "columns": 5,
     "hasDisplay": true,
     "displayRowSpan": 1,
-    "description": "经典的4x5计算器布局",
+    "description": "包含各种高级功能的计算器布局",
     "buttons": [
       {
         "id": "clear",
@@ -43,16 +42,31 @@
         "type": "secondary"
       },
       {
-        "id": "negate",
-        "label": "±",
+        "id": "backspace",
+        "label": "⌫",
         "action": {
-          "type": "negate"
+          "type": "backspace"
         },
         "gridPosition": {
           "row": 1,
           "column": 1
         },
         "type": "secondary"
+      },
+      {
+        "id": "tip_calculator",
+        "label": "小费15%",
+        "action": {
+          "type": "macro",
+          "macro": "input * 0.15"
+        },
+        "gridPosition": {
+          "row": 1,
+          "column": 2
+        },
+        "type": "special",
+        "customColor": "#98c379",
+        "customTextColor": "#ffffff"
       },
       {
         "id": "square",
@@ -63,11 +77,76 @@
         },
         "gridPosition": {
           "row": 1,
-          "column": 2
+          "column": 3
         },
         "type": "special",
-        "customColor": "#e94560",
+        "customColor": "#c678dd",
         "customTextColor": "#ffffff"
+      },
+      {
+        "id": "sqrt",
+        "label": "√x",
+        "action": {
+          "type": "scientific",
+          "value": "sqrt"
+        },
+        "gridPosition": {
+          "row": 1,
+          "column": 4
+        },
+        "type": "special"
+      },
+      {
+        "id": "sin",
+        "label": "sin",
+        "action": {
+          "type": "scientific",
+          "value": "sin"
+        },
+        "gridPosition": {
+          "row": 2,
+          "column": 0
+        },
+        "type": "special"
+      },
+      {
+        "id": "cos",
+        "label": "cos",
+        "action": {
+          "type": "scientific",
+          "value": "cos"
+        },
+        "gridPosition": {
+          "row": 2,
+          "column": 1
+        },
+        "type": "special"
+      },
+      {
+        "id": "pi",
+        "label": "π",
+        "action": {
+          "type": "constant",
+          "value": "pi"
+        },
+        "gridPosition": {
+          "row": 2,
+          "column": 2
+        },
+        "type": "special"
+      },
+      {
+        "id": "e",
+        "label": "e",
+        "action": {
+          "type": "constant",
+          "value": "e"
+        },
+        "gridPosition": {
+          "row": 2,
+          "column": 3
+        },
+        "type": "special"
       },
       {
         "id": "divide",
@@ -77,8 +156,8 @@
           "value": "/"
         },
         "gridPosition": {
-          "row": 1,
-          "column": 3
+          "row": 2,
+          "column": 4
         },
         "type": "operator"
       },
@@ -90,7 +169,7 @@
           "value": "7"
         },
         "gridPosition": {
-          "row": 2,
+          "row": 3,
           "column": 0
         },
         "type": "primary"
@@ -103,7 +182,7 @@
           "value": "8"
         },
         "gridPosition": {
-          "row": 2,
+          "row": 3,
           "column": 1
         },
         "type": "primary"
@@ -116,7 +195,7 @@
           "value": "9"
         },
         "gridPosition": {
-          "row": 2,
+          "row": 3,
           "column": 2
         },
         "type": "primary"
@@ -129,10 +208,23 @@
           "value": "*"
         },
         "gridPosition": {
-          "row": 2,
+          "row": 3,
           "column": 3
         },
         "type": "operator"
+      },
+      {
+        "id": "reciprocal",
+        "label": "1/x",
+        "action": {
+          "type": "function",
+          "value": "reciprocal"
+        },
+        "gridPosition": {
+          "row": 3,
+          "column": 4
+        },
+        "type": "special"
       },
       {
         "id": "four",
@@ -142,7 +234,7 @@
           "value": "4"
         },
         "gridPosition": {
-          "row": 3,
+          "row": 4,
           "column": 0
         },
         "type": "primary"
@@ -155,7 +247,7 @@
           "value": "5"
         },
         "gridPosition": {
-          "row": 3,
+          "row": 4,
           "column": 1
         },
         "type": "primary"
@@ -168,7 +260,7 @@
           "value": "6"
         },
         "gridPosition": {
-          "row": 3,
+          "row": 4,
           "column": 2
         },
         "type": "primary"
@@ -181,10 +273,22 @@
           "value": "-"
         },
         "gridPosition": {
-          "row": 3,
+          "row": 4,
           "column": 3
         },
         "type": "operator"
+      },
+      {
+        "id": "percentage",
+        "label": "%",
+        "action": {
+          "type": "percentage"
+        },
+        "gridPosition": {
+          "row": 4,
+          "column": 4
+        },
+        "type": "secondary"
       },
       {
         "id": "one",
@@ -194,7 +298,7 @@
           "value": "1"
         },
         "gridPosition": {
-          "row": 4,
+          "row": 5,
           "column": 0
         },
         "type": "primary"
@@ -207,7 +311,7 @@
           "value": "2"
         },
         "gridPosition": {
-          "row": 4,
+          "row": 5,
           "column": 1
         },
         "type": "primary"
@@ -220,7 +324,7 @@
           "value": "3"
         },
         "gridPosition": {
-          "row": 4,
+          "row": 5,
           "column": 2
         },
         "type": "primary"
@@ -233,10 +337,22 @@
           "value": "+"
         },
         "gridPosition": {
-          "row": 4,
+          "row": 5,
           "column": 3
         },
         "type": "operator"
+      },
+      {
+        "id": "negate",
+        "label": "±",
+        "action": {
+          "type": "negate"
+        },
+        "gridPosition": {
+          "row": 5,
+          "column": 4
+        },
+        "type": "secondary"
       },
       {
         "id": "zero",
@@ -246,7 +362,7 @@
           "value": "0"
         },
         "gridPosition": {
-          "row": 5,
+          "row": 6,
           "column": 0,
           "columnSpan": 2
         },
@@ -260,7 +376,7 @@
           "type": "decimal"
         },
         "gridPosition": {
-          "row": 5,
+          "row": 6,
           "column": 2
         },
         "type": "primary"
@@ -272,10 +388,12 @@
           "type": "equals"
         },
         "gridPosition": {
-          "row": 5,
-          "column": 3
+          "row": 6,
+          "column": 3,
+          "columnSpan": 2
         },
-        "type": "operator"
+        "type": "operator",
+        "isWide": true
       }
     ]
   }
