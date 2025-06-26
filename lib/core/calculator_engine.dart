@@ -11,6 +11,7 @@ enum CalculatorActionType {
   decimal,    // 小数点
   percentage, // 百分比
   negate,     // 正负号
+  tip,        // 小费计算
   macro,      // 自定义宏操作
   memory,     // 内存操作 (MS, MR, MC, M+, M-)
   scientific, // 科学计算 (sin, cos, sqrt, pow, etc.)
@@ -124,6 +125,8 @@ class CalculatorEngine {
           return _handlePercentage();
         case CalculatorActionType.negate:
           return _handleNegate();
+        case CalculatorActionType.tip:
+          return _handleTip(action.value!);
         case CalculatorActionType.macro:
           return _handleMacro(action.macro!, action.params);
         case CalculatorActionType.memory:
@@ -292,6 +295,19 @@ class CalculatorEngine {
     double value = double.parse(_state.display);
     _state = _state.copyWith(display: _formatResult(-value));
     return _state;
+  }
+
+  CalculatorState _handleTip(String percentage) {
+    if (_state.isError) return _state;
+    
+    try {
+      double value = double.parse(_state.display);
+      double tipRate = double.parse(percentage);
+      double tipAmount = value * tipRate;
+      return _state.copyWith(display: _formatResult(tipAmount));
+    } catch (e) {
+      return _state.copyWith(display: 'Error', isError: true);
+    }
   }
 
   CalculatorState _handleMacro(String macro, Map<String, dynamic>? params) {

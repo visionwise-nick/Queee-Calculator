@@ -1,22 +1,30 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-// import 'package:audioplayers/audioplayers.dart';  // 临时注释
 import '../core/calculator_engine.dart';
 import '../models/calculator_dsl.dart';
 import '../services/config_service.dart';
+import '../services/sound_service.dart';
 
 class CalculatorProvider extends ChangeNotifier {
   final CalculatorEngine _engine = CalculatorEngine();
+  final SoundService _soundService = SoundService();
   CalculatorConfig _config = CalculatorConfig.createDefault();
-  // final AudioPlayer _audioPlayer = AudioPlayer();  // 临时注释
 
   CalculatorState get state => _engine.state;
   CalculatorConfig get config => _config;
 
   /// 执行计算器操作
   void execute(CalculatorAction action) {
+    // 根据操作类型播放不同音效
+    String soundTrigger = 'buttonPress';
+    if (action.type == CalculatorActionType.equals) {
+      soundTrigger = 'calculation';
+    } else if (action.type == CalculatorActionType.clearAll) {
+      soundTrigger = 'clear';
+    }
+    
     _engine.execute(action);
-    _playSound('buttonPress');
+    _soundService.playSound(soundTrigger);
     notifyListeners();
   }
 
@@ -33,13 +41,17 @@ class CalculatorProvider extends ChangeNotifier {
   /// 更新计算器配置
   void updateConfig(CalculatorConfig newConfig) {
     _config = newConfig;
+    // 更新音效配置
+    _soundService.setSoundEffects(_config.theme.soundEffects);
     ConfigService.saveCurrentConfig(newConfig);
     notifyListeners();
   }
 
   /// 初始化配置
   Future<void> initializeConfig() async {
+    await _soundService.initialize();
     _config = await ConfigService.loadCurrentConfig();
+    _soundService.setSoundEffects(_config.theme.soundEffects);
     notifyListeners();
   }
 
@@ -55,25 +67,8 @@ class CalculatorProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// 播放音效 (临时禁用)
-  void _playSound(String trigger) {
-    // 临时注释音效功能以解决Android编译问题
-    // final soundEffect = _config.theme.soundEffects?.cast<SoundEffect?>().firstWhere(
-    //   (sound) => sound?.trigger == trigger,
-    //   orElse: () => null,
-    // );
-    // 
-    // if (soundEffect != null) {
-    //   try {
-    //     _audioPlayer.play(UrlSource(soundEffect.soundUrl));
-    //   } catch (e) {
-    //     // 音效播放失败时不影响计算器功能
-    //     if (kDebugMode) {
-    //       print('Sound playback failed: $e');
-    //     }
-    //   }
-    // }
-  }
+  /// 获取音效服务实例
+  SoundService get soundService => _soundService;
 
   /// 获取按钮颜色
   Color getButtonColor(CalculatorButton button) {
@@ -125,7 +120,7 @@ class CalculatorProvider extends ChangeNotifier {
 
   @override
   void dispose() {
-    // _audioPlayer.dispose();  // 临时注释
+    _soundService.dispose();
     super.dispose();
   }
 } 

@@ -18,7 +18,29 @@
     "operatorButtonTextColor": "#ffffff",
     "fontSize": 22.0,
     "buttonBorderRadius": 8.0,
-    "hasGlowEffect": false
+    "hasGlowEffect": false,
+    "soundEffects": [
+      {
+        "trigger": "buttonPress",
+        "soundUrl": "sounds/minimal/soft_tick.wav",
+        "volume": 0.6
+      },
+      {
+        "trigger": "calculation",
+        "soundUrl": "sounds/minimal/gentle_pop.wav",
+        "volume": 0.8
+      },
+      {
+        "trigger": "error",
+        "soundUrl": "sounds/error.wav",
+        "volume": 0.5
+      },
+      {
+        "trigger": "clear",
+        "soundUrl": "sounds/clear.wav",
+        "volume": 0.5
+      }
+    ]
   },
   "layout": {
     "name": "小费计算布局",

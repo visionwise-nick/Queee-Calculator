@@ -54,6 +54,11 @@ class _ThemeSettingsScreenState extends State<ThemeSettingsScreen> {
                     
                     const SizedBox(height: 24),
                     
+                    // 音效设置
+                    _buildSoundSettingsCard(provider),
+                    
+                    const SizedBox(height: 24),
+                    
                     // 预设主题
                     Text(
                       '预设主题',
@@ -141,6 +146,176 @@ class _ThemeSettingsScreenState extends State<ThemeSettingsScreen> {
             ],
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildSoundSettingsCard(CalculatorProvider provider) {
+    final soundService = provider.soundService;
+    final soundEffects = provider.config.theme.soundEffects;
+    
+    return Card(
+      color: provider.getDisplayBackgroundColor(),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.volume_up,
+                  color: provider.getDisplayTextColor(),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  '音效设置',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: provider.getDisplayTextColor(),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            
+            // 音效开关
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  '启用音效',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: provider.getDisplayTextColor(),
+                  ),
+                ),
+                Switch(
+                  value: soundService.soundEnabled,
+                  onChanged: (value) {
+                    soundService.setSoundEnabled(value);
+                    setState(() {});
+                  },
+                  activeColor: _parseColor(provider.config.theme.operatorButtonColor),
+                ),
+              ],
+            ),
+            
+            if (soundService.soundEnabled) ...[
+              const SizedBox(height: 16),
+              
+              // 主音量控制
+              Text(
+                '主音量',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: provider.getDisplayTextColor(),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Icon(
+                    Icons.volume_down,
+                    color: provider.getDisplayTextColor().withValues(alpha: 0.7),
+                  ),
+                  Expanded(
+                    child: Slider(
+                      value: soundService.masterVolume,
+                      onChanged: (value) {
+                        soundService.setMasterVolume(value);
+                        setState(() {});
+                      },
+                      activeColor: _parseColor(provider.config.theme.operatorButtonColor),
+                      inactiveColor: provider.getDisplayTextColor().withValues(alpha: 0.3),
+                    ),
+                  ),
+                  Icon(
+                    Icons.volume_up,
+                    color: provider.getDisplayTextColor().withValues(alpha: 0.7),
+                  ),
+                ],
+              ),
+              
+              // 音效测试按钮
+              const SizedBox(height: 16),
+              Text(
+                '音效预览',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: provider.getDisplayTextColor(),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  _buildSoundTestButton('按键音效', 'buttonPress', provider),
+                  _buildSoundTestButton('计算音效', 'calculation', provider),
+                  _buildSoundTestButton('清除音效', 'clear', provider),
+                  _buildSoundTestButton('错误音效', 'error', provider),
+                ],
+              ),
+              
+              // 音效信息
+              if (soundEffects != null && soundEffects.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                Text(
+                  '音效配置',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: provider.getDisplayTextColor(),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: provider.getButtonColor(provider.config.layout.buttons.first).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: provider.getDisplayTextColor().withValues(alpha: 0.2),
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: soundEffects.map((effect) => Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 2),
+                      child: Text(
+                        '${effect.trigger}: ${effect.soundUrl} (音量: ${(effect.volume * 100).toInt()}%)',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: provider.getDisplayTextColor().withValues(alpha: 0.8),
+                          fontFamily: 'monospace',
+                        ),
+                      ),
+                    )).toList(),
+                  ),
+                ),
+              ],
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSoundTestButton(String label, String trigger, CalculatorProvider provider) {
+    return ElevatedButton(
+      onPressed: () => provider.soundService.playSound(trigger),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: provider.getButtonColor(provider.config.layout.buttons.first),
+        foregroundColor: provider.getButtonTextColor(provider.config.layout.buttons.first),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(fontSize: 12),
       ),
     );
   }

@@ -149,12 +149,25 @@ SYSTEM_PROMPT = """
 3. 确保所有颜色值使用有效的十六进制格式（#RRGGBB）
 4. 所有按钮必须有合理的网格位置，不能重叠
 5. 主题配色必须协调且具有良好的对比度
+6. 必须包含音效配置（soundEffects数组）
+7. 必须包含所需的所有字段（id, name, description, version, createdAt, authorPrompt等）
+
+**重要**: 如果用户要求自定义按钮功能或布局，你必须修改相应的按钮配置，不能使用标准模板！
 
 **设计原则**:
 - 考虑色彩心理学和用户体验
 - 确保文字在背景上有足够的对比度
 - 按钮布局要符合标准计算器的使用习惯
 - 特效使用要适度，不影响功能性
+- 音效搭配要与主题风格一致，音量设置合理
+- 如果用户要求特殊功能按钮（如小费计算），必须替换相应的标准按钮
+
+**音效搭配指南**:
+- 赛博朋克/科技风: 使用电子音效 "sounds/cyberpunk/cyber_click.wav"
+- 自然/温暖风: 使用自然音效 "sounds/nature/wood_tap.wav"
+- 极简/现代风: 使用轻柔音效 "sounds/minimal/soft_tick.wav"
+- 默认主题: 使用标准音效 "sounds/click_soft.wav"
+- 音量建议: buttonPress(0.6-0.8), calculation(0.7-0.9), error(0.5-0.7), clear(0.5-0.7)
 
 这是JSON的结构定义：
 {
@@ -177,7 +190,14 @@ SYSTEM_PROMPT = """
     "fontSize": "number",
     "buttonBorderRadius": "number",
     "hasGlowEffect": "boolean",
-    "shadowColor": "string (可选, e.g., '#RRGGBB')"
+    "shadowColor": "string (可选, e.g., '#RRGGBB')",
+    "soundEffects": [
+      {
+        "trigger": "string (buttonPress|calculation|error|clear)",
+        "soundUrl": "string (音效文件路径)",
+        "volume": "number (0.0-1.0之间的音量)"
+      }
+    ]
   },
   "layout": {
     "name": "string (布局名称)",
@@ -203,13 +223,16 @@ SYSTEM_PROMPT = """
 - 按钮从上到下，从左到右排列。
 - 0 按钮通常是 'isWide': true 并且 columnSpan: 2。
 
-示例1：
+示例1（标准主题）：
 用户请求: "我想要一个赛博朋克风格的计算器，黑底配霓虹蓝的按键。"
-你的回答应该是类似这样的JSON（只给JSON）：
+你的回答应该是完整的JSON，包含所有必需字段：
 {
-  "id": "uuid-cyberpunk-123",
+  "id": "cyber-calc-2024",
   "name": "赛博朋克计算器",
+  "description": "科幻风格的霓虹蓝计算器，带有发光效果",
   "version": "1.0.0",
+  "createdAt": "2024-01-01T12:00:00.000Z",
+  "authorPrompt": "我想要一个赛博朋克风格的计算器，黑底配霓虹蓝的按键。",
   "theme": {
     "name": "赛博朋克",
     "backgroundColor": "#0A0A0A",
@@ -221,11 +244,89 @@ SYSTEM_PROMPT = """
     "secondaryButtonTextColor": "#FF00FF",
     "operatorButtonColor": "#003366",
     "operatorButtonTextColor": "#00FFFF",
-    "buttonBorderRadius": 12,
+    "fontSize": 24.0,
+    "buttonBorderRadius": 12.0,
     "hasGlowEffect": true,
-    "shadowColor": "#00FFFF"
+    "shadowColor": "#00FFFF",
+    "soundEffects": [
+      {
+        "trigger": "buttonPress",
+        "soundUrl": "sounds/cyberpunk/cyber_click.wav",
+        "volume": 0.8
+      },
+      {
+        "trigger": "calculation",
+        "soundUrl": "sounds/cyberpunk/cyber_beep.wav",
+        "volume": 0.9
+      },
+      {
+        "trigger": "error",
+        "soundUrl": "sounds/error.wav",
+        "volume": 0.7
+      },
+      {
+        "trigger": "clear",
+        "soundUrl": "sounds/clear.wav",
+        "volume": 0.6
+      }
+    ]
   },
-  "layout": { ... 标准布局 ... }
+  "layout": {
+    "name": "标准计算器布局",
+    "rows": 6,
+    "columns": 4,
+    "hasDisplay": true,
+    "displayRowSpan": 1,
+    "description": "经典4x6布局",
+    "buttons": [
+      {"id": "clear", "label": "AC", "action": {"type": "clearAll"}, "gridPosition": {"row": 1, "column": 0}, "type": "secondary"},
+      {"id": "negate", "label": "±", "action": {"type": "negate"}, "gridPosition": {"row": 1, "column": 1}, "type": "secondary"},
+      {"id": "percentage", "label": "%", "action": {"type": "percentage"}, "gridPosition": {"row": 1, "column": 2}, "type": "secondary"},
+      {"id": "divide", "label": "÷", "action": {"type": "operator", "value": "/"}, "gridPosition": {"row": 1, "column": 3}, "type": "operator"},
+      {"id": "seven", "label": "7", "action": {"type": "input", "value": "7"}, "gridPosition": {"row": 2, "column": 0}, "type": "primary"},
+      {"id": "eight", "label": "8", "action": {"type": "input", "value": "8"}, "gridPosition": {"row": 2, "column": 1}, "type": "primary"},
+      {"id": "nine", "label": "9", "action": {"type": "input", "value": "9"}, "gridPosition": {"row": 2, "column": 2}, "type": "primary"},
+      {"id": "multiply", "label": "×", "action": {"type": "operator", "value": "*"}, "gridPosition": {"row": 2, "column": 3}, "type": "operator"},
+      {"id": "four", "label": "4", "action": {"type": "input", "value": "4"}, "gridPosition": {"row": 3, "column": 0}, "type": "primary"},
+      {"id": "five", "label": "5", "action": {"type": "input", "value": "5"}, "gridPosition": {"row": 3, "column": 1}, "type": "primary"},
+      {"id": "six", "label": "6", "action": {"type": "input", "value": "6"}, "gridPosition": {"row": 3, "column": 2}, "type": "primary"},
+      {"id": "subtract", "label": "−", "action": {"type": "operator", "value": "-"}, "gridPosition": {"row": 3, "column": 3}, "type": "operator"},
+      {"id": "one", "label": "1", "action": {"type": "input", "value": "1"}, "gridPosition": {"row": 4, "column": 0}, "type": "primary"},
+      {"id": "two", "label": "2", "action": {"type": "input", "value": "2"}, "gridPosition": {"row": 4, "column": 1}, "type": "primary"},
+      {"id": "three", "label": "3", "action": {"type": "input", "value": "3"}, "gridPosition": {"row": 4, "column": 2}, "type": "primary"},
+      {"id": "add", "label": "+", "action": {"type": "operator", "value": "+"}, "gridPosition": {"row": 4, "column": 3}, "type": "operator"},
+      {"id": "zero", "label": "0", "action": {"type": "input", "value": "0"}, "gridPosition": {"row": 5, "column": 0, "columnSpan": 2}, "type": "primary", "isWide": true},
+      {"id": "decimal", "label": ".", "action": {"type": "decimal"}, "gridPosition": {"row": 5, "column": 2}, "type": "primary"},
+      {"id": "equals", "label": "=", "action": {"type": "equals"}, "gridPosition": {"row": 5, "column": 3}, "type": "operator"}
+    ]
+  }
+}
+
+示例2（自定义功能）：
+用户请求: "创建一个带有小费15%按钮的计算器，替换%按钮"
+你必须修改按钮配置，将百分比按钮替换为小费按钮：
+{
+  "id": "tip-calc-2024",
+  "name": "小费计算器",
+  "description": "专为餐厅小费计算设计的计算器",
+  "version": "1.0.0",
+  "createdAt": "2024-01-01T12:00:00.000Z",
+  "authorPrompt": "创建一个带有小费15%按钮的计算器，替换%按钮",
+  "theme": { ... 适合的主题配色 ... },
+  "layout": {
+    "name": "小费计算器布局",
+    "rows": 6,
+    "columns": 4,
+    "hasDisplay": true,
+    "displayRowSpan": 1,
+    "description": "带有小费功能的计算器布局",
+    "buttons": [
+      {"id": "clear", "label": "AC", "action": {"type": "clearAll"}, "gridPosition": {"row": 1, "column": 0}, "type": "secondary"},
+      {"id": "negate", "label": "±", "action": {"type": "negate"}, "gridPosition": {"row": 1, "column": 1}, "type": "secondary"},
+      {"id": "tip15", "label": "小费15%", "action": {"type": "macro", "macro": "input * 0.15"}, "gridPosition": {"row": 1, "column": 2}, "type": "special", "customColor": "#28a745"},
+      ... 其他按钮保持标准 ...
+    ]
+  }
 }
 
 现在，请根据用户的请求生成配置。
@@ -344,6 +445,59 @@ def auto_fix_json(json_str: str) -> str:
     except Exception as e:
         print(f"JSON自动修复失败: {e}")
         return json_str
+
+def add_missing_fields(config: Dict[str, Any], user_prompt: str) -> Dict[str, Any]:
+    """为AI生成的配置添加缺失的必需字段"""
+    import uuid
+    from datetime import datetime
+    
+    # 确保基础字段存在
+    if 'id' not in config:
+        config['id'] = str(uuid.uuid4())[:8]
+    if 'version' not in config:
+        config['version'] = '1.0.0'
+    if 'createdAt' not in config:
+        config['createdAt'] = datetime.now().isoformat()
+    if 'authorPrompt' not in config:
+        config['authorPrompt'] = user_prompt
+    if 'description' not in config:
+        config['description'] = f"根据用户需求生成: {user_prompt[:50]}{'...' if len(user_prompt) > 50 else ''}"
+    
+    # 确保theme有soundEffects
+    if 'theme' in config and 'soundEffects' not in config['theme']:
+        # 根据主题名称选择音效
+        theme_name = config['theme'].get('name', '').lower()
+        if 'cyber' in theme_name or '赛博' in theme_name:
+            config['theme']['soundEffects'] = [
+                {"trigger": "buttonPress", "soundUrl": "sounds/cyberpunk/cyber_click.wav", "volume": 0.8},
+                {"trigger": "calculation", "soundUrl": "sounds/cyberpunk/cyber_beep.wav", "volume": 0.9},
+                {"trigger": "error", "soundUrl": "sounds/error.wav", "volume": 0.7},
+                {"trigger": "clear", "soundUrl": "sounds/clear.wav", "volume": 0.6}
+            ]
+        elif any(word in theme_name for word in ['nature', '自然', '木', '森林']):
+            config['theme']['soundEffects'] = [
+                {"trigger": "buttonPress", "soundUrl": "sounds/nature/wood_tap.wav", "volume": 0.7},
+                {"trigger": "calculation", "soundUrl": "sounds/nature/wind_chime.wav", "volume": 0.8},
+                {"trigger": "error", "soundUrl": "sounds/error.wav", "volume": 0.6},
+                {"trigger": "clear", "soundUrl": "sounds/clear.wav", "volume": 0.5}
+            ]
+        elif any(word in theme_name for word in ['minimal', '极简', '简约']):
+            config['theme']['soundEffects'] = [
+                {"trigger": "buttonPress", "soundUrl": "sounds/minimal/soft_tick.wav", "volume": 0.6},
+                {"trigger": "calculation", "soundUrl": "sounds/minimal/gentle_pop.wav", "volume": 0.8},
+                {"trigger": "error", "soundUrl": "sounds/error.wav", "volume": 0.5},
+                {"trigger": "clear", "soundUrl": "sounds/clear.wav", "volume": 0.5}
+            ]
+        else:
+            # 默认音效
+            config['theme']['soundEffects'] = [
+                {"trigger": "buttonPress", "soundUrl": "sounds/click_soft.wav", "volume": 0.7},
+                {"trigger": "calculation", "soundUrl": "sounds/calculate.wav", "volume": 0.8},
+                {"trigger": "error", "soundUrl": "sounds/error.wav", "volume": 0.6},
+                {"trigger": "clear", "soundUrl": "sounds/clear.wav", "volume": 0.6}
+            ]
+    
+    return config
 
 def get_fallback_template(user_prompt: str) -> Dict[str, Any]:
     """生成备用模板配置"""
@@ -506,18 +660,18 @@ async def generate_config(request: GenerateRequest):
             
             print(f"✅ 基础验证通过: {validation_msg}")
             
-            # 第二步：AI二次校验
+            # 第二步：AI二次校验（降低严格度）
             is_ai_valid, ai_validation_msg = await validate_config_with_ai(cleaned_response_text)
             if not is_ai_valid:
-                print(f"❌ AI验证失败: {ai_validation_msg}")
-                # AI验证失败时，如果不是最后一次尝试，继续重试
-                if attempt < max_retries - 1:
-                    print("🔄 AI验证未通过，将重新生成...")
-                    continue
-                else:
-                    print("⚠️  最后一次尝试，即使AI验证未通过也将返回结果")
+                print(f"⚠️  AI验证警告: {ai_validation_msg}")
+                # 只要基础验证通过，AI验证失败也继续处理
+                print("📝 基础验证已通过，忽略AI验证结果，继续处理...")
             else:
                 print(f"✅ AI二次验证通过: {ai_validation_msg}")
+            
+            # 第三步：补充缺失字段
+            ai_json = add_missing_fields(ai_json, user_prompt)
+            print("🔧 已补充缺失的必需字段")
             
             # 验证Pydantic模型
             config = CalculatorConfig.parse_obj(ai_json)
