@@ -164,10 +164,12 @@ class CalculatorButton {
   });
 
   factory CalculatorButton.fromJson(Map<String, dynamic> json) {
+    String label = json['label']?.toString() ?? '';
+    
     return CalculatorButton(
       id: json['id']?.toString() ?? 'btn-${DateTime.now().millisecondsSinceEpoch}',
-      label: json['label']?.toString() ?? '',
-      action: CalculatorAction.fromJson(json['action'] as Map<String, dynamic>? ?? {}),
+      label: label,
+      action: _parseAction(json['action'] as Map<String, dynamic>?, label),
       gridPosition: GridPosition.fromJson(json['gridPosition'] as Map<String, dynamic>? ?? {}),
       type: ButtonType.values.firstWhere(
         (e) => e.toString() == 'ButtonType.${json['type']}',
@@ -179,6 +181,67 @@ class CalculatorButton {
       isWide: json['isWide'] ?? false,
       isHigh: json['isHigh'] ?? false,
     );
+  }
+
+  /// 智能解析action，如果没有提供则根据label自动生成
+  static CalculatorAction _parseAction(Map<String, dynamic>? actionJson, String label) {
+    if (actionJson != null && actionJson.isNotEmpty) {
+      try {
+        return CalculatorAction.fromJson(actionJson);
+      } catch (e) {
+        print('Failed to parse action from JSON: $e');
+      }
+    }
+    
+    // 根据label自动生成action
+    return _inferActionFromLabel(label);
+  }
+
+  /// 根据按钮标签推断操作类型
+  static CalculatorAction _inferActionFromLabel(String label) {
+    // 数字输入
+    if (RegExp(r'^[0-9A-F]$').hasMatch(label)) {
+      return CalculatorAction(type: CalculatorActionType.input, value: label);
+    }
+    
+    // 运算符
+    switch (label) {
+      case '+':
+      case '-':
+      case '*':
+      case '/':
+        return CalculatorAction(type: CalculatorActionType.operator, value: label);
+      case '=':
+        return CalculatorAction(type: CalculatorActionType.equals);
+      case '.':
+        return CalculatorAction(type: CalculatorActionType.decimal);
+      case 'C':
+      case 'Clear':
+        return CalculatorAction(type: CalculatorActionType.clear);
+      case 'AC':
+      case 'Clear All':
+        return CalculatorAction(type: CalculatorActionType.clearAll);
+      case '⌫':
+      case 'Backspace':
+        return CalculatorAction(type: CalculatorActionType.backspace);
+      case '%':
+        return CalculatorAction(type: CalculatorActionType.percentage);
+      case '±':
+      case '+/-':
+        return CalculatorAction(type: CalculatorActionType.negate);
+      
+      // 内存操作
+      case 'MS':
+      case 'MR':
+      case 'MC':
+      case 'M+':
+      case 'M-':
+        return CalculatorAction(type: CalculatorActionType.memory, value: label);
+      
+      // 默认情况：当作特殊按钮处理
+      default:
+        return CalculatorAction(type: CalculatorActionType.input, value: '0');
+    }
   }
 
   Map<String, dynamic> toJson() {

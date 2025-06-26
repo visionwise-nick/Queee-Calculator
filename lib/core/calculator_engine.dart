@@ -36,9 +36,15 @@ class CalculatorAction {
   });
 
   factory CalculatorAction.fromJson(Map<String, dynamic> json) {
+    if (json.isEmpty || json['type'] == null) {
+      // 返回默认的输入操作
+      return const CalculatorAction(type: CalculatorActionType.input, value: '0');
+    }
+    
     return CalculatorAction(
       type: CalculatorActionType.values.firstWhere(
         (e) => e.toString() == 'CalculatorActionType.${json['type']}',
+        orElse: () => CalculatorActionType.input,
       ),
       value: json['value'],
       macro: json['macro'],
@@ -148,9 +154,34 @@ class CalculatorEngine {
     }
   }
 
+  /// 处理进制切换的特殊操作
+  CalculatorState handleBaseChange(String newBase) {
+    try {
+      // 将当前显示值转换为十进制
+      double decimalValue = _parseDisplayValue(_state.display);
+      
+      // 更新进制
+      _state = _state.copyWith(base: newBase.toLowerCase());
+      
+      // 格式化并显示新进制的值
+      String newDisplay = _formatResult(decimalValue);
+      
+      return _state.copyWith(display: newDisplay);
+    } catch (e) {
+      print('Base change error: $e');
+      return _state.copyWith(display: 'Error', isError: true);
+    }
+  }
+
   CalculatorState _handleInput(String digit) {
     if (_state.isError) {
       _state = const CalculatorState();
+    }
+
+    // 验证输入是否有效（数字或十六进制字符）
+    if (!_isValidInput(digit)) {
+      print('Invalid input: $digit for base: ${_state.base}');
+      return _state;
     }
 
     if (_state.waitingForOperand) {
@@ -166,6 +197,22 @@ class CalculatorEngine {
       }
     }
     return _state;
+  }
+
+  /// 验证输入是否对当前进制有效
+  bool _isValidInput(String input) {
+    switch (_state.base) {
+      case 'hex':
+      case 'hexadecimal':
+        return RegExp(r'^[0-9A-Fa-f]$').hasMatch(input);
+      case 'binary':
+        return RegExp(r'^[01]$').hasMatch(input);
+      case 'octal':
+        return RegExp(r'^[0-7]$').hasMatch(input);
+      case 'decimal':
+      default:
+        return RegExp(r'^[0-9]$').hasMatch(input);
+    }
   }
 
   CalculatorState _handleOperator(String operator) {
@@ -213,8 +260,8 @@ class CalculatorEngine {
   String? _calculate() {
     if (_state.previousValue == null || _state.operator == null) return null;
 
-    double prev = double.parse(_state.previousValue!);
-    double current = double.parse(_state.display);
+    double prev = _parseDisplayValue(_state.previousValue!);
+    double current = _parseDisplayValue(_state.display);
     double result;
 
     switch (_state.operator) {
@@ -238,11 +285,40 @@ class CalculatorEngine {
     return _formatResult(result);
   }
 
+  /// 根据当前进制解析显示值
+  double _parseDisplayValue(String display) {
+    switch (_state.base) {
+      case 'hex':
+      case 'hexadecimal':
+        return int.parse(display, radix: 16).toDouble();
+      case 'binary':
+        return int.parse(display, radix: 2).toDouble();
+      case 'octal':
+        return int.parse(display, radix: 8).toDouble();
+      case 'decimal':
+      default:
+        return double.parse(display);
+    }
+  }
+
   String _formatResult(double result) {
-    if (result == result.toInt()) {
-      return result.toInt().toString();
-    } else {
-      return result.toStringAsFixed(8).replaceAll(RegExp(r'0*$'), '').replaceAll(RegExp(r'\.$'), '');
+    int intResult = result.round();
+    
+    switch (_state.base) {
+      case 'hex':
+      case 'hexadecimal':
+        return intResult.toRadixString(16).toUpperCase();
+      case 'binary':
+        return intResult.toRadixString(2);
+      case 'octal':
+        return intResult.toRadixString(8);
+      case 'decimal':
+      default:
+        if (result == result.toInt()) {
+          return result.toInt().toString();
+        } else {
+          return result.toStringAsFixed(8).replaceAll(RegExp(r'0*$'), '').replaceAll(RegExp(r'\.$'), '');
+        }
     }
   }
 
