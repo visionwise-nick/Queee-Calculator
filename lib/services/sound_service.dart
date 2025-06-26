@@ -44,18 +44,36 @@ class SoundService {
         // 计算最终音量
         final finalVolume = _masterVolume * soundEffect.volume;
         
+        // 音效文件路径映射（临时降级方案）
+        String actualSoundUrl = _mapSoundUrl(soundEffect.soundUrl);
+        
         // 播放音效
         await _audioPlayer.setVolume(finalVolume);
-        await _audioPlayer.play(AssetSource(soundEffect.soundUrl));
+        await _audioPlayer.play(AssetSource(actualSoundUrl));
         
-        debugPrint('🎵 播放音效: $trigger -> ${soundEffect.soundUrl}');
+        debugPrint('🎵 播放音效: $trigger -> $actualSoundUrl');
       } else {
         // 如果没有找到特定音效，播放默认音效
         await _playDefaultSound(trigger);
       }
     } catch (e) {
       debugPrint('❌ 音效播放失败: $trigger - $e');
+      // 降级到默认音效
+      await _playDefaultSound(trigger);
     }
+  }
+
+  /// 音效文件路径映射（降级方案）
+  String _mapSoundUrl(String originalUrl) {
+    // 对于不存在的音效文件，映射到实际存在的文件
+    if (originalUrl.contains('minimal/')) {
+      return 'sounds/click_soft.wav'; // 使用轻柔点击音效
+    } else if (originalUrl.contains('cyberpunk/')) {
+      return 'sounds/click_sharp.wav'; // 使用尖锐点击音效
+    } else if (originalUrl.contains('nature/')) {
+      return 'sounds/click_soft.wav'; // 使用轻柔点击音效
+    }
+    return originalUrl; // 保持原有路径
   }
 
   /// 播放默认音效

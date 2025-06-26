@@ -24,6 +24,9 @@ flutter:
   uses-material-design: true
   assets:
     - assets/sounds/
+    - assets/sounds/cyberpunk/
+    - assets/sounds/minimal/
+    - assets/sounds/nature/
     - assets/themes/
 
 # The following adds the Cupertino Icons font to your application. 

@@ -1,4 +1,4 @@
-import 'dart:math' as Math;
+import 'dart:math' as math;
 
 /// 计算器操作类型
 enum CalculatorActionType {
@@ -12,6 +12,7 @@ enum CalculatorActionType {
   percentage, // 百分比
   negate,     // 正负号
   tip,        // 小费计算
+  financial,  // 金融计算 (复利、税后、ROI等)
   macro,      // 自定义宏操作
   memory,     // 内存操作 (MS, MR, MC, M+, M-)
   scientific, // 科学计算 (sin, cos, sqrt, pow, etc.)
@@ -127,6 +128,8 @@ class CalculatorEngine {
           return _handleNegate();
         case CalculatorActionType.tip:
           return _handleTip(action.value!);
+        case CalculatorActionType.financial:
+          return _handleFinancial(action.value!, action.params);
         case CalculatorActionType.macro:
           return _handleMacro(action.macro!, action.params);
         case CalculatorActionType.memory:
@@ -310,6 +313,45 @@ class CalculatorEngine {
     }
   }
 
+  CalculatorState _handleFinancial(String function, Map<String, dynamic>? params) {
+    if (_state.isError) return _state;
+    
+    try {
+      double currentValue = double.parse(_state.display);
+      double result;
+      
+      switch (function) {
+        case 'compoundInterest':
+          // 复利计算: A = P(1 + r)^t
+          // 这里简化为年利率5%，1年期
+          double rate = params?['rate'] ?? 0.05; // 默认5%年利率
+          double time = params?['time'] ?? 1.0;  // 默认1年
+          result = currentValue * math.pow(1 + rate, time);
+          break;
+          
+        case 'roi':
+          // 投资收益率计算: ROI = (收益 - 投资) / 投资 * 100%
+          // 这里假设当前值是收益，需要输入投资成本
+          double investment = params?['investment'] ?? (currentValue * 0.8); // 假设80%是投资成本
+          result = ((currentValue - investment) / investment) * 100;
+          break;
+          
+        case 'afterTax':
+          // 税后收益: 税前收益 * (1 - 税率)
+          double taxRate = params?['taxRate'] ?? 0.20; // 默认20%税率
+          result = currentValue * (1 - taxRate);
+          break;
+          
+        default:
+          return _state;
+      }
+      
+      return _state.copyWith(display: _formatResult(result));
+    } catch (e) {
+      return _state.copyWith(display: 'Error', isError: true);
+    }
+  }
+
   CalculatorState _handleMacro(String macro, Map<String, dynamic>? params) {
     // 解析并执行宏命令，例如 "input * 0.15" (计算小费)
     try {
@@ -375,26 +417,26 @@ class CalculatorEngine {
     
     switch (function) {
       case 'sin':
-        result = Math.sin(currentValue);
+        result = math.sin(currentValue);
         break;
       case 'cos':
-        result = Math.cos(currentValue);
+        result = math.cos(currentValue);
         break;
       case 'tan':
-        result = Math.tan(currentValue);
+        result = math.tan(currentValue);
         break;
       case 'sqrt':
-        result = Math.sqrt(currentValue);
+        result = math.sqrt(currentValue);
         break;
       case 'pow':
         double exponent = params?['exponent'] ?? 2.0;
-        result = Math.pow(currentValue, exponent).toDouble();
+        result = math.pow(currentValue, exponent).toDouble();
         break;
       case 'log':
-        result = Math.log(currentValue);
+        result = math.log(currentValue);
         break;
       case 'ln':
-        result = Math.log(currentValue) / Math.ln10;
+        result = math.log(currentValue) / math.ln10;
         break;
       default:
         return _state;

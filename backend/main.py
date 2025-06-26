@@ -323,8 +323,24 @@ SYSTEM_PROMPT = """
     "buttons": [
       {"id": "clear", "label": "AC", "action": {"type": "clearAll"}, "gridPosition": {"row": 1, "column": 0}, "type": "secondary"},
       {"id": "negate", "label": "±", "action": {"type": "negate"}, "gridPosition": {"row": 1, "column": 1}, "type": "secondary"},
-      {"id": "tip15", "label": "小费15%", "action": {"type": "macro", "macro": "input * 0.15"}, "gridPosition": {"row": 1, "column": 2}, "type": "special", "customColor": "#28a745"},
+      {"id": "tip15", "label": "小费15%", "action": {"type": "tip", "value": "0.15"}, "gridPosition": {"row": 1, "column": 2}, "type": "special", "customColor": "#28a745"},
       ... 其他按钮保持标准 ...
+    ]
+  }
+}
+
+示例3（金融功能）：
+用户请求: "专业理财师计算器，添加复利、税后、ROI按钮"
+生成带有金融功能的计算器：
+{
+  ... 基础配置 ...
+  "layout": {
+    "buttons": [
+      {"id": "clear", "label": "AC", "action": {"type": "clearAll"}, "gridPosition": {"row": 1, "column": 0}, "type": "secondary"},
+      {"id": "compoundInterest", "label": "复利", "action": {"type": "financial", "value": "compoundInterest"}, "gridPosition": {"row": 1, "column": 1}, "type": "special"},
+      {"id": "afterTax", "label": "税后", "action": {"type": "financial", "value": "afterTax"}, "gridPosition": {"row": 1, "column": 2}, "type": "special"},
+      {"id": "roi", "label": "ROI", "action": {"type": "financial", "value": "roi"}, "gridPosition": {"row": 2, "column": 2}, "type": "special"},
+      ... 其他按钮 ...
     ]
   }
 }
