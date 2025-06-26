@@ -1,0 +1,234 @@
+{
+  "id": "enhanced_scientific",
+  "name": "增强科学计算器",
+  "description": "全功能科学计算器，支持三角函数、对数、平方根、内存操作等",
+  "theme": {
+    "backgroundColor": "#1a1a2e",
+    "primaryButtonColor": "#16213e",
+    "secondaryButtonColor": "#0f3460", 
+    "operatorButtonColor": "#e94560",
+    "primaryButtonTextColor": "#eee",
+    "secondaryButtonTextColor": "#fff",
+    "operatorButtonTextColor": "#fff",
+    "displayBackgroundColor": "#0f0f23",
+    "displayTextColor": "#00d9ff",
+    "fontSize": "18",
+    "borderRadius": "8",
+    "hasGlowEffect": true
+  },
+  "layout": {
+    "name": "科学计算器布局",
+    "rows": 6,
+    "columns": 5,
+    "buttons": [
+      {
+        "id": "rad_deg",
+        "label": "RAD",
+        "gridPosition": {"row": 0, "column": 0},
+        "type": "special",
+        "action": {"type": "conversion", "value": "rad_to_deg"}
+      },
+      {
+        "id": "sin",
+        "label": "sin",
+        "gridPosition": {"row": 0, "column": 1},
+        "type": "special",
+        "action": {"type": "scientific", "value": "sin"}
+      },
+      {
+        "id": "cos", 
+        "label": "cos",
+        "gridPosition": {"row": 0, "column": 2},
+        "type": "special",
+        "action": {"type": "scientific", "value": "cos"}
+      },
+      {
+        "id": "tan",
+        "label": "tan", 
+        "gridPosition": {"row": 0, "column": 3},
+        "type": "special",
+        "action": {"type": "scientific", "value": "tan"}
+      },
+      {
+        "id": "log",
+        "label": "log",
+        "gridPosition": {"row": 0, "column": 4},
+        "type": "special", 
+        "action": {"type": "scientific", "value": "log"}
+      },
+
+      {
+        "id": "pi",
+        "label": "π",
+        "gridPosition": {"row": 1, "column": 0},
+        "type": "special",
+        "action": {"type": "constant", "value": "pi"}
+      },
+      {
+        "id": "sqrt",
+        "label": "√",
+        "gridPosition": {"row": 1, "column": 1},
+        "type": "special",
+        "action": {"type": "macro", "macro": "sqrt(input)"}
+      },
+      {
+        "id": "square",
+        "label": "x²",
+        "gridPosition": {"row": 1, "column": 2},
+        "type": "special",
+        "action": {"type": "macro", "macro": "input * input"}
+      },
+      {
+        "id": "reciprocal", 
+        "label": "1/x",
+        "gridPosition": {"row": 1, "column": 3},
+        "type": "special",
+        "action": {"type": "function", "value": "reciprocal"}
+      },
+      {
+        "id": "clear_all",
+        "label": "AC",
+        "gridPosition": {"row": 1, "column": 4}, 
+        "type": "secondary",
+        "action": {"type": "clearAll"}
+      },
+
+      {
+        "id": "mc",
+        "label": "MC",
+        "gridPosition": {"row": 2, "column": 0},
+        "type": "secondary",
+        "action": {"type": "memory", "value": "MC"}
+      },
+      {
+        "id": "btn_7",
+        "label": "7",
+        "gridPosition": {"row": 2, "column": 1},
+        "type": "primary",
+        "action": {"type": "input", "value": "7"}
+      },
+      {
+        "id": "btn_8", 
+        "label": "8",
+        "gridPosition": {"row": 2, "column": 2},
+        "type": "primary",
+        "action": {"type": "input", "value": "8"}
+      },
+      {
+        "id": "btn_9",
+        "label": "9",
+        "gridPosition": {"row": 2, "column": 3},
+        "type": "primary", 
+        "action": {"type": "input", "value": "9"}
+      },
+      {
+        "id": "divide",
+        "label": "/",
+        "gridPosition": {"row": 2, "column": 4},
+        "type": "operator",
+        "action": {"type": "operator", "value": "/"}
+      },
+
+      {
+        "id": "mr",
+        "label": "MR", 
+        "gridPosition": {"row": 3, "column": 0},
+        "type": "secondary",
+        "action": {"type": "memory", "value": "MR"}
+      },
+      {
+        "id": "btn_4",
+        "label": "4",
+        "gridPosition": {"row": 3, "column": 1},
+        "type": "primary",
+        "action": {"type": "input", "value": "4"}
+      },
+      {
+        "id": "btn_5",
+        "label": "5", 
+        "gridPosition": {"row": 3, "column": 2},
+        "type": "primary",
+        "action": {"type": "input", "value": "5"}
+      },
+      {
+        "id": "btn_6",
+        "label": "6",
+        "gridPosition": {"row": 3, "column": 3},
+        "type": "primary",
+        "action": {"type": "input", "value": "6"}
+      },
+      {
+        "id": "multiply",
+        "label": "*",
+        "gridPosition": {"row": 3, "column": 4},
+        "type": "operator",
+        "action": {"type": "operator", "value": "*"}
+      },
+
+      {
+        "id": "m_plus",
+        "label": "M+",
+        "gridPosition": {"row": 4, "column": 0},
+        "type": "secondary",
+        "action": {"type": "memory", "value": "M+"}
+      },
+      {
+        "id": "btn_1",
+        "label": "1",
+        "gridPosition": {"row": 4, "column": 1},
+        "type": "primary", 
+        "action": {"type": "input", "value": "1"}
+      },
+      {
+        "id": "btn_2",
+        "label": "2",
+        "gridPosition": {"row": 4, "column": 2},
+        "type": "primary",
+        "action": {"type": "input", "value": "2"}
+      },
+      {
+        "id": "btn_3",
+        "label": "3",
+        "gridPosition": {"row": 4, "column": 3},
+        "type": "primary",
+        "action": {"type": "input", "value": "3"}
+      },
+      {
+        "id": "subtract",
+        "label": "-",
+        "gridPosition": {"row": 4, "column": 4},
+        "type": "operator",
+        "action": {"type": "operator", "value": "-"}
+      },
+
+      {
+        "id": "m_minus",
+        "label": "M-",
+        "gridPosition": {"row": 5, "column": 0},
+        "type": "secondary",
+        "action": {"type": "memory", "value": "M-"}
+      },
+      {
+        "id": "btn_0",
+        "label": "0",
+        "gridPosition": {"row": 5, "column": 1, "columnSpan": 2},
+        "type": "primary",
+        "action": {"type": "input", "value": "0"}
+      },
+      {
+        "id": "decimal",
+        "label": ".",
+        "gridPosition": {"row": 5, "column": 3},
+        "type": "primary",
+        "action": {"type": "decimal"}
+      },
+      {
+        "id": "add",
+        "label": "+", 
+        "gridPosition": {"row": 5, "column": 4},
+        "type": "operator",
+        "action": {"type": "operator", "value": "+"}
+      }
+    ]
+  }
+} 
