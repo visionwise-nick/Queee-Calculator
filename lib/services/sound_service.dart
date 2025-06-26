@@ -34,6 +34,12 @@ class SoundService {
   Future<void> playSound(String trigger) async {
     if (!_soundEnabled || _currentSoundEffects == null) return;
 
+    // 临时禁用音效播放，因为音效文件是占位符
+    debugPrint('🎵 音效触发: $trigger (当前使用占位符文件，已静音)');
+    return;
+
+    // TODO: 当真实音效文件可用时，启用以下代码
+    /*
     try {
       // 查找匹配的音效
       final soundEffect = _currentSoundEffects!
@@ -61,6 +67,7 @@ class SoundService {
       // 降级到默认音效
       await _playDefaultSound(trigger);
     }
+    */
   }
 
   /// 音效文件路径映射（降级方案）
@@ -78,6 +85,12 @@ class SoundService {
 
   /// 播放默认音效
   Future<void> _playDefaultSound(String trigger) async {
+    // 临时禁用，因为音效文件是占位符
+    debugPrint('🎵 默认音效触发: $trigger (占位符文件，已静音)');
+    return;
+
+    // TODO: 当真实音效文件可用时，启用以下代码
+    /*
     try {
       String defaultSoundUrl;
       
@@ -105,6 +118,7 @@ class SoundService {
     } catch (e) {
       debugPrint('❌ 默认音效播放失败: $e');
     }
+    */
   }
 
   /// 设置音效开关
