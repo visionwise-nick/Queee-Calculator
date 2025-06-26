@@ -424,12 +424,18 @@ class _AICustomizeScreenState extends State<AICustomizeScreen> {
     });
 
     try {
-      final CalculatorConfig newConfig = await _aiService.generateConfig(_promptController.text);
+      final CalculatorConfig? newConfig = await _aiService.generateConfig(_promptController.text);
       
       if (mounted) {
-        Provider.of<CalculatorProvider>(context, listen: false).updateConfig(newConfig);
-        // 成功后返回上一页
-        Navigator.of(context).pop();
+        if (newConfig != null) {
+          Provider.of<CalculatorProvider>(context, listen: false).updateConfig(newConfig);
+          // 成功后返回上一页
+          Navigator.of(context).pop();
+        } else {
+          setState(() {
+            _error = '生成失败: AI 服务返回空配置';
+          });
+        }
       }
 
     } catch (e) {

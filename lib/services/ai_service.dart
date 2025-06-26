@@ -3,19 +3,20 @@ import 'package:http/http.dart' as http;
 import '../models/calculator_dsl.dart';
 
 class AIService {
-  // 使用您部署在 Cloud Run 上的后端服务 URL
-  static const String _backendUrl = 'https://queee-calculator-backend-685339952769.us-central1.run.app/generate-config';
+  static const String _baseUrl = 'https://queee-calculator-backend-v2-685339952769.us-central1.run.app';
 
   /// 调用后端 AI 服务生成计算器配置
   /// 
-  /// [userPrompt] 是用户输入的自然语言描述
-  /// 返回一个 [CalculatorConfig] 对象，如果失败则抛出异常
-  Future<CalculatorConfig> generateConfig(String userPrompt) async {
+  /// [prompt] 是用户输入的自然语言描述
+  /// 返回一个 [CalculatorConfig] 对象，如果失败则返回 null
+  Future<CalculatorConfig?> generateConfig(String prompt) async {
+    final url = Uri.parse('$_baseUrl/generate-calculator');
+    
     try {
       final response = await http.post(
-        Uri.parse(_backendUrl),
-        headers: {'Content-Type': 'application/json; charset=UTF-8'},
-        body: json.encode({'prompt': userPrompt}),
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({'description': prompt}),
       );
 
       if (response.statusCode == 200) {
@@ -28,14 +29,17 @@ class AIService {
         print('------------------------');
 
         final configMap = json.decode(responseBody) as Map<String, dynamic>;
+        
+        // 自我修复和验证
         return CalculatorConfig.fromJson(configMap);
       } else {
-        // 如果服务器返回非 200 状态码，抛出异常
-        throw Exception('Failed to generate config from AI. Status code: ${response.statusCode}, Body: ${response.body}');
+        print('AI Service Error: ${response.statusCode}');
+        print('Response: ${response.body}');
+        return null;
       }
     } catch (e) {
-      // 捕获并重新抛出网络或其他异常
-      throw Exception('Error connecting to AI service: $e');
+      print('Failed to connect to AI service: $e');
+      return null;
     }
   }
 } 

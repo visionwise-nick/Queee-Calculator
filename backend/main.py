@@ -1,9 +1,10 @@
 import os
+import json
 import google.generativeai as genai
-from fastapi import FastAPI, HTTPException, Body
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-import json
+import uvicorn
 
 # --- Pydantic Models for Validation ---
 # 这些模型将确保AI生成的JSON与Flutter应用所需的结构一致
@@ -70,13 +71,16 @@ class CalculatorConfig(BaseModel):
     theme: CalculatorTheme
     layout: CalculatorLayout
 
-# --- FastAPI App Initialization ---
-app = FastAPI()
+class CalculatorRequest(BaseModel):
+    description: str
 
-# 配置CORS，允许Flutter应用（在开发环境中）调用
+# --- FastAPI App Initialization ---
+app = FastAPI(title="Queee Calculator Backend", version="1.0.0")
+
+# 配置CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # 在生产环境中应配置为你的前端域名
+    allow_origins=["*"],  # 在生产环境中应该限制为特定域名
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -85,7 +89,11 @@ app.add_middleware(
 # --- Gemini AI Configuration ---
 # 请确保您已在环境中设置 GOOGLE_API_KEY
 try:
-    genai.configure(api_key=os.environ["GOOGLE_API_KEY"])
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        raise ValueError("GEMINI_API_KEY 环境变量未设置")
+
+    genai.configure(api_key=api_key)
     model = genai.GenerativeModel('gemini-1.5-flash')
 except KeyError:
     print("错误：请设置 'GOOGLE_API_KEY' 环境变量。")
@@ -172,15 +180,12 @@ SYSTEM_PROMPT = """
 """
 
 # --- API Endpoint ---
-class GenerateRequest(BaseModel):
-    prompt: str
-
-@app.post("/generate-config", response_model=CalculatorConfig)
-async def generate_config(request: GenerateRequest):
+@app.post("/generate-calculator")
+async def generate_calculator(request: CalculatorRequest):
     if not model:
         raise HTTPException(status_code=500, detail="AI服务未配置，请检查服务器日志和环境变量。")
 
-    user_prompt = request.prompt
+    user_prompt = request.description
     full_prompt = f"{SYSTEM_PROMPT}\n\n用户请求: \"{user_prompt}\""
 
     try:
@@ -189,10 +194,9 @@ async def generate_config(request: GenerateRequest):
         # 清理AI返回的文本，移除可能存在的markdown代码块标记
         cleaned_response_text = response.text.strip().replace('```json', '').replace('```', '').strip()
         
-        # 解析和验证JSON
+        # 解析JSON并返回
         ai_json = json.loads(cleaned_response_text)
-        config = CalculatorConfig.parse_obj(ai_json)
-        return config
+        return ai_json
 
     except Exception as e:
         print(f"AI生成或解析JSON时出错: {e}")
@@ -201,4 +205,8 @@ async def generate_config(request: GenerateRequest):
 
 @app.get("/")
 def read_root():
-    return {"status": "Queee Calculator AI Service is running."} 
+    return {"status": "Queee Calculator AI Service is running."}
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 8080))
+    uvicorn.run(app, host="0.0.0.0", port=port) 

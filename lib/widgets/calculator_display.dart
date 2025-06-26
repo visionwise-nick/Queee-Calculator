@@ -47,18 +47,20 @@ class CalculatorDisplay extends StatelessWidget {
                 ),
               
               // 主显示区域
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                reverse: true,
-                child: Text(
-                  state.display,
-                  style: TextStyle(
-                    fontSize: _calculateFontSize(state.display),
-                    fontWeight: FontWeight.w300,
-                    color: state.isError
-                        ? Colors.red
-                        : _parseColor(theme.displayTextColor),
-                    fontFamily: theme.fontFamily,
+              Expanded(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  reverse: true,
+                  child: Text(
+                    state.display,
+                    style: TextStyle(
+                      fontSize: _calculateFontSize(state.display),
+                      fontWeight: FontWeight.w300,
+                      color: state.isError
+                          ? Colors.red
+                          : _parseColor(theme.displayTextColor),
+                      fontFamily: theme.fontFamily,
+                    ),
                   ),
                 ),
               ),
