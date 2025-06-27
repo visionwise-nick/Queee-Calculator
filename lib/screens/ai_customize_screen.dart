@@ -4,6 +4,7 @@ import '../providers/calculator_provider.dart';
 import '../services/ai_service.dart';
 import '../services/conversation_service.dart';
 import '../models/calculator_dsl.dart';
+import '../widgets/thinking_process_dialog.dart';
 
 class AICustomizeScreen extends StatefulWidget {
   const AICustomizeScreen({super.key});
@@ -116,12 +117,22 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
   }
 
   Future<void> _addAssistantMessage(String content, {CalculatorConfig? config}) async {
+    final metadata = <String, dynamic>{};
+    if (config != null) {
+      metadata['hasConfig'] = true;
+      metadata['configName'] = config.name;
+      if (config.thinkingProcess != null) {
+        metadata['hasThinkingProcess'] = true;
+        metadata['thinkingProcess'] = config.thinkingProcess;
+      }
+    }
+
     final message = ConversationMessage(
       id: ConversationService.generateMessageId(),
       type: MessageType.assistant,
       content: content,
       timestamp: DateTime.now(),
-      metadata: config != null ? {'hasConfig': true, 'configName': config.name} : null,
+      metadata: metadata.isNotEmpty ? metadata : null,
     );
 
     setState(() {
@@ -448,28 +459,84 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
                         ),
                         if (message.metadata?['hasConfig'] == true) ...[
                           const SizedBox(height: 12),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.9),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.check_circle, color: Colors.green.shade600, size: 16),
-                                const SizedBox(width: 6),
-                                Text(
-                                  '已应用到计算器',
-                                  style: TextStyle(
-                                    color: Colors.green.shade700,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.9),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.check_circle, color: Colors.green.shade600, size: 16),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      '已应用到计算器',
+                                      style: TextStyle(
+                                        color: Colors.green.shade700,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              if (message.metadata?['hasThinkingProcess'] == true) ...[
+                                GestureDetector(
+                                  onTap: () {
+                                    final thinkingProcess = message.metadata?['thinkingProcess'] as String?;
+                                    final configName = message.metadata?['configName'] as String? ?? '计算器';
+                                    if (thinkingProcess != null) {
+                                      showDialog(
+                                        context: context,
+                                        barrierDismissible: true,
+                                        barrierColor: Colors.black.withValues(alpha: 0.7),
+                                        builder: (context) => ThinkingProcessDialog(
+                                          thinkingProcess: thinkingProcess,
+                                          calculatorName: configName,
+                                        ),
+                                      );
+                                    }
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                    decoration: BoxDecoration(
+                                      gradient: LinearGradient(
+                                        colors: [Colors.purple.shade400, Colors.indigo.shade500],
+                                      ),
+                                      borderRadius: BorderRadius.circular(20),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.purple.withValues(alpha: 0.3),
+                                          blurRadius: 8,
+                                          offset: const Offset(0, 2),
+                                        ),
+                                      ],
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(Icons.psychology, color: Colors.white, size: 16),
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          '查看思考过程',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
                         ],
                       ],
                     ),

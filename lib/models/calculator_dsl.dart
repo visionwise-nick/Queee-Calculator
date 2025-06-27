@@ -207,6 +207,7 @@ class CalculatorConfig {
   final String version;
   final DateTime createdAt;
   final String? authorPrompt;
+  final String? thinkingProcess;
 
   const CalculatorConfig({
     required this.id,
@@ -217,6 +218,7 @@ class CalculatorConfig {
     this.version = '1.0.0',
     required this.createdAt,
     this.authorPrompt,
+    this.thinkingProcess,
   });
 
   factory CalculatorConfig.fromJson(Map<String, dynamic> json) {
@@ -231,6 +233,7 @@ class CalculatorConfig {
           ? DateTime.tryParse(json['createdAt'].toString()) ?? DateTime.now()
           : DateTime.now(),
       authorPrompt: json['authorPrompt']?.toString(),
+      thinkingProcess: json['thinkingProcess']?.toString(),
     );
   }
 
@@ -244,6 +247,7 @@ class CalculatorConfig {
       'version': version,
       'createdAt': createdAt.toIso8601String(),
       if (authorPrompt != null) 'authorPrompt': authorPrompt,
+      if (thinkingProcess != null) 'thinkingProcess': thinkingProcess,
     };
   }
 

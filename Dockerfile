@@ -13,11 +13,11 @@ COPY ./backend /app
 RUN pip install --no-cache-dir -r requirements.txt
 
 # 5. 声明容器将监听的端口
-# Cloud Run 会通过 PORT 环境变量告诉我们的应用应该在哪个端口上监听，通常是 8080
-EXPOSE 8080
+# Heroku 会通过 PORT 环境变量告诉我们的应用应该在哪个端口上监听
+EXPOSE $PORT
 
 # 6. 定义容器启动时要执行的命令
 # 使用 uvicorn 启动 FastAPI 应用
 # --host 0.0.0.0 让服务可以从容器外部访问
-# --port 8080 与上面 EXPOSE 的端口以及 Cloud Run 的要求一致
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080"] 
+# --port $PORT 使用环境变量中的端口，支持Heroku的动态端口分配
+CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT:-8080}"] 

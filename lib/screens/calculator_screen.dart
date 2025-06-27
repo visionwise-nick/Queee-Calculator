@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/calculator_provider.dart';
 import '../widgets/calculator_display.dart';
 import '../widgets/calculator_button_grid.dart';
-import 'theme_settings_screen.dart';
+import '../widgets/calculation_history_dialog.dart';
 import 'ai_customize_screen.dart';
 
 class CalculatorScreen extends StatelessWidget {
@@ -32,39 +32,82 @@ class CalculatorScreen extends StatelessWidget {
                           color: provider.getDisplayTextColor(),
                         ),
                       ),
-                      IconButton(
-                        icon: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                            borderRadius: BorderRadius.circular(12),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.purple.withOpacity(0.3),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
+                      Row(
+                        children: [
+                          // 运算历史按钮
+                          IconButton(
+                            icon: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  colors: [Color(0xFFFF6B35), Color(0xFFF7931E)],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ),
+                                borderRadius: BorderRadius.circular(12),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.orange.withOpacity(0.3),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
                               ),
-                            ],
-                          ),
-                          child: const Icon(
-                            Icons.chat_bubble_outline,
-                            color: Colors.white,
-                            size: 20,
-                          ),
-                        ),
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const AICustomizeScreen(),
+                              child: const Icon(
+                                Icons.history,
+                                color: Colors.white,
+                                size: 20,
+                              ),
                             ),
-                          );
-                        },
-                        tooltip: 'AI 助手',
+                            onPressed: () {
+                              showDialog(
+                                context: context,
+                                barrierDismissible: true,
+                                barrierColor: Colors.black.withValues(alpha: 0.7),
+                                builder: (context) => CalculationHistoryDialog(
+                                  steps: provider.calculationHistory,
+                                ),
+                              );
+                            },
+                            tooltip: '运算历史',
+                          ),
+                          const SizedBox(width: 8),
+                          // AI助手按钮
+                          IconButton(
+                            icon: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ),
+                                borderRadius: BorderRadius.circular(12),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.purple.withOpacity(0.3),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: const Icon(
+                                Icons.chat_bubble_outline,
+                                color: Colors.white,
+                                size: 20,
+                              ),
+                            ),
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const AICustomizeScreen(),
+                                ),
+                              );
+                            },
+                            tooltip: 'AI 助手',
+                          ),
+                        ],
                       ),
                     ],
                   ),

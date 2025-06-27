@@ -21,6 +21,28 @@ app.add_middleware(
 # 配置Gemini AI
 genai.configure(api_key=os.getenv('GEMINI_API_KEY'))
 
+# 可用模型配置
+AVAILABLE_MODELS = {
+    "pro": {
+        "name": "gemini-2.5-pro",
+        "display_name": "Gemini 2.5 Pro",
+        "description": "最强推理模型，复杂任务专用，响应时间较长"
+    },
+    "flash": {
+        "name": "gemini-2.0-flash-exp", 
+        "display_name": "Gemini 2.0 Flash",
+        "description": "快速响应模型，均衡性能，推荐日常使用"
+    },
+    "flash-thinking": {
+        "name": "gemini-2.0-flash-thinking-exp",
+        "display_name": "Gemini 2.0 Flash Thinking", 
+        "description": "思考推理模型，带有推理过程展示"
+    }
+}
+
+# 当前使用的模型（默认为flash，速度快且效果好）
+current_model_key = "flash"
+
 # Pydantic模型 - 简化版
 class GridPosition(BaseModel):
     row: int
@@ -73,6 +95,7 @@ class CalculatorConfig(BaseModel):
     version: str = "1.0.0"
     createdAt: str
     authorPrompt: Optional[str] = None
+    thinkingProcess: Optional[str] = None  # AI的思考过程
 
 class CustomizationRequest(BaseModel):
     user_input: str = Field(..., description="用户的自然语言描述")
@@ -173,17 +196,53 @@ SYSTEM_PROMPT = """你是专业的计算器设计大师。创造功能丰富、�
   }
 }
 
-🔥 关键要求：
-- 必须创造至少25个按钮（17个基础+8个以上专业功能）
-- 使用5列或6列布局容纳更多功能
-- 每个专业计算器都要有丰富的功能按钮
-- 不要只改颜色，要实际增加有用的计算功能
+🔥 设计原则：
+- 根据用户需求自由设计，可以是简单的基础计算器，也可以是复杂的专业计算器
+- 想要多少按钮就设计多少按钮，完全由需求决定
+- 可以自由选择布局（3列、4列、5列等）
+- 主题设计要符合用途和用户喜好
 
-设计目标：创造25-35个按钮的功能丰富计算器，结合用户需求选择最合适的功能组合，设计专业级的视觉主题。只返回JSON。"""
+设计目标：完全根据用户的具体需求设计计算器，自由发挥创造力。只返回JSON。"""
 
 @app.get("/health")
 async def health_check():
-    return {"status": "healthy", "version": "2.0.0"}
+    return {
+        "status": "healthy", 
+        "version": "2.0.0",
+        "current_model": AVAILABLE_MODELS[current_model_key]["display_name"],
+        "model_key": current_model_key
+    }
+
+@app.get("/models")
+async def get_available_models():
+    """获取所有可用的AI模型"""
+    return {
+        "available_models": AVAILABLE_MODELS,
+        "current_model": current_model_key
+    }
+
+@app.post("/switch-model/{model_key}")
+async def switch_model(model_key: str):
+    """动态切换AI模型"""
+    global current_model_key
+    
+    if model_key not in AVAILABLE_MODELS:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"不支持的模型: {model_key}. 可用模型: {list(AVAILABLE_MODELS.keys())}"
+        )
+    
+    old_model = AVAILABLE_MODELS[current_model_key]["display_name"]
+    current_model_key = model_key
+    new_model = AVAILABLE_MODELS[current_model_key]["display_name"]
+    
+    return {
+        "message": f"模型已切换: {old_model} → {new_model}",
+        "old_model": old_model,
+        "new_model": new_model,
+        "model_key": current_model_key,
+        "description": AVAILABLE_MODELS[current_model_key]["description"]
+    }
 
 @app.post("/customize")
 async def customize_calculator(request: CustomizationRequest) -> CalculatorConfig:
@@ -197,32 +256,68 @@ async def customize_calculator(request: CustomizationRequest) -> CalculatorConfi
                 conversation_context += f"{role}: {msg.get('content', '')}\n"
         
         # 构建用户提示
-        user_prompt = f"""设计计算器：{request.user_input}
+        user_prompt = f"""用户需求：{request.user_input}
 
 {conversation_context}
 
-要求完整JSON，包含：
+请生成一个完整的计算器配置JSON，包含：
 - name: 计算器名称  
 - description: 描述
 - theme: 主题颜色配置
-- layout: 按钮布局(必须包含17个基础按钮 + 至少8个专业功能按钮 = 25个以上按钮)
+- layout: 按钮布局
 
-重要：必须创造功能丰富的计算器，不要只改颜色！要增加实用的计算功能！
-使用5列或6列布局，创造25-35个按钮的专业计算器。
-
+根据用户具体需求设计，可以简单也可以复杂，自由发挥。
 按钮格式：{{"id":"按钮ID", "label":"显示文字", "action":{{"type":"操作类型", "value":"值或表达式"}}, "gridPosition":{{"row":行, "column":列}}, "type":"按钮类型"}}
 
-只返回JSON，无其他文字。"""
+只返回JSON配置，无其他内容。"""
 
-        # 调用Gemini AI
-        model = genai.GenerativeModel('gemini-2.0-flash-exp')
+        # 使用当前选择的模型
+        model_name = AVAILABLE_MODELS[current_model_key]["name"]
+        model_display = AVAILABLE_MODELS[current_model_key]["display_name"]
+        print(f"🤖 使用模型: {model_display} ({model_name})")
+        
+        model = genai.GenerativeModel(model_name)
         response = model.generate_content([SYSTEM_PROMPT, user_prompt])
         
         if not response.text:
             raise ValueError("AI没有返回有效响应")
         
-        # 清理响应文本
+        # 提取思考过程（如果是thinking模型）
+        thinking_process = None
         response_text = response.text.strip()
+        
+        if current_model_key == "flash-thinking":
+            print(f"📝 原始响应长度: {len(response_text)} 字符")
+            
+            # Flash Thinking模型的多种可能格式
+            if "<thinking>" in response_text and "</thinking>" in response_text:
+                # 标准thinking标签格式
+                thinking_start = response_text.find("<thinking>") + 10
+                thinking_end = response_text.find("</thinking>")
+                thinking_process = response_text[thinking_start:thinking_end].strip()
+                response_text = response_text[thinking_end + 11:].strip()
+                print(f"🧠 提取到思考过程(标签格式): {len(thinking_process)} 字符")
+            else:
+                # 尝试寻找JSON起始位置
+                json_start = response_text.find('{')
+                if json_start > 50:  # 如果JSON前有足够的文本，可能是思考过程
+                    potential_thinking = response_text[:json_start].strip()
+                    
+                    # 过滤掉可能的markdown格式标记
+                    if potential_thinking and not potential_thinking.startswith('```'):
+                        thinking_process = potential_thinking
+                        response_text = response_text[json_start:].strip()
+                        print(f"🧠 提取到思考过程(前缀格式): {len(thinking_process)} 字符")
+                    else:
+                        print("🤔 JSON前的内容似乎不是思考过程")
+                elif json_start == -1:
+                    # 找不到JSON，可能整个响应都是思考过程
+                    print("⚠️ 未找到JSON格式，可能需要重新请求")
+                    # 可以在这里添加重试逻辑或使用默认配置
+                else:
+                    print("🤔 JSON前内容过短，可能没有思考过程")
+        
+        # 清理响应文本
         if response_text.startswith('```json'):
             response_text = response_text[7:]
         if response_text.endswith('```'):
@@ -244,49 +339,11 @@ async def customize_calculator(request: CustomizationRequest) -> CalculatorConfi
             config_data['createdAt'] = datetime.now().isoformat()
         if 'authorPrompt' not in config_data:
             config_data['authorPrompt'] = request.user_input
+        if thinking_process:
+            config_data['thinkingProcess'] = thinking_process
         
-        # 验证生成的配置
+        # 直接验证生成的配置结构，完全信任AI的输出
         calculator_config = CalculatorConfig(**config_data)
-        
-        # 基础验证 - 鼓励更多按钮
-        if len(calculator_config.layout.buttons) < 20:
-            print(f"建议增加更多功能按钮，当前只有{len(calculator_config.layout.buttons)}个按钮")
-        
-        # 验证最多可以有50个按钮
-        if len(calculator_config.layout.buttons) > 50:
-            raise ValueError(f"按钮数量过多：最多50个按钮，当前有{len(calculator_config.layout.buttons)}个")
-        
-        # 检查必需的基础按钮
-        button_labels = [btn.label for btn in calculator_config.layout.buttons]
-        button_types = [btn.action.type for btn in calculator_config.layout.buttons]
-        
-        # 必需的数字按钮
-        required_numbers = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
-        missing_numbers = [num for num in required_numbers if num not in button_labels]
-        
-        # 必需的运算符按钮
-        required_operators = ['+', '-', '*', '/', '×', '÷']
-        has_operators = any(op in button_labels for op in required_operators)
-        
-        # 必需的功能按钮
-        has_equals = 'equals' in button_types or '=' in button_labels
-        has_clear = 'clearAll' in button_types or 'AC' in button_labels
-        has_decimal = 'decimal' in button_types or '.' in button_labels
-        
-        errors = []
-        if missing_numbers:
-            errors.append(f"缺少数字按钮: {missing_numbers}")
-        if not has_operators:
-            errors.append("缺少运算符按钮 (+, -, *, /)")
-        if not has_equals:
-            errors.append("缺少等号按钮 (=)")
-        if not has_clear:
-            errors.append("缺少清除按钮 (AC)")
-        if not has_decimal:
-            errors.append("缺少小数点按钮 (.)")
-            
-        if errors:
-            raise ValueError(f"配置验证失败: {'; '.join(errors)}")
         
         return calculator_config
         

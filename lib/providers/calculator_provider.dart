@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../core/calculator_engine.dart';
 import '../models/calculator_dsl.dart';
 import '../services/config_service.dart';
+import '../widgets/calculation_history_dialog.dart';
 
 class CalculatorProvider extends ChangeNotifier {
   final CalculatorEngine _engine = CalculatorEngine();
@@ -9,6 +10,7 @@ class CalculatorProvider extends ChangeNotifier {
 
   CalculatorConfig get config => _config;
   CalculatorState get state => _engine.state;
+  List<CalculationStep> get calculationHistory => _engine.calculationHistory;
 
   // 初始化
   Future<void> initialize() async {

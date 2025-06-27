@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import '../widgets/calculation_history_dialog.dart';
 
 /// 计算器操作类型 - 简化版本
 enum CalculatorActionType {
@@ -87,8 +88,10 @@ class CalculatorState {
 /// 增强的科学计算器引擎
 class CalculatorEngine {
   CalculatorState _state = const CalculatorState();
+  final List<CalculationStep> _calculationHistory = [];
 
   CalculatorState get state => _state;
+  List<CalculationStep> get calculationHistory => List.unmodifiable(_calculationHistory);
 
   /// 执行计算器操作
   CalculatorState execute(CalculatorAction action) {
@@ -291,6 +294,21 @@ class CalculatorEngine {
       double result = _evaluateScientificExpression(expression, currentValue);
       print('🔢 计算结果：$result');
       
+      // 记录计算步骤到历史
+      String description = _getDescriptionFromExpression(expression);
+      _calculationHistory.add(CalculationStep(
+        expression: expression,
+        description: description,
+        input: currentValue,
+        result: result,
+        timestamp: DateTime.now(),
+      ));
+      
+      // 限制历史记录数量，保留最近100条
+      if (_calculationHistory.length > 100) {
+        _calculationHistory.removeAt(0);
+      }
+      
       _state = _state.copyWith(
         display: _formatResult(result),
         waitingForOperand: true,
@@ -305,16 +323,10 @@ class CalculatorEngine {
 
   /// 科学计算表达式解析器
   double _evaluateScientificExpression(String expression, double x) {
-    // 替换变量
-    String processed = expression
-        .replaceAll('x', x.toString())
-        .replaceAll('input', x.toString())
-        .replaceAll('value', x.toString());
-
-    print('🔧 处理后的表达式：$processed');
+    print('🔧 计算表达式：$expression, 当前值：$x');
     
-    // 直接使用数学函数
-    switch (expression.toLowerCase()) {
+    // 直接匹配表达式模式（不需要替换变量）
+    switch (expression.toLowerCase().trim()) {
       // 三角函数 (弧度)
       case 'sin(x)':
         return math.sin(x);
@@ -430,8 +442,8 @@ class CalculatorEngine {
         return _factorial(x.toInt()).toDouble();
     }
     
-    // 如果没有匹配的函数，尝试解析为一般表达式
-    return _parseGeneralExpression(processed);
+    // 如果没有匹配的函数，尝试动态计算表达式
+    return _evaluateByReplacement(expression, x);
   }
 
   /// 计算阶乘
@@ -440,11 +452,19 @@ class CalculatorEngine {
     return n * _factorial(n - 1);
   }
 
-  /// 解析一般数学表达式 (简化版)
-  double _parseGeneralExpression(String expression) {
+  /// 动态替换变量并计算表达式
+  double _evaluateByReplacement(String expression, double x) {
     try {
+      // 替换变量
+      String processed = expression
+          .replaceAll('x', x.toString())
+          .replaceAll('input', x.toString())
+          .replaceAll('value', x.toString());
+
+      print('🔧 处理后的表达式：$processed');
+      
       // 简单表达式计算
-      return _evaluateSimpleExpression(expression);
+      return _evaluateSimpleExpression(processed);
     } catch (e) {
       print('⚠️ 表达式解析失败：$e');
       throw Exception('无法计算表达式');
@@ -494,8 +514,95 @@ class CalculatorEngine {
     return double.parse(expression);
   }
 
+  /// 根据表达式生成人类可读的描述
+  String _getDescriptionFromExpression(String expression) {
+    switch (expression.toLowerCase().trim()) {
+      // 三角函数
+      case 'sin(x)': return '正弦函数 sin(x)';
+      case 'cos(x)': return '余弦函数 cos(x)';
+      case 'tan(x)': return '正切函数 tan(x)';
+      case 'asin(x)': return '反正弦函数 arcsin(x)';
+      case 'acos(x)': return '反余弦函数 arccos(x)';
+      case 'atan(x)': return '反正切函数 arctan(x)';
+      
+      // 双曲函数
+      case 'sinh(x)': return '双曲正弦函数 sinh(x)';
+      case 'cosh(x)': return '双曲余弦函数 cosh(x)';
+      case 'tanh(x)': return '双曲正切函数 tanh(x)';
+      
+      // 对数函数
+      case 'log(x)':
+      case 'ln(x)': return '自然对数 ln(x)';
+      case 'log10(x)': return '常用对数 log₁₀(x)';
+      case 'log2(x)': return '二进制对数 log₂(x)';
+      
+      // 指数函数
+      case 'exp(x)':
+      case 'e^x': return '自然指数函数 eˣ';
+      case 'pow(2,x)':
+      case '2^x': return '二次幂 2ˣ';
+      case 'pow(10,x)':
+      case '10^x': return '十次幂 10ˣ';
+      
+      // 幂函数
+      case 'x*x':
+      case 'x^2': return '平方运算 x²';
+      case 'pow(x,3)':
+      case 'x^3': return '立方运算 x³';
+      case 'pow(x,4)':
+      case 'x^4': return '四次方运算 x⁴';
+      case 'pow(x,5)':
+      case 'x^5': return '五次方运算 x⁵';
+      
+      // 根号函数
+      case 'sqrt(x)': return '平方根 √x';
+      case 'pow(x,1/3)':
+      case 'cbrt(x)': return '立方根 ∛x';
+      
+      // 其他函数
+      case '1/x': return '倒数运算 1/x';
+      case 'abs(x)': return '绝对值 |x|';
+      case '1/sqrt(x)': return '平方根倒数 1/√x';
+      
+      // 百分比和倍数
+      case 'x*0.15': return '计算15%';
+      case 'x*0.20': return '计算20%';
+      case 'x*0.085': return '计算8.5%';
+      case 'x*1.13': return '增加13%';
+      case 'x*0.7': return '减少30%';
+      case 'x*2': return '乘以2';
+      
+      // 单位转换
+      case 'x*9/5+32': return '摄氏度转华氏度';
+      case '(x-32)*5/9': return '华氏度转摄氏度';
+      case 'x*2.54': return '英寸转厘米';
+      case 'x/2.54': return '厘米转英寸';
+      case 'x*10.764': return '平方米转平方英尺';
+      case 'x/10.764': return '平方英尺转平方米';
+      
+      // 特殊函数
+      case 'random()':
+      case 'rand()': return '生成随机数';
+      case 'x!':
+      case 'factorial(x)': return '阶乘运算 x!';
+      
+      default:
+        // 如果是复杂表达式，尝试简化描述
+        if (expression.contains('*')) return '乘法运算';
+        if (expression.contains('/')) return '除法运算';
+        if (expression.contains('+')) return '加法运算';
+        if (expression.contains('-')) return '减法运算';
+        return '数学表达式计算';
+    }
+  }
+
   /// 重置计算器状态
   void reset() {
     _state = const CalculatorState();
+  }
+
+  /// 清空计算历史
+  void clearHistory() {
+    _calculationHistory.clear();
   }
 } 
