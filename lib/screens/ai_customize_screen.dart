@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/calculator_provider.dart';
 import '../services/ai_service.dart';
-import '../services/config_service.dart';
+import '../services/conversation_service.dart';
+import '../models/calculator_dsl.dart';
 
 class AICustomizeScreen extends StatefulWidget {
   const AICustomizeScreen({super.key});
@@ -12,169 +13,254 @@ class AICustomizeScreen extends StatefulWidget {
 }
 
 class _AICustomizeScreenState extends State<AICustomizeScreen> {
-  final TextEditingController _promptController = TextEditingController();
-  bool _isGenerating = false;
-  String? _errorMessage;
-
-  List<String> get _examplePrompts => AIService.getSamplePrompts();
+  final TextEditingController _textController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
+  final FocusNode _focusNode = FocusNode();
+  
+  List<ConversationMessage> _messages = [];
+  bool _isLoading = false;
+  ConversationSession? _currentSession;
 
   @override
-  Widget build(BuildContext context) {
-    return Consumer<CalculatorProvider>(
-      builder: (context, provider, child) {
-        return Scaffold(
-          backgroundColor: provider.getBackgroundColor(),
-          appBar: AppBar(
-            title: const Text(
-              'AI 定制计算器',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            backgroundColor: provider.getBackgroundColor(),
-            foregroundColor: provider.getDisplayTextColor(),
-            elevation: 0,
-          ),
-          body: SingleChildScrollView(
-            child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // 介绍卡片
-                _buildIntroCard(provider),
-                
-                const SizedBox(height: 24),
-                
-                // 输入区域
-                _buildInputSection(provider),
-                
-                const SizedBox(height: 24),
-                
-                // 示例提示
-                _buildExamplePrompts(provider),
-                
-                  const SizedBox(height: 24),
-                
-                // 生成按钮
-                _buildGenerateButton(provider),
-                  
-                  // 底部安全间距
-                  const SizedBox(height: 32),
-              ],
-              ),
-            ),
-          ),
-        );
-      },
-    );
+  void initState() {
+    super.initState();
+    _loadCurrentSession();
+    _focusNode.requestFocus();
   }
 
-  Widget _buildIntroCard(CalculatorProvider provider) {
-    return Card(
-      color: provider.getDisplayBackgroundColor(),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(40),
-                gradient: const LinearGradient(
-                  colors: [Colors.purple, Colors.blue],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-              ),
-              child: const Icon(
-                Icons.auto_awesome,
-                color: Colors.white,
-                size: 40,
-              ),
-            ),
-            
-            const SizedBox(height: 16),
-            
-            Text(
-              '用自然语言描述你想要的计算器',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: provider.getDisplayTextColor(),
-              ),
-              textAlign: TextAlign.center,
-            ),
-            
-            const SizedBox(height: 8),
-            
-            Text(
-              'AI 将根据你的描述生成独一无二的计算器配置，包括主题颜色、按钮布局和特殊功能。',
-              style: TextStyle(
-                fontSize: 14,
-                color: provider.getDisplayTextColor().withValues(alpha: 0.7),
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
+  @override
+  void dispose() {
+    _textController.dispose();
+    _scrollController.dispose();
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadCurrentSession() async {
+    try {
+      var session = await ConversationService.getCurrentSession();
+      if (session == null) {
+        // 创建新会话
+        session = await ConversationService.createNewSession('AI定制会话');
+      }
+      
+      setState(() {
+        _currentSession = session;
+        _messages = session!.messages;
+      });
+      
+      // 如果是空会话，显示欢迎消息
+      if (_messages.isEmpty) {
+        await _addSystemMessage('👋 你好！我是你的计算器设计助手。\n\n你可以告诉我你想要什么样的计算器，比如：\n• "我想要一个蓝色的科学计算器"\n• "加个平方按钮"\n• "改成红色主题"\n• "按钮大一点"\n\n我会根据你的需求逐步完善设计！');
+      }
+    } catch (e) {
+      print('加载会话失败: $e');
+    }
+  }
+
+  Future<void> _addSystemMessage(String content) async {
+    final message = ConversationMessage(
+      id: ConversationService.generateMessageId(),
+      type: MessageType.system,
+      content: content,
+      timestamp: DateTime.now(),
+    );
+
+    setState(() {
+      _messages.add(message);
+    });
+
+    await ConversationService.addMessage(message);
+    _scrollToBottom();
+  }
+
+  Future<void> _addUserMessage(String content) async {
+    final message = ConversationMessage(
+      id: ConversationService.generateMessageId(),
+      type: MessageType.user,
+      content: content,
+      timestamp: DateTime.now(),
+    );
+
+    setState(() {
+      _messages.add(message);
+    });
+
+    await ConversationService.addMessage(message);
+    _scrollToBottom();
+  }
+
+  Future<void> _addAssistantMessage(String content, {CalculatorConfig? config}) async {
+    final message = ConversationMessage(
+      id: ConversationService.generateMessageId(),
+      type: MessageType.assistant,
+      content: content,
+      timestamp: DateTime.now(),
+      metadata: config != null ? {'hasConfig': true, 'configName': config.name} : null,
+    );
+
+    setState(() {
+      _messages.add(message);
+    });
+
+    await ConversationService.addMessage(message);
+    _scrollToBottom();
+  }
+
+  void _scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
+  }
+
+  Future<void> _sendMessage(String text) async {
+    if (text.trim().isEmpty || _isLoading) return;
+
+    final userInput = text.trim();
+    _textController.clear();
+
+    // 添加用户消息
+    await _addUserMessage(userInput);
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      // 调用AI服务生成配置
+      final config = await AIService.generateCalculatorFromPrompt(userInput);
+
+      if (config != null) {
+        // 应用新配置
+        final provider = Provider.of<CalculatorProvider>(context, listen: false);
+        await provider.applyConfig(config);
+
+        // 添加成功消息
+        await _addAssistantMessage(
+          '✅ 已为你生成"${config.name}"！\n\n${config.description}\n\n你还想做什么调整吗？',
+          config: config,
+        );
+      } else {
+        await _addAssistantMessage('❌ 抱歉，生成计算器时遇到问题。请重新描述你的需求。');
+      }
+    } catch (e) {
+      await _addAssistantMessage('❌ 出现错误：$e\n\n请重新尝试或换个说法。');
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  void _clearConversation() async {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('清空对话'),
+        content: const Text('确定要清空当前对话吗？此操作无法撤销。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.of(context).pop();
+              if (_currentSession != null) {
+                await ConversationService.deleteSession(_currentSession!.id);
+              }
+              await _loadCurrentSession();
+            },
+            child: const Text('确定'),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildInputSection(CalculatorProvider provider) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          '描述你的计算器',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: provider.getDisplayTextColor(),
-          ),
-        ),
-        
-        const SizedBox(height: 12),
-        
-        Card(
-          color: provider.getDisplayBackgroundColor(),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
+  Widget _buildMessageBubble(ConversationMessage message) {
+    final isUser = message.type == MessageType.user;
+    final isSystem = message.type == MessageType.system;
+    
+    return Container(
+      margin: EdgeInsets.only(
+        top: 8,
+        bottom: 8,
+        left: isUser ? 50 : 16,
+        right: isUser ? 16 : 50,
+      ),
+      child: Column(
+        crossAxisAlignment: isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: isSystem 
+                  ? Colors.blue.shade50
+                  : isUser 
+                      ? Theme.of(context).primaryColor
+                      : Colors.grey.shade100,
+              borderRadius: BorderRadius.circular(18),
+              border: isSystem ? Border.all(color: Colors.blue.shade200) : null,
+            ),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                TextField(
-                  controller: _promptController,
-                  maxLines: 4,
-                  style: TextStyle(
-                    color: provider.getDisplayTextColor(),
-                    fontSize: 16,
+                if (!isUser) ...[
+                  Row(
+                    children: [
+                      Icon(
+                        isSystem ? Icons.info_outline : Icons.smart_toy,
+                        size: 16,
+                        color: isSystem ? Colors.blue.shade600 : Colors.grey.shade600,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        isSystem ? '系统' : 'AI助手',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: isSystem ? Colors.blue.shade600 : Colors.grey.shade600,
+                        ),
+                      ),
+                    ],
                   ),
-                  decoration: InputDecoration(
-                    hintText: '例如：我想要一个赛博朋克风格的计算器，黑底配霓虹蓝的按键...',
-                    hintStyle: TextStyle(
-                      color: provider.getDisplayTextColor().withValues(alpha: 0.5),
-                    ),
-                    border: InputBorder.none,
+                  const SizedBox(height: 8),
+                ],
+                Text(
+                  message.content,
+                  style: TextStyle(
+                    color: isUser ? Colors.white : Colors.black87,
+                    fontSize: 16,
+                    height: 1.4,
                   ),
                 ),
-                
-                if (_errorMessage != null) ...[
-                  const SizedBox(height: 12),
+                if (message.metadata?['hasConfig'] == true) ...[
+                  const SizedBox(height: 8),
                   Container(
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: Colors.red.withValues(alpha: 0.1),
+                      color: Colors.green.shade50,
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+                      border: Border.all(color: Colors.green.shade200),
                     ),
                     child: Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.error, color: Colors.red, size: 20),
+                        Icon(Icons.check_circle, color: Colors.green.shade600, size: 16),
                         const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            _errorMessage!,
-                            style: const TextStyle(color: Colors.red, fontSize: 14),
+                        Text(
+                          '已应用配置',
+                          style: TextStyle(
+                            color: Colors.green.shade800,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
                       ],
@@ -184,284 +270,162 @@ class _AICustomizeScreenState extends State<AICustomizeScreen> {
               ],
             ),
           ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildExamplePrompts(CalculatorProvider provider) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          '示例想法 💡',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: provider.getDisplayTextColor(),
-          ),
-        ),
-        
-        const SizedBox(height: 12),
-        
-        ...List.generate(_examplePrompts.length, (index) {
-          if (index >= 3) return const SizedBox.shrink(); // 只显示前3个示例
-          
-          return Container(
-            margin: const EdgeInsets.only(bottom: 8),
-            child: Card(
-              color: provider.getDisplayBackgroundColor(),
-              child: InkWell(
-                onTap: () => _setExamplePrompt(_examplePrompts[index]),
-                borderRadius: BorderRadius.circular(8),
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.lightbulb_outline,
-                        color: provider.getDisplayTextColor().withValues(alpha: 0.6),
-                        size: 16,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          _examplePrompts[index],
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: provider.getDisplayTextColor().withValues(alpha: 0.8),
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+          const SizedBox(height: 4),
+          Padding(
+            padding: EdgeInsets.only(
+              left: isUser ? 0 : 16,
+              right: isUser ? 16 : 0,
             ),
-          );
-        }),
-        
-        if (_examplePrompts.length > 3)
-          TextButton(
-            onPressed: _showAllExamples,
             child: Text(
-              '查看更多示例 (${_examplePrompts.length - 3}+)',
+              _formatTimestamp(message.timestamp),
               style: TextStyle(
-                color: _parseColor(provider.config.theme.operatorButtonColor),
+                fontSize: 12,
+                color: Colors.grey.shade500,
               ),
             ),
           ),
-      ],
-    );
-  }
-
-  Widget _buildGenerateButton(CalculatorProvider provider) {
-    return Container(
-      height: 56,
-      child: ElevatedButton(
-        onPressed: _isGenerating ? null : _generateCalculator,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: _parseColor(provider.config.theme.operatorButtonColor),
-          foregroundColor: _parseColor(provider.config.theme.operatorButtonTextColor),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          elevation: 0,
-        ),
-        child: _isGenerating
-            ? Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        _parseColor(provider.config.theme.operatorButtonTextColor),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  const Text(
-                    'AI 正在生成中...',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                  ),
-                ],
-              )
-            : const Text(
-                '🎨 生成我的计算器',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-              ),
+        ],
       ),
     );
   }
 
-  void _setExamplePrompt(String prompt) {
-    _promptController.text = prompt;
-    setState(() {
-      _errorMessage = null;
-    });
-  }
+  String _formatTimestamp(DateTime timestamp) {
+    final now = DateTime.now();
+    final difference = now.difference(timestamp);
 
-  void _showAllExamples() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder: (context) => Consumer<CalculatorProvider>(
-        builder: (context, provider, child) {
-          return Container(
-            height: MediaQuery.of(context).size.height * 0.7,
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: provider.getBackgroundColor(),
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '示例描述',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: provider.getDisplayTextColor(),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                
-                Expanded(
-                  child: ListView.builder(
-                    itemCount: _examplePrompts.length,
-                    itemBuilder: (context, index) {
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 8),
-                        child: Card(
-                          color: provider.getDisplayBackgroundColor(),
-                          child: InkWell(
-                            onTap: () {
-                              _setExamplePrompt(_examplePrompts[index]);
-                              Navigator.pop(context);
-                            },
-                            borderRadius: BorderRadius.circular(8),
-                            child: Padding(
-                              padding: const EdgeInsets.all(16),
-                              child: Text(
-                                _examplePrompts[index],
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: provider.getDisplayTextColor(),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ],
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  Future<void> _generateCalculator() async {
-    final prompt = _promptController.text.trim();
-    
-    if (prompt.isEmpty) {
-      setState(() {
-        _errorMessage = '请输入你想要的计算器描述';
-      });
-      return;
-    }
-
-    setState(() {
-      _isGenerating = true;
-      _errorMessage = null;
-    });
-
-    try {
-      final generatedConfig = await AIService.generateCalculatorFromPrompt(prompt);
-      
-      if (generatedConfig != null) {
-        // 保存自定义配置
-        await ConfigService.saveCustomConfig(generatedConfig);
-        
-        // 应用新配置
-        if (mounted) {
-          context.read<CalculatorProvider>().applyConfig(generatedConfig);
-          
-          // 显示成功消息并返回
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('🎉 「${generatedConfig.name}」已生成并应用！'),
-              duration: const Duration(seconds: 3),
-              backgroundColor: Colors.green,
-            ),
-          );
-          
-          Navigator.pop(context);
-        }
-      } else {
-        setState(() {
-          _errorMessage = 'AI 生成失败，请尝试重新描述您的需求';
-        });
-      }
-    } catch (e) {
-      setState(() {
-        _errorMessage = '生成过程中出现错误：$e';
-      });
-    } finally {
-      setState(() {
-        _isGenerating = false;
-      });
-    }
-  }
-
-  Color _parseColor(String colorString) {
-    try {
-      if (colorString.startsWith('#')) {
-        return Color(int.parse(colorString.substring(1), radix: 16) | 0xFF000000);
-      }
-      return Colors.grey;
-    } catch (e) {
-      return Colors.grey;
+    if (difference.inMinutes < 1) {
+      return '刚刚';
+    } else if (difference.inMinutes < 60) {
+      return '${difference.inMinutes}分钟前';
+    } else if (difference.inHours < 24) {
+      return '${difference.inHours}小时前';
+    } else {
+      return '${timestamp.month}/${timestamp.day} ${timestamp.hour}:${timestamp.minute.toString().padLeft(2, '0')}';
     }
   }
 
   @override
-  void dispose() {
-    _promptController.dispose();
-    super.dispose();
-  }
-}
-
-extension on CalculatorProvider {
-  Color getBackgroundColor() {
-    return _parseColor(config.theme.backgroundColor);
-  }
-  
-  Color getDisplayBackgroundColor() {
-    return _parseColor(config.theme.displayBackgroundColor);
-  }
-  
-  Color getDisplayTextColor() {
-    return _parseColor(config.theme.displayTextColor);
-  }
-  
-  Color _parseColor(String colorString) {
-    try {
-      if (colorString.startsWith('#')) {
-        return Color(int.parse(colorString.substring(1), radix: 16) | 0xFF000000);
-      }
-      return Colors.grey;
-    } catch (e) {
-      return Colors.grey;
-    }
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('AI计算器定制'),
+        backgroundColor: Theme.of(context).primaryColor,
+        foregroundColor: Colors.white,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _clearConversation,
+            tooltip: '新对话',
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          // 对话区域
+          Expanded(
+            child: ListView.builder(
+              controller: _scrollController,
+              padding: const EdgeInsets.all(8),
+              itemCount: _messages.length + (_isLoading ? 1 : 0),
+              itemBuilder: (context, index) {
+                if (index == _messages.length) {
+                  // 加载指示器
+                  return Container(
+                    margin: const EdgeInsets.only(left: 16, right: 50, top: 8, bottom: 8),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade100,
+                            borderRadius: BorderRadius.circular(18),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    Theme.of(context).primaryColor,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              const Text('AI正在思考中...'),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+                return _buildMessageBubble(_messages[index]);
+              },
+            ),
+          ),
+          
+          // 输入区域
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  offset: const Offset(0, -1),
+                  blurRadius: 4,
+                  color: Colors.black.withOpacity(0.1),
+                ),
+              ],
+            ),
+            child: SafeArea(
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade100,
+                        borderRadius: BorderRadius.circular(24),
+                      ),
+                      child: TextField(
+                        controller: _textController,
+                        focusNode: _focusNode,
+                        maxLines: null,
+                        textInputAction: TextInputAction.send,
+                        decoration: const InputDecoration(
+                          hintText: '告诉我你想要什么样的计算器...',
+                          border: InputBorder.none,
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 12,
+                          ),
+                        ),
+                        onSubmitted: _sendMessage,
+                        enabled: !_isLoading,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).primaryColor,
+                      shape: BoxShape.circle,
+                    ),
+                    child: IconButton(
+                      icon: const Icon(Icons.send, color: Colors.white),
+                      onPressed: _isLoading 
+                          ? null 
+                          : () => _sendMessage(_textController.text),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 } 
