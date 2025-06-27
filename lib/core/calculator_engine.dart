@@ -285,10 +285,12 @@ class CalculatorEngine {
       double result = _evaluateExpression(processedExpression);
       print('🔢 计算结果：$result');
       
-      return _state.copyWith(display: _formatResult(result));
+      _state = _state.copyWith(display: _formatResult(result));
+      return _state;
     } catch (e) {
       print('❌ 表达式计算错误：$e');
-      return _state.copyWith(display: 'Error', isError: true);
+      _state = _state.copyWith(display: 'Error', isError: true);
+      return _state;
     }
   }
 
