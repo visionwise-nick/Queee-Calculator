@@ -169,10 +169,15 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
     });
 
     try {
-      final config = await AIService.generateCalculatorFromPrompt(userInput);
+      final provider = Provider.of<CalculatorProvider>(context, listen: false);
+      final currentConfig = provider.config;
+      
+      final config = await AIService.generateCalculatorFromPrompt(
+        userInput,
+        currentConfig: currentConfig,
+      );
 
       if (config != null) {
-        final provider = Provider.of<CalculatorProvider>(context, listen: false);
         await provider.applyConfig(config);
 
         await _addAssistantMessage(

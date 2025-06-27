@@ -100,6 +100,7 @@ class CalculatorConfig(BaseModel):
 class CustomizationRequest(BaseModel):
     user_input: str = Field(..., description="用户的自然语言描述")
     conversation_history: Optional[List[Dict[str, str]]] = Field(default=[], description="对话历史")
+    current_config: Optional[Dict[str, Any]] = Field(default=None, description="当前计算器配置")
 
 # 强化的AI系统提示
 SYSTEM_PROMPT = """你是专业的计算器设计大师。创造功能丰富、设计精美的专业计算器。
@@ -247,29 +248,104 @@ async def switch_model(model_key: str):
 @app.post("/customize")
 async def customize_calculator(request: CustomizationRequest) -> CalculatorConfig:
     try:
-        # 构建对话历史上下文
+        # 分析对话历史和当前配置，确定设计继承策略
         conversation_context = ""
-        if request.conversation_history:
-            conversation_context = "\n\n对话历史：\n"
-            for msg in request.conversation_history[-5:]:  # 只保留最近5条
-                role = "用户" if msg.get("role") == "user" else "AI"
-                conversation_context += f"{role}: {msg.get('content', '')}\n"
+        current_config_info = ""
+        is_iterative_request = False
         
-        # 构建用户提示
-        user_prompt = f"""用户需求：{request.user_input}
+        # 检查是否有当前配置（最重要的继承依据）
+        if request.current_config:
+            current_config_info = f"""
+📋 【当前计算器配置】
+名称: {request.current_config.get('name', '未知')}
+描述: {request.current_config.get('description', '未知')}
+主题: {request.current_config.get('theme', {}).get('name', '未知主题')}
+按钮数量: {len(request.current_config.get('layout', {}).get('buttons', []))}
+布局: {request.current_config.get('layout', {}).get('rows', '?')}行×{request.current_config.get('layout', {}).get('columns', '?')}列
+
+🎨 当前主题配色:
+- 背景色: {request.current_config.get('theme', {}).get('backgroundColor', '未知')}
+- 显示屏: {request.current_config.get('theme', {}).get('displayBackgroundColor', '未知')}
+- 主要按钮: {request.current_config.get('theme', {}).get('primaryButtonColor', '未知')}
+- 运算符按钮: {request.current_config.get('theme', {}).get('operatorButtonColor', '未知')}
+
+⚠️ 这是需要继承和保持的基础设计！
+"""
+            is_iterative_request = True
+        
+        if request.conversation_history:
+            conversation_context = "\n\n📚 对话历史分析：\n"
+            
+            # 查找最近的AI生成配置信息
+            for i, msg in enumerate(reversed(request.conversation_history[-10:])):
+                role = "用户" if msg.get("role") == "user" else "AI助手"
+                content = msg.get('content', '')
+                conversation_context += f"{role}: {content}\n"
+                
+                                # 检测是否为增量修改请求
+                if msg.get("role") == "user" and any(keyword in content.lower() for keyword in [
+                    '修改', '改变', '调整', '优化', '增加', '删除', '换', '改成', '变成', 
+                    '把', '将', '设置', '改为', '换成', '加一个', '去掉', '改下', '换个'
+                ]):
+                    is_iterative_request = True
+        
+        # 根据对话类型构建不同的提示策略
+        if is_iterative_request and request.current_config:
+            # 增量修改模式
+            design_instruction = """
+🔄 【增量修改模式】
+重要原则：
+1. 保持现有设计的核心特征和风格
+2. 仅针对用户明确提及的部分进行修改
+3. 未提及的按钮、颜色、布局保持不变
+4. 优先微调而非重新设计
+
+修改策略：
+- 如果用户要求改变某个按钮，只修改该按钮
+- 如果用户要求调整颜色，只改变相关颜色属性
+- 如果用户要求添加功能，在现有布局基础上扩展
+- 保持整体主题风格的一致性
+"""
+        else:
+            # 全新设计模式
+            design_instruction = """
+🆕 【全新设计模式】
+设计策略：
+- 根据用户需求从零开始设计
+- 可以自由选择主题、布局、功能
+- 创造符合用户期望的完整计算器
+"""
+        
+        # 构建智能化的用户提示
+        user_prompt = f"""当前用户需求：{request.user_input}
+
+{current_config_info}
 
 {conversation_context}
 
-请生成一个完整的计算器配置JSON，包含：
+{design_instruction}
+
+🎯 任务要求：
+请生成一个完整的计算器配置JSON，严格按照以下原则：
+
+{'【继承现有设计】在现有计算器基础上进行精确修改，未提及的元素保持原样' if is_iterative_request else '【全新设计】根据用户需求创建全新的计算器'}
+
+必须包含的字段：
 - name: 计算器名称  
-- description: 描述
-- theme: 主题颜色配置
-- layout: 按钮布局
+- description: 功能描述
+- theme: 完整的主题配色方案
+- layout: 包含所有按钮的布局配置
 
-根据用户具体需求设计，可以简单也可以复杂，自由发挥。
-按钮格式：{{"id":"按钮ID", "label":"显示文字", "action":{{"type":"操作类型", "value":"值或表达式"}}, "gridPosition":{{"row":行, "column":列}}, "type":"按钮类型"}}
+按钮格式标准：
+{{"id":"唯一ID", "label":"显示文字", "action":{{"type":"操作类型", "value/expression":"参数"}}, "gridPosition":{{"row":行号, "column":列号}}, "type":"按钮类型"}}
 
-只返回JSON配置，无其他内容。"""
+⚠️ 特别注意：
+- 如果是修改请求，精确理解用户要改什么，不改什么
+- 保持基础计算功能的完整性（数字0-9、运算符+−×÷、等号=、清除AC）
+- 主题颜色要协调统一
+- 布局要合理，避免按钮重叠
+
+只返回JSON配置，不要任何解释文字。"""
 
         # 使用当前选择的模型
         model_name = AVAILABLE_MODELS[current_model_key]["name"]

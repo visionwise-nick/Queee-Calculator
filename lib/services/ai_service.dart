@@ -9,7 +9,10 @@ class AIService {
   static const String _baseUrl = 'https://queee-calculator-ai-backend-685339952769.us-central1.run.app';
 
   /// 根据用户描述生成计算器配置
-  static Future<CalculatorConfig?> generateCalculatorFromPrompt(String userPrompt) async {
+  static Future<CalculatorConfig?> generateCalculatorFromPrompt(
+    String userPrompt, {
+    CalculatorConfig? currentConfig,
+  }) async {
     try {
       // 记录用户消息
       await _recordUserMessage(userPrompt);
@@ -22,10 +25,18 @@ class AIService {
       final headers = {
         'Content-Type': 'application/json',
       };
-      final body = json.encode({
+      
+      final requestBody = {
         'user_input': userPrompt,
         'conversation_history': conversationHistory,
-      });
+      };
+      
+      // 如果有当前配置，添加到请求中
+      if (currentConfig != null) {
+        requestBody['current_config'] = currentConfig.toJson();
+      }
+      
+      final body = json.encode(requestBody);
 
       print('🚀 正在调用 AI 服务...');
       print('URL: $url');
@@ -50,7 +61,10 @@ class AIService {
         print('✅ AI 配置生成成功: ${config.name}');
         
         // 记录AI响应
-        await _recordAssistantMessage('生成了计算器配置: ${config.name}');
+        final responseMsg = currentConfig != null 
+            ? '优化了计算器配置: ${config.name}'
+            : '生成了计算器配置: ${config.name}';
+        await _recordAssistantMessage(responseMsg);
         
         return config;
       } else {
