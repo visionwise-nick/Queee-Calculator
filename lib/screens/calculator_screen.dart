@@ -32,41 +32,39 @@ class CalculatorScreen extends StatelessWidget {
                           color: provider.getDisplayTextColor(),
                         ),
                       ),
-                      Row(
-                        children: [
-                          // AI 定制按钮 (现在包含对话历史)
-                          IconButton(
-                            icon: Icon(
-                              Icons.auto_awesome,
-                              color: provider.getDisplayTextColor(),
+                      IconButton(
+                        icon: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
                             ),
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const AICustomizeScreen(),
-                                ),
-                              );
-                            },
-                            tooltip: 'AI 对话定制',
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.purple.withOpacity(0.3),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
                           ),
-                          // 设置按钮
-                          IconButton(
-                            icon: Icon(
-                              Icons.settings,
-                              color: provider.getDisplayTextColor(),
+                          child: const Icon(
+                            Icons.chat_bubble_outline,
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                        ),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const AICustomizeScreen(),
                             ),
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const ThemeSettingsScreen(),
-                                ),
-                              );
-                            },
-                            tooltip: '主题设置',
-                          ),
-                        ],
+                          );
+                        },
+                        tooltip: 'AI 助手',
                       ),
                     ],
                   ),

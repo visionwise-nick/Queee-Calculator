@@ -12,7 +12,8 @@ class AICustomizeScreen extends StatefulWidget {
   State<AICustomizeScreen> createState() => _AICustomizeScreenState();
 }
 
-class _AICustomizeScreenState extends State<AICustomizeScreen> {
+class _AICustomizeScreenState extends State<AICustomizeScreen>
+    with TickerProviderStateMixin {
   final TextEditingController _textController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final FocusNode _focusNode = FocusNode();
@@ -20,12 +21,24 @@ class _AICustomizeScreenState extends State<AICustomizeScreen> {
   List<ConversationMessage> _messages = [];
   bool _isLoading = false;
   ConversationSession? _currentSession;
+  late AnimationController _fabAnimationController;
+  late Animation<double> _fabAnimation;
 
   @override
   void initState() {
     super.initState();
     _loadCurrentSession();
-    _focusNode.requestFocus();
+    _fabAnimationController = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
+    _fabAnimation = CurvedAnimation(
+      parent: _fabAnimationController,
+      curve: Curves.easeInOut,
+    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _focusNode.requestFocus();
+    });
   }
 
   @override
@@ -33,6 +46,7 @@ class _AICustomizeScreenState extends State<AICustomizeScreen> {
     _textController.dispose();
     _scrollController.dispose();
     _focusNode.dispose();
+    _fabAnimationController.dispose();
     super.dispose();
   }
 
@@ -40,7 +54,6 @@ class _AICustomizeScreenState extends State<AICustomizeScreen> {
     try {
       var session = await ConversationService.getCurrentSession();
       if (session == null) {
-        // 创建新会话
         session = await ConversationService.createNewSession('AI定制会话');
       }
       
@@ -49,12 +62,24 @@ class _AICustomizeScreenState extends State<AICustomizeScreen> {
         _messages = session!.messages;
       });
       
-      // 如果是空会话，显示欢迎消息
       if (_messages.isEmpty) {
-        await _addSystemMessage('👋 你好！我是你的计算器设计助手。\n\n你可以告诉我你想要什么样的计算器，比如：\n• "我想要一个蓝色的科学计算器"\n• "加个平方按钮"\n• "改成红色主题"\n• "按钮大一点"\n\n我会根据你的需求逐步完善设计！');
+        await _addWelcomeMessages();
       }
+      _scrollToBottom();
     } catch (e) {
       print('加载会话失败: $e');
+    }
+  }
+
+  Future<void> _addWelcomeMessages() async {
+    final welcomeMessages = [
+      '👋 你好！我是你的计算器设计师',
+      '✨ 我可以帮你设计独特的计算器\n\n🎨 **试试这些想法：**\n• "设计一个深色主题的计算器"\n• "我想要彩虹色按钮"\n• "添加一些科学计算功能"\n• "让按钮更大更圆润"',
+    ];
+
+    for (int i = 0; i < welcomeMessages.length; i++) {
+      await Future.delayed(Duration(milliseconds: 500 * i));
+      await _addSystemMessage(welcomeMessages[i]);
     }
   }
 
@@ -124,8 +149,8 @@ class _AICustomizeScreenState extends State<AICustomizeScreen> {
 
     final userInput = text.trim();
     _textController.clear();
+    _focusNode.requestFocus();
 
-    // 添加用户消息
     await _addUserMessage(userInput);
 
     setState(() {
@@ -133,24 +158,21 @@ class _AICustomizeScreenState extends State<AICustomizeScreen> {
     });
 
     try {
-      // 调用AI服务生成配置
       final config = await AIService.generateCalculatorFromPrompt(userInput);
 
       if (config != null) {
-        // 应用新配置
         final provider = Provider.of<CalculatorProvider>(context, listen: false);
         await provider.applyConfig(config);
 
-        // 添加成功消息
         await _addAssistantMessage(
-          '✅ 已为你生成"${config.name}"！\n\n${config.description}\n\n你还想做什么调整吗？',
+          '🎉 完美！我为你创建了"${config.name}"！\n\n${config.description}\n\n还想要什么调整吗？随时告诉我！',
           config: config,
         );
       } else {
-        await _addAssistantMessage('❌ 抱歉，生成计算器时遇到问题。请重新描述你的需求。');
+        await _addAssistantMessage('😅 抱歉，我遇到了一些困难。能换个方式描述你的想法吗？');
       }
     } catch (e) {
-      await _addAssistantMessage('❌ 出现错误：$e\n\n请重新尝试或换个说法。');
+      await _addAssistantMessage('😓 出现了一个小问题：$e\n\n不用担心，我们再试一次！');
     } finally {
       setState(() {
         _isLoading = false;
@@ -158,18 +180,87 @@ class _AICustomizeScreenState extends State<AICustomizeScreen> {
     }
   }
 
-  void _clearConversation() async {
+  void _showQuickReplies() {
+    final quickReplies = [
+      '🌙 暗色主题',
+      '🌈 彩虹按钮',
+      '🔢 科学计算',
+      '💰 金融计算',
+      '🎨 更换颜色',
+      '📏 调整大小',
+    ];
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.symmetric(vertical: 12),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const Padding(
+              padding: EdgeInsets.all(16),
+              child: Text(
+                '💡 快速想法',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: quickReplies.map((reply) => 
+                  ActionChip(
+                    label: Text(reply),
+                    onPressed: () {
+                      Navigator.pop(context);
+                      _sendMessage(reply);
+                    },
+                    backgroundColor: Colors.purple.shade50,
+                    labelStyle: TextStyle(color: Colors.purple.shade700),
+                  ),
+                ).toList(),
+              ),
+            ),
+            const SizedBox(height: 32),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _clearConversation() {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('清空对话'),
-        content: const Text('确定要清空当前对话吗？此操作无法撤销。'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.refresh, color: Colors.orange),
+            SizedBox(width: 8),
+            Text('开始新对话'),
+          ],
+        ),
+        content: const Text('要开始一个全新的设计对话吗？'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('取消'),
+            child: Text('取消', style: TextStyle(color: Colors.grey.shade600)),
           ),
-          TextButton(
+          ElevatedButton(
             onPressed: () async {
               Navigator.of(context).pop();
               if (_currentSession != null) {
@@ -177,143 +268,230 @@ class _AICustomizeScreenState extends State<AICustomizeScreen> {
               }
               await _loadCurrentSession();
             },
-            child: const Text('确定'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: const Text('开始新对话', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildMessageBubble(ConversationMessage message) {
+  Widget _buildMessageBubble(ConversationMessage message, int index) {
     final isUser = message.type == MessageType.user;
     final isSystem = message.type == MessageType.system;
+    final isFirst = index == 0 || _messages[index - 1].type != message.type;
     
-    return Container(
-      margin: EdgeInsets.only(
-        top: 8,
-        bottom: 8,
-        left: isUser ? 50 : 16,
-        right: isUser ? 16 : 50,
-      ),
-      child: Column(
-        crossAxisAlignment: isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: isSystem 
-                  ? Colors.blue.shade50
-                  : isUser 
-                      ? Theme.of(context).primaryColor
-                      : Colors.grey.shade100,
-              borderRadius: BorderRadius.circular(18),
-              border: isSystem ? Border.all(color: Colors.blue.shade200) : null,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (!isUser) ...[
-                  Row(
-                    children: [
-                      Icon(
-                        isSystem ? Icons.info_outline : Icons.smart_toy,
-                        size: 16,
-                        color: isSystem ? Colors.blue.shade600 : Colors.grey.shade600,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        isSystem ? '系统' : 'AI助手',
+    return TweenAnimationBuilder<double>(
+      duration: Duration(milliseconds: 300 + (index * 100)),
+      tween: Tween(begin: 0.0, end: 1.0),
+      builder: (context, value, child) {
+        return Transform.translate(
+          offset: Offset(0, 20 * (1 - value)),
+          child: Opacity(
+            opacity: value,
+            child: Container(
+              margin: EdgeInsets.only(
+                top: isFirst ? 16 : 4,
+                bottom: 4,
+                left: isUser ? 64 : 16,
+                right: isUser ? 16 : 64,
+              ),
+              child: Column(
+                crossAxisAlignment: isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                children: [
+                  if (isFirst && !isSystem) ...[
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 4, left: 12, right: 12),
+                      child: Text(
+                        isUser ? '你' : '🤖 AI助手',
                         style: TextStyle(
                           fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: isSystem ? Colors.blue.shade600 : Colors.grey.shade600,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.grey.shade600,
                         ),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                ],
-                Text(
-                  message.content,
-                  style: TextStyle(
-                    color: isUser ? Colors.white : Colors.black87,
-                    fontSize: 16,
-                    height: 1.4,
-                  ),
-                ),
-                if (message.metadata?['hasConfig'] == true) ...[
-                  const SizedBox(height: 8),
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.green.shade50,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.green.shade200),
                     ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
+                  ],
+                  Container(
+                    constraints: BoxConstraints(
+                      maxWidth: MediaQuery.of(context).size.width * 0.7,
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: _getBubbleColor(message),
+                      borderRadius: _getBubbleRadius(message, isFirst),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(Icons.check_circle, color: Colors.green.shade600, size: 16),
-                        const SizedBox(width: 8),
                         Text(
-                          '已应用配置',
+                          message.content,
                           style: TextStyle(
-                            color: Colors.green.shade800,
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
+                            color: _getTextColor(message),
+                            fontSize: 16,
+                            height: 1.4,
                           ),
                         ),
+                        if (message.metadata?['hasConfig'] == true) ...[
+                          const SizedBox(height: 12),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.9),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.check_circle, color: Colors.green.shade600, size: 16),
+                                const SizedBox(width: 6),
+                                Text(
+                                  '已应用到计算器',
+                                  style: TextStyle(
+                                    color: Colors.green.shade700,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                   ),
                 ],
-              ],
-            ),
-          ),
-          const SizedBox(height: 4),
-          Padding(
-            padding: EdgeInsets.only(
-              left: isUser ? 0 : 16,
-              right: isUser ? 16 : 0,
-            ),
-            child: Text(
-              _formatTimestamp(message.timestamp),
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey.shade500,
               ),
             ),
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
-  String _formatTimestamp(DateTime timestamp) {
-    final now = DateTime.now();
-    final difference = now.difference(timestamp);
-
-    if (difference.inMinutes < 1) {
-      return '刚刚';
-    } else if (difference.inMinutes < 60) {
-      return '${difference.inMinutes}分钟前';
-    } else if (difference.inHours < 24) {
-      return '${difference.inHours}小时前';
-    } else {
-      return '${timestamp.month}/${timestamp.day} ${timestamp.hour}:${timestamp.minute.toString().padLeft(2, '0')}';
+  Color _getBubbleColor(ConversationMessage message) {
+    switch (message.type) {
+      case MessageType.user:
+        return const Color(0xFF6366F1);
+      case MessageType.system:
+        return Colors.grey.shade100;
+      case MessageType.assistant:
+        return Colors.white;
     }
+  }
+
+  Color _getTextColor(ConversationMessage message) {
+    switch (message.type) {
+      case MessageType.user:
+        return Colors.white;
+      case MessageType.system:
+        return Colors.grey.shade700;
+      case MessageType.assistant:
+        return Colors.grey.shade800;
+    }
+  }
+
+  BorderRadius _getBubbleRadius(ConversationMessage message, bool isFirst) {
+    const radius = Radius.circular(20);
+    const smallRadius = Radius.circular(4);
+    
+    if (message.type == MessageType.system) {
+      return BorderRadius.circular(16);
+    }
+    
+    final isUser = message.type == MessageType.user;
+    
+    return BorderRadius.only(
+      topLeft: radius,
+      topRight: radius,
+      bottomLeft: isUser ? radius : (isFirst ? radius : smallRadius),
+      bottomRight: isUser ? (isFirst ? radius : smallRadius) : radius,
+    );
+  }
+
+  Widget _buildTypingIndicator() {
+    return Container(
+      margin: const EdgeInsets.only(left: 16, right: 64, top: 8, bottom: 8),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.purple.shade400),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              '正在设计中...',
+              style: TextStyle(
+                color: Colors.grey.shade600,
+                fontSize: 14,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
-        title: const Text('AI计算器定制'),
-        backgroundColor: Theme.of(context).primaryColor,
-        foregroundColor: Colors.white,
+        backgroundColor: Colors.white,
+        elevation: 0,
+        title: const Row(
+          children: [
+            Icon(Icons.chat_bubble_outline, color: Color(0xFF6366F1), size: 24),
+            SizedBox(width: 8),
+            Text(
+              'AI设计师',
+              style: TextStyle(
+                color: Color(0xFF1F2937),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios, color: Color(0xFF6B7280)),
+          onPressed: () => Navigator.pop(context),
+        ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh),
+            icon: Icon(Icons.lightbulb_outline, color: Colors.amber.shade600),
+            onPressed: _showQuickReplies,
+            tooltip: '快速想法',
+          ),
+          IconButton(
+            icon: Icon(Icons.refresh, color: Colors.orange.shade600),
             onPressed: _clearConversation,
             tooltip: '新对话',
           ),
@@ -321,62 +499,29 @@ class _AICustomizeScreenState extends State<AICustomizeScreen> {
       ),
       body: Column(
         children: [
-          // 对话区域
           Expanded(
             child: ListView.builder(
               controller: _scrollController,
-              padding: const EdgeInsets.all(8),
+              padding: const EdgeInsets.only(bottom: 16),
               itemCount: _messages.length + (_isLoading ? 1 : 0),
               itemBuilder: (context, index) {
                 if (index == _messages.length) {
-                  // 加载指示器
-                  return Container(
-                    margin: const EdgeInsets.only(left: 16, right: 50, top: 8, bottom: 8),
-                    child: Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: Colors.grey.shade100,
-                            borderRadius: BorderRadius.circular(18),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              SizedBox(
-                                width: 16,
-                                height: 16,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                    Theme.of(context).primaryColor,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              const Text('AI正在思考中...'),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
+                  return _buildTypingIndicator();
                 }
-                return _buildMessageBubble(_messages[index]);
+                return _buildMessageBubble(_messages[index], index);
               },
             ),
           ),
           
-          // 输入区域
           Container(
             padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               color: Colors.white,
               boxShadow: [
                 BoxShadow(
-                  offset: const Offset(0, -1),
-                  blurRadius: 4,
-                  color: Colors.black.withOpacity(0.1),
+                  color: Color(0x1A000000),
+                  blurRadius: 10,
+                  offset: Offset(0, -2),
                 ),
               ],
             ),
@@ -386,20 +531,23 @@ class _AICustomizeScreenState extends State<AICustomizeScreen> {
                   Expanded(
                     child: Container(
                       decoration: BoxDecoration(
-                        color: Colors.grey.shade100,
+                        color: const Color(0xFFF3F4F6),
                         borderRadius: BorderRadius.circular(24),
+                        border: Border.all(color: const Color(0xFFE5E7EB)),
                       ),
                       child: TextField(
                         controller: _textController,
                         focusNode: _focusNode,
                         maxLines: null,
                         textInputAction: TextInputAction.send,
+                        style: const TextStyle(fontSize: 16),
                         decoration: const InputDecoration(
-                          hintText: '告诉我你想要什么样的计算器...',
+                          hintText: '描述你想要的计算器...',
+                          hintStyle: TextStyle(color: Color(0xFF9CA3AF)),
                           border: InputBorder.none,
                           contentPadding: EdgeInsets.symmetric(
                             horizontal: 20,
-                            vertical: 12,
+                            vertical: 14,
                           ),
                         ),
                         onSubmitted: _sendMessage,
@@ -408,13 +556,35 @@ class _AICustomizeScreenState extends State<AICustomizeScreen> {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  Container(
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    height: 48,
+                    width: 48,
                     decoration: BoxDecoration(
-                      color: Theme.of(context).primaryColor,
+                      gradient: LinearGradient(
+                        colors: _textController.text.trim().isNotEmpty && !_isLoading
+                            ? [const Color(0xFF6366F1), const Color(0xFF8B5CF6)]
+                            : [Colors.grey.shade300, Colors.grey.shade400],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
                       shape: BoxShape.circle,
+                      boxShadow: _textController.text.trim().isNotEmpty && !_isLoading
+                          ? [
+                              BoxShadow(
+                                color: Colors.purple.withOpacity(0.3),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ]
+                          : [],
                     ),
                     child: IconButton(
-                      icon: const Icon(Icons.send, color: Colors.white),
+                      icon: Icon(
+                        _isLoading ? Icons.hourglass_empty : Icons.send,
+                        color: Colors.white,
+                        size: 20,
+                      ),
                       onPressed: _isLoading 
                           ? null 
                           : () => _sendMessage(_textController.text),
@@ -425,7 +595,7 @@ class _AICustomizeScreenState extends State<AICustomizeScreen> {
             ),
           ),
         ],
-      ),
-    );
-  }
-} 
+             ),
+     );
+   }
+ } 
