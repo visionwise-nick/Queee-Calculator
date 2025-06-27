@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/calculator_dsl.dart';
+import 'conversation_service.dart';
 import 'dart:async';
 
 class AIService {
@@ -10,13 +11,20 @@ class AIService {
   /// 根据用户描述生成计算器配置
   static Future<CalculatorConfig?> generateCalculatorFromPrompt(String userPrompt) async {
     try {
+      // 记录用户消息
+      await _recordUserMessage(userPrompt);
+
+      // 获取对话历史作为上下文
+      final conversationHistory = await _getConversationHistory();
+
       // 构建请求
       final url = Uri.parse('$_baseUrl/customize');
       final headers = {
         'Content-Type': 'application/json',
       };
       final body = json.encode({
-        'prompt': userPrompt,
+        'user_input': userPrompt,
+        'conversation_history': conversationHistory,
       });
 
       print('🚀 正在调用 AI 服务...');
@@ -40,18 +48,86 @@ class AIService {
         final config = CalculatorConfig.fromJson(responseData);
         
         print('✅ AI 配置生成成功: ${config.name}');
+        
+        // 记录AI响应
+        await _recordAssistantMessage('生成了计算器配置: ${config.name}');
+        
         return config;
       } else {
         print('❌ AI 服务响应错误: ${response.statusCode}');
         print('错误详情: ${response.body}');
+        
+        // 记录错误
+        await _recordAssistantMessage('生成失败: HTTP ${response.statusCode}');
         return null;
       }
     } on TimeoutException {
       print('❌ AI 服务调用超时');
+      await _recordAssistantMessage('生成失败: 服务超时');
       throw Exception('AI 服务调用超时，请稍后重试');
     } catch (e) {
       print('❌ AI 服务调用失败: $e');
+      await _recordAssistantMessage('生成失败: $e');
       throw Exception('调用 AI 服务失败: $e');
+    }
+  }
+
+  /// 记录用户消息
+  static Future<void> _recordUserMessage(String content) async {
+    try {
+      // 确保有当前会话
+      var currentSession = await ConversationService.getCurrentSession();
+      if (currentSession == null) {
+        await ConversationService.createNewSession('计算器定制会话');
+      }
+
+      final message = ConversationMessage(
+        id: ConversationService.generateMessageId(),
+        type: MessageType.user,
+        content: content,
+        timestamp: DateTime.now(),
+      );
+
+      await ConversationService.addMessage(message);
+    } catch (e) {
+      print('记录用户消息失败: $e');
+    }
+  }
+
+  /// 记录AI响应消息
+  static Future<void> _recordAssistantMessage(String content) async {
+    try {
+      final message = ConversationMessage(
+        id: ConversationService.generateMessageId(),
+        type: MessageType.assistant,
+        content: content,
+        timestamp: DateTime.now(),
+      );
+
+      await ConversationService.addMessage(message);
+    } catch (e) {
+      print('记录AI消息失败: $e');
+    }
+  }
+
+  /// 获取对话历史
+  static Future<List<Map<String, String>>> _getConversationHistory() async {
+    try {
+      final session = await ConversationService.getCurrentSession();
+      if (session == null) return [];
+
+      // 只取最近的10条消息，避免上下文过长
+      final recentMessages = session.messages.length > 10 
+          ? session.messages.sublist(session.messages.length - 10)
+          : session.messages;
+
+      return recentMessages.map((msg) => {
+        'role': msg.type == MessageType.user ? 'user' : 'assistant',
+        'content': msg.content,
+      }).toList();
+    } catch (e) {
+      print('获取对话历史失败: $e');
+      return [];
     }
   }
 

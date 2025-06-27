@@ -5,6 +5,7 @@ import '../widgets/calculator_display.dart';
 import '../widgets/calculator_button_grid.dart';
 import 'theme_settings_screen.dart';
 import 'ai_customize_screen.dart';
+import 'conversation_history_screen.dart';
 
 class CalculatorScreen extends StatelessWidget {
   const CalculatorScreen({super.key});
@@ -34,6 +35,22 @@ class CalculatorScreen extends StatelessWidget {
                       ),
                       Row(
                         children: [
+                          // 对话历史按钮
+                          IconButton(
+                            icon: Icon(
+                              Icons.history,
+                              color: provider.getDisplayTextColor(),
+                            ),
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const ConversationHistoryScreen(),
+                                ),
+                              );
+                            },
+                            tooltip: '对话历史',
+                          ),
                           // AI 定制按钮
                           IconButton(
                             icon: Icon(

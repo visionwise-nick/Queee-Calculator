@@ -75,7 +75,8 @@ class CalculatorConfig(BaseModel):
     authorPrompt: Optional[str] = None
 
 class CustomizationRequest(BaseModel):
-    prompt: str = Field(..., description="用户的自然语言描述")
+    user_input: str = Field(..., description="用户的自然语言描述")
+    conversation_history: Optional[List[Dict[str, str]]] = Field(default=[], description="对话历史")
 
 # 强化的AI系统提示
 SYSTEM_PROMPT = """你是AI计算器设计师。必须返回包含完整17个基础按钮的计算器JSON配置。
@@ -153,8 +154,18 @@ async def health_check():
 @app.post("/customize")
 async def customize_calculator(request: CustomizationRequest) -> CalculatorConfig:
     try:
+        # 构建对话历史上下文
+        conversation_context = ""
+        if request.conversation_history:
+            conversation_context = "\n\n对话历史：\n"
+            for msg in request.conversation_history[-5:]:  # 只保留最近5条
+                role = "用户" if msg.get("role") == "user" else "AI"
+                conversation_context += f"{role}: {msg.get('content', '')}\n"
+        
         # 构建用户提示
-        user_prompt = f"""设计计算器：{request.prompt}
+        user_prompt = f"""设计计算器：{request.user_input}
+
+{conversation_context}
 
 要求完整JSON，包含：
 - name: 计算器名称
@@ -195,7 +206,7 @@ async def customize_calculator(request: CustomizationRequest) -> CalculatorConfi
         if 'createdAt' not in config_data:
             config_data['createdAt'] = datetime.now().isoformat()
         if 'authorPrompt' not in config_data:
-            config_data['authorPrompt'] = request.prompt
+            config_data['authorPrompt'] = request.user_input
         
         # 验证生成的配置
         calculator_config = CalculatorConfig(**config_data)
