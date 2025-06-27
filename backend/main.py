@@ -318,6 +318,8 @@ async def customize_calculator(request: CustomizationRequest) -> CalculatorConfi
 """
         
         # 构建智能化的用户提示
+        task_mode = '【在现有基础上调整】精确修改用户要求的部分，其他保持不变' if is_iterative_request else '【全新布局设计】根据需求创建新的计算器布局'
+        
         user_prompt = f"""用户需求：{request.user_input}
 
 {current_config_info}
@@ -329,7 +331,7 @@ async def customize_calculator(request: CustomizationRequest) -> CalculatorConfi
 🎯 设计任务：
 请设计计算器布局配置，只需要关注逻辑层面：
 
-{'【在现有基础上调整】精确修改用户要求的部分，其他保持不变' if is_iterative_request else '【全新布局设计】根据需求创建新的计算器布局'}
+{task_mode}
 
 布局设计重点：
 1. 确定网格尺寸：几行几列（rows × columns）
@@ -345,24 +347,24 @@ async def customize_calculator(request: CustomizationRequest) -> CalculatorConfi
 
 必需字段格式：
 ```json
-{
+{{
   "name": "计算器名称",
   "description": "功能描述", 
-  "theme": { 主题配色方案 },
-  "layout": {
+  "theme": {{ 主题配色方案 }},
+  "layout": {{
     "rows": 行数,
     "columns": 列数,
     "buttons": [
-      {
+      {{
         "id": "按钮ID",
         "label": "显示文字",
-        "action": {"type": "操作类型", "value/expression": "参数"},
-        "gridPosition": {"row": 行号, "column": 列号},
+        "action": {{"type": "操作类型", "value/expression": "参数"}},
+        "gridPosition": {{"row": 行号, "column": 列号}},
         "type": "按钮类型"
-      }
+      }}
     ]
-  }
-}
+  }}
+}}
 ```
 
 只返回JSON配置，专注布局逻辑设计。"""
@@ -444,7 +446,8 @@ async def customize_calculator(request: CustomizationRequest) -> CalculatorConfi
             config_data['aiResponse'] = "✅ 已按您的要求完成调整！"
         else:
             # 全新创建的欢迎消息
-            config_data['aiResponse'] = f"🎉 \"{config_data.get('name', '计算器')}\" 已准备就绪！\n\n💡 提示：您可以随时说出想要的调整，我会在保持现有设计基础上进行精确修改"
+            calculator_name = config_data.get('name', '计算器')
+            config_data['aiResponse'] = f"🎉 \"{calculator_name}\" 已准备就绪！\n\n💡 提示：您可以随时说出想要的调整，我会在保持现有设计基础上进行精确修改"
         
         # 直接验证生成的配置结构，完全信任AI的输出
         calculator_config = CalculatorConfig(**config_data)
@@ -457,4 +460,4 @@ async def customize_calculator(request: CustomizationRequest) -> CalculatorConfi
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", 8000))) 
+    uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", 8080))) 
