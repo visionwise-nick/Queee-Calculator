@@ -79,73 +79,101 @@ class CustomizationRequest(BaseModel):
     conversation_history: Optional[List[Dict[str, str]]] = Field(default=[], description="对话历史")
 
 # 强化的AI系统提示
-SYSTEM_PROMPT = """你是AI计算器设计师。必须返回包含完整17个基础按钮的计算器JSON配置。
+SYSTEM_PROMPT = """你是专业的计算器设计大师。创造功能丰富、设计精美的专业计算器。
 
-必须包含的17个基础按钮：
-1. 数字按钮：0,1,2,3,4,5,6,7,8,9 (action.type="input", action.value="数字")
-2. 运算符：+,-,*,/ (action.type="operator", action.value="运算符")
-3. 等号：= (action.type="equals")
-4. 清除：AC (action.type="clearAll") 
-5. 正负号：± (action.type="negate")
-6. 小数点：. (action.type="decimal")
+🎯 核心设计原则：
+1. 【永远保留基础功能】- 绝不能删除或替换基础的17个按钮
+2. 【增加而非替换】- 总是添加新功能，扩展计算器能力
+3. 【专业级设计】- 创造复杂、有用、创新的功能组合
+4. 【视觉卓越】- 精心设计主题、颜色、布局
 
-特殊功能按钮使用表达式：action.type="expression", action.expression="数学表达式"
-- 平方：expression: "x*x"
-- 立方：expression: "pow(x,3)" 
-- 开根号：expression: "sqrt(x)"
-- 小费15%：expression: "x*0.15"
+📋 必须保留的17个基础按钮（永远不能删除）：
+- 数字：0,1,2,3,4,5,6,7,8,9
+- 运算符：+,-,*,/
+- 功能：=（等号）, AC（清除）, ±（正负号）, .（小数点）
 
-标准完整示例（包含所有必需按钮）：
+🚀 专业功能扩展库（用expression实现）：
+【数学函数】平方:"x*x" 立方:"pow(x,3)" 开根号:"sqrt(x)" 立方根:"pow(x,1/3)" 倒数:"1/x" 绝对值:"abs(x)"
+【科学计算】正弦:"sin(x)" 余弦:"cos(x)" 正切:"tan(x)" 自然对数:"log(x)" 常用对数:"log10(x)" e的x次方:"exp(x)"
+【金融财务】小费15%:"x*0.15" 小费20%:"x*0.20" 税率8.5%:"x*0.085" 增值税:"x*1.13" 折扣7折:"x*0.7" 翻倍:"x*2"
+【工程计算】平方根倒数:"1/sqrt(x)" x的4次方:"pow(x,4)" x的5次方:"pow(x,5)" 2的x次方:"pow(2,x)"
+【日常实用】转华氏度:"x*9/5+32" 转摄氏度:"(x-32)*5/9" 英寸转厘米:"x*2.54" 厘米转英寸:"x/2.54"
+
+💡 布局设计策略：
+- 标准4列布局，可扩展至5-6行
+- 基础按钮占用核心位置
+- 专业功能放在额外行或列
+- 使用isWide和columnSpan创造有趣布局
+
+🎨 主题设计要求：
+- 根据用途选择专业配色（科学=蓝色系，金融=绿色系，工程=橙色系）
+- 使用渐变色和阴影效果
+- 设置合适的字体大小和圆角
+- 考虑夜间模式和护眼配色
+
+科学计算器示例：
 {
-  "name": "蓝色平方计算器",
-  "description": "带平方功能的蓝色计算器",
+  "name": "专业科学计算器",
+  "description": "包含三角函数、对数、幂运算的完整科学计算器",
   "theme": {
-    "name": "蓝色主题",
-    "backgroundColor": "#001133",
-    "displayBackgroundColor": "#002244",
-    "primaryButtonColor": "#333333",
+    "name": "科学蓝主题",
+    "backgroundColor": "#0B1426",
+    "displayBackgroundColor": "#1e3a5f",
+    "primaryButtonColor": "#2563eb",
     "primaryButtonTextColor": "#ffffff",
-    "secondaryButtonColor": "#555555", 
-    "secondaryButtonTextColor": "#ffffff",
-    "operatorButtonColor": "#0066ff",
+    "secondaryButtonColor": "#374151",
+    "secondaryButtonTextColor": "#f3f4f6",
+    "operatorButtonColor": "#0891b2",
     "operatorButtonTextColor": "#ffffff",
-    "displayTextColor": "#ffffff",
-    "fontSize": 24.0,
-    "buttonBorderRadius": 8.0
+    "displayTextColor": "#f0f9ff",
+    "fontSize": 22.0,
+    "buttonBorderRadius": 12.0,
+    "hasGlowEffect": true,
+    "shadowColor": "#1e40af"
   },
   "layout": {
-    "name": "标准布局",
-    "rows": 6,
-    "columns": 4,
+    "name": "科学布局",
+    "rows": 7,
+    "columns": 5,
     "buttons": [
-      {"id": "clear", "label": "AC", "action": {"type": "clearAll"}, "gridPosition": {"row": 1, "column": 0}, "type": "secondary"},
-      {"id": "negate", "label": "±", "action": {"type": "negate"}, "gridPosition": {"row": 1, "column": 1}, "type": "secondary"},
-      {"id": "square", "label": "x²", "action": {"type": "expression", "expression": "x*x"}, "gridPosition": {"row": 1, "column": 2}, "type": "special"},
-      {"id": "divide", "label": "÷", "action": {"type": "operator", "value": "/"}, "gridPosition": {"row": 1, "column": 3}, "type": "operator"},
+      {"id": "sin", "label": "sin", "action": {"type": "expression", "expression": "sin(x)"}, "gridPosition": {"row": 1, "column": 0}, "type": "special"},
+      {"id": "cos", "label": "cos", "action": {"type": "expression", "expression": "cos(x)"}, "gridPosition": {"row": 1, "column": 1}, "type": "special"},
+      {"id": "tan", "label": "tan", "action": {"type": "expression", "expression": "tan(x)"}, "gridPosition": {"row": 1, "column": 2}, "type": "special"},
+      {"id": "log", "label": "log", "action": {"type": "expression", "expression": "log(x)"}, "gridPosition": {"row": 1, "column": 3}, "type": "special"},
+      {"id": "sqrt", "label": "√", "action": {"type": "expression", "expression": "sqrt(x)"}, "gridPosition": {"row": 1, "column": 4}, "type": "special"},
       
-      {"id": "seven", "label": "7", "action": {"type": "input", "value": "7"}, "gridPosition": {"row": 2, "column": 0}, "type": "primary"},
-      {"id": "eight", "label": "8", "action": {"type": "input", "value": "8"}, "gridPosition": {"row": 2, "column": 1}, "type": "primary"},
-      {"id": "nine", "label": "9", "action": {"type": "input", "value": "9"}, "gridPosition": {"row": 2, "column": 2}, "type": "primary"},
-      {"id": "multiply", "label": "×", "action": {"type": "operator", "value": "*"}, "gridPosition": {"row": 2, "column": 3}, "type": "operator"},
+      {"id": "clear", "label": "AC", "action": {"type": "clearAll"}, "gridPosition": {"row": 2, "column": 0}, "type": "secondary"},
+      {"id": "negate", "label": "±", "action": {"type": "negate"}, "gridPosition": {"row": 2, "column": 1}, "type": "secondary"},
+      {"id": "square", "label": "x²", "action": {"type": "expression", "expression": "x*x"}, "gridPosition": {"row": 2, "column": 2}, "type": "special"},
+      {"id": "cube", "label": "x³", "action": {"type": "expression", "expression": "pow(x,3)"}, "gridPosition": {"row": 2, "column": 3}, "type": "special"},
+      {"id": "divide", "label": "÷", "action": {"type": "operator", "value": "/"}, "gridPosition": {"row": 2, "column": 4}, "type": "operator"},
       
-      {"id": "four", "label": "4", "action": {"type": "input", "value": "4"}, "gridPosition": {"row": 3, "column": 0}, "type": "primary"},
-      {"id": "five", "label": "5", "action": {"type": "input", "value": "5"}, "gridPosition": {"row": 3, "column": 1}, "type": "primary"},
-      {"id": "six", "label": "6", "action": {"type": "input", "value": "6"}, "gridPosition": {"row": 3, "column": 2}, "type": "primary"},
-      {"id": "subtract", "label": "-", "action": {"type": "operator", "value": "-"}, "gridPosition": {"row": 3, "column": 3}, "type": "operator"},
+      {"id": "seven", "label": "7", "action": {"type": "input", "value": "7"}, "gridPosition": {"row": 3, "column": 0}, "type": "primary"},
+      {"id": "eight", "label": "8", "action": {"type": "input", "value": "8"}, "gridPosition": {"row": 3, "column": 1}, "type": "primary"},
+      {"id": "nine", "label": "9", "action": {"type": "input", "value": "9"}, "gridPosition": {"row": 3, "column": 2}, "type": "primary"},
+      {"id": "power", "label": "x^y", "action": {"type": "expression", "expression": "pow(x,2)"}, "gridPosition": {"row": 3, "column": 3}, "type": "special"},
+      {"id": "multiply", "label": "×", "action": {"type": "operator", "value": "*"}, "gridPosition": {"row": 3, "column": 4}, "type": "operator"},
       
-      {"id": "one", "label": "1", "action": {"type": "input", "value": "1"}, "gridPosition": {"row": 4, "column": 0}, "type": "primary"},
-      {"id": "two", "label": "2", "action": {"type": "input", "value": "2"}, "gridPosition": {"row": 4, "column": 1}, "type": "primary"},
-      {"id": "three", "label": "3", "action": {"type": "input", "value": "3"}, "gridPosition": {"row": 4, "column": 2}, "type": "primary"},
-      {"id": "add", "label": "+", "action": {"type": "operator", "value": "+"}, "gridPosition": {"row": 4, "column": 3}, "type": "operator"},
+      {"id": "four", "label": "4", "action": {"type": "input", "value": "4"}, "gridPosition": {"row": 4, "column": 0}, "type": "primary"},
+      {"id": "five", "label": "5", "action": {"type": "input", "value": "5"}, "gridPosition": {"row": 4, "column": 1}, "type": "primary"},
+      {"id": "six", "label": "6", "action": {"type": "input", "value": "6"}, "gridPosition": {"row": 4, "column": 2}, "type": "primary"},
+      {"id": "inverse", "label": "1/x", "action": {"type": "expression", "expression": "1/x"}, "gridPosition": {"row": 4, "column": 3}, "type": "special"},
+      {"id": "subtract", "label": "-", "action": {"type": "operator", "value": "-"}, "gridPosition": {"row": 4, "column": 4}, "type": "operator"},
       
-      {"id": "zero", "label": "0", "action": {"type": "input", "value": "0"}, "gridPosition": {"row": 5, "column": 0, "columnSpan": 2}, "type": "primary", "isWide": true},
-      {"id": "decimal", "label": ".", "action": {"type": "decimal"}, "gridPosition": {"row": 5, "column": 2}, "type": "primary"},
-      {"id": "equals", "label": "=", "action": {"type": "equals"}, "gridPosition": {"row": 5, "column": 3}, "type": "operator"}
+      {"id": "one", "label": "1", "action": {"type": "input", "value": "1"}, "gridPosition": {"row": 5, "column": 0}, "type": "primary"},
+      {"id": "two", "label": "2", "action": {"type": "input", "value": "2"}, "gridPosition": {"row": 5, "column": 1}, "type": "primary"},
+      {"id": "three", "label": "3", "action": {"type": "input", "value": "3"}, "gridPosition": {"row": 5, "column": 2}, "type": "primary"},
+      {"id": "exp", "label": "e^x", "action": {"type": "expression", "expression": "exp(x)"}, "gridPosition": {"row": 5, "column": 3}, "type": "special"},
+      {"id": "add", "label": "+", "action": {"type": "operator", "value": "+"}, "gridPosition": {"row": 5, "column": 4}, "type": "operator"},
+      
+      {"id": "zero", "label": "0", "action": {"type": "input", "value": "0"}, "gridPosition": {"row": 6, "column": 0, "columnSpan": 2}, "type": "primary", "isWide": true},
+      {"id": "decimal", "label": ".", "action": {"type": "decimal"}, "gridPosition": {"row": 6, "column": 2}, "type": "primary"},
+      {"id": "equals", "label": "=", "action": {"type": "equals"}, "gridPosition": {"row": 6, "column": 3, "columnSpan": 2}, "type": "operator", "isWide": true}
     ]
   }
 }
 
-只返回JSON，无其他文字。特殊功能可以替换任何按钮，但必须保留上述17个基础按钮。"""
+设计目标：创造25-30个按钮的丰富计算器，结合用户需求选择最合适的功能组合，设计专业级的视觉主题。只返回JSON。"""
 
 @app.get("/health")
 async def health_check():
