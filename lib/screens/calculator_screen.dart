@@ -14,13 +14,17 @@ class CalculatorScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<CalculatorProvider>(
       builder: (context, provider, child) {
+        final theme = provider.config.theme;
+        
         return Scaffold(
-          backgroundColor: provider.getBackgroundColor(),
-          body: SafeArea(
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                return _buildAdaptiveLayout(context, provider, constraints);
-              },
+          body: Container(
+            decoration: _buildBackgroundDecoration(theme),
+            child: SafeArea(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  return _buildAdaptiveLayout(context, provider, constraints);
+                },
+              ),
             ),
           ),
         );
@@ -179,6 +183,48 @@ class CalculatorScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  /// 构建背景装饰
+  BoxDecoration _buildBackgroundDecoration(CalculatorTheme theme) {
+    return BoxDecoration(
+      color: theme.backgroundGradient == null && theme.backgroundImage == null 
+          ? _parseColor(theme.backgroundColor) 
+          : null,
+      gradient: theme.backgroundGradient != null 
+          ? _buildGradient(theme.backgroundGradient!) 
+          : null,
+      image: theme.backgroundImage != null ? DecorationImage(
+        image: NetworkImage(theme.backgroundImage!),
+        fit: BoxFit.cover,
+        colorFilter: ColorFilter.mode(
+          Colors.black.withValues(alpha: 0.3),
+          BlendMode.darken,
+        ),
+      ) : null,
+    );
+  }
+
+  /// 构建渐变色
+  LinearGradient _buildGradient(List<String> gradientColors) {
+    return LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: gradientColors.map((color) => _parseColor(color)).toList(),
+    );
+  }
+
+  /// 解析颜色字符串
+  Color _parseColor(String colorString) {
+    final cleanColor = colorString.replaceAll('#', '');
+    
+    if (cleanColor.length == 6) {
+      return Color(int.parse('FF$cleanColor', radix: 16));
+    } else if (cleanColor.length == 8) {
+      return Color(int.parse(cleanColor, radix: 16));
+    } else {
+      return Colors.grey;
+    }
   }
 }
 

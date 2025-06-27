@@ -62,22 +62,34 @@ class CalculatorButton(BaseModel):
     type: str  # primary, secondary, operator, special
     customColor: Optional[str] = None
     isWide: bool = False
+    widthMultiplier: float = 1.0  # 宽度倍数
+    heightMultiplier: float = 1.0  # 高度倍数
+    gradientColors: Optional[List[str]] = None  # 渐变色数组
+    backgroundImage: Optional[str] = None  # 背景图片URL
 
 class CalculatorTheme(BaseModel):
     name: str
     backgroundColor: str = "#000000"
+    backgroundGradient: Optional[List[str]] = None  # 背景渐变色
+    backgroundImage: Optional[str] = None  # 背景图片URL
     displayBackgroundColor: str = "#222222"
+    displayBackgroundGradient: Optional[List[str]] = None  # 显示区渐变
     displayTextColor: str = "#FFFFFF"
     primaryButtonColor: str = "#333333"
+    primaryButtonGradient: Optional[List[str]] = None  # 主按钮渐变
     primaryButtonTextColor: str = "#FFFFFF"
     secondaryButtonColor: str = "#555555"
+    secondaryButtonGradient: Optional[List[str]] = None  # 次按钮渐变
     secondaryButtonTextColor: str = "#FFFFFF"
     operatorButtonColor: str = "#FF9F0A"
+    operatorButtonGradient: Optional[List[str]] = None  # 运算符渐变
     operatorButtonTextColor: str = "#FFFFFF"
     fontSize: float = 24.0
     buttonBorderRadius: float = 8.0
     hasGlowEffect: bool = False
     shadowColor: Optional[str] = None
+    buttonElevation: Optional[float] = None  # 按钮阴影高度
+    buttonShadowColors: Optional[List[str]] = None  # 多层阴影颜色
 
 class CalculatorLayout(BaseModel):
     name: str
