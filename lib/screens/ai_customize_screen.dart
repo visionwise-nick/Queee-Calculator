@@ -163,18 +163,36 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
     _textController.clear();
     _focusNode.requestFocus();
 
+    // 立即添加用户消息到UI和存储
+    final userMessage = ConversationMessage(
+      id: ConversationService.generateMessageId(),
+      type: MessageType.user,
+      content: userInput,
+      timestamp: DateTime.now(),
+    );
+
     setState(() {
+      _messages.add(userMessage);
       _isLoading = true;
+    });
+    
+    // 立即保存用户消息到存储
+    await ConversationService.addMessage(userMessage);
+    
+    // 立即滚动到底部显示用户消息
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _scrollToBottom();
     });
 
     try {
       final provider = Provider.of<CalculatorProvider>(context, listen: false);
       final currentConfig = provider.config;
       
-      // AIService会自动处理消息记录，我们只需要获取结果
+      // AIService会自动处理AI消息记录，跳过用户消息记录
       final config = await AIService.generateCalculatorFromPrompt(
         userInput,
         currentConfig: currentConfig,
+        skipUserMessage: true, // 跳过用户消息记录
       );
 
       if (config != null) {

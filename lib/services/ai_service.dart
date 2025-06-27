@@ -12,10 +12,13 @@ class AIService {
   static Future<CalculatorConfig?> generateCalculatorFromPrompt(
     String userPrompt, {
     CalculatorConfig? currentConfig,
+    bool skipUserMessage = false,
   }) async {
     try {
-      // 记录用户消息
-      await _recordUserMessage(userPrompt);
+      // 如果不跳过，则记录用户消息
+      if (!skipUserMessage) {
+        await _recordUserMessage(userPrompt);
+      }
 
       // 获取对话历史作为上下文
       final conversationHistory = await _getConversationHistory();
