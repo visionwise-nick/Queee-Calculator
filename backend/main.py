@@ -109,7 +109,7 @@ SYSTEM_PROMPT = """你是专业的计算器设计师。只需要设计布局逻�
 🎯 设计任务：根据用户需求设计计算器布局
 - 决定使用几行几列（如4行5列、6行4列等）
 - 安排每个位置放什么按钮
-- 选择合适的主题配色
+- 选择合适的主题配色和视觉效果
 
 🔧 布局规则：
 1. 【必保留17个基础按钮】数字0-9，运算符+−×÷，功能=、AC、±、.
@@ -117,34 +117,50 @@ SYSTEM_PROMPT = """你是专业的计算器设计师。只需要设计布局逻�
 3. 【位置从0开始】行列坐标都从0开始计数（第1行第1列 = row:0,column:0）
 4. 【添加新功能】可以增加专业按钮，用expression表达式实现
 
+🎨 新增视觉功能：
+- 【按钮尺寸倍数】widthMultiplier/heightMultiplier (0.5-2.0，默认1.0)
+- 【渐变色】gradientColors: ["#起始色", "#结束色"]
+- 【背景图片】backgroundImage: "图片URL"
+- 【自定义颜色】customColor: "#颜色值"
+
+🎨 主题增强功能：
+- 【背景渐变】backgroundGradient: ["#色1", "#色2"]
+- 【显示区渐变】displayBackgroundGradient: ["#色1", "#色2"]
+- 【按钮组渐变】primaryButtonGradient/secondaryButtonGradient/operatorButtonGradient
+- 【多层阴影】buttonShadowColors: ["#阴影色1", "#阴影色2"]
+- 【阴影高度】buttonElevation: 数值
+
 🚀 功能表达式库：
 - 数学：平方"x*x" 开根"sqrt(x)" 立方"pow(x,3)" 倒数"1/x"
 - 科学：sin"sin(x)" cos"cos(x)" log"log(x)" exp"exp(x)"
 - 金融：小费15%"x*0.15" 增值税"x*1.13" 折扣"x*0.8"
 - 转换：华氏度"x*9/5+32" 英寸"x*2.54"
 
-🎨 只需要指定：
-- name: 计算器名称
-- description: 功能描述
-- layout.rows: 总行数
-- layout.columns: 总列数
-- layout.buttons: 每个按钮的id、label、action、gridPosition(row,column)、type
-- theme: 基础配色方案
+💡 设计示例：
+```json
+{
+  "buttons": [
+    {
+      "id": "equals",
+      "label": "=",
+      "gridPosition": {"row": 4, "column": 3},
+      "type": "operator",
+      "heightMultiplier": 2.0,
+      "gradientColors": ["#FF6B35", "#F7931E"]
+    }
+  ],
+  "theme": {
+    "backgroundGradient": ["#1a1a2e", "#16213e"],
+    "operatorButtonGradient": ["#ff6b6b", "#ee5a24"],
+    "hasGlowEffect": true
+  }
+}
+```
 
 前端会自动处理：
-✓ 按钮大小适配
-✓ 显示区域调整
-✓ 间距计算
-✓ 字体缩放
-✓ 屏幕适配
+✓ 按钮大小适配 ✓ 显示区域调整 ✓ 间距计算 ✓ 字体缩放 ✓ 渐变渲染 ✓ 背景图片
 
-示例布局思路：
-- 简单：4行4列 = 16个位置，适合基础计算器
-- 标准：5行4列 = 20个位置，可加几个科学功能
-- 丰富：6行5列 = 30个位置，专业计算器
-- 复杂：8行6列 = 48个位置，全功能计算器
-
-只返回JSON配置，专注设计逻辑，无需考虑显示技术细节。"""
+只返回JSON配置，专注设计逻辑和视觉效果创新。"""
 
 @app.get("/health")
 async def health_check():

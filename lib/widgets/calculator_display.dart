@@ -18,7 +18,12 @@ class CalculatorDisplay extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       margin: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: _parseColor(theme.displayBackgroundColor),
+        color: theme.displayBackgroundGradient == null && theme.backgroundImage == null 
+            ? _parseColor(theme.displayBackgroundColor) 
+            : null,
+        gradient: theme.displayBackgroundGradient != null 
+            ? _buildGradient(theme.displayBackgroundGradient!) 
+            : null,
         borderRadius: BorderRadius.circular(theme.buttonBorderRadius),
         boxShadow: [
           if (theme.hasGlowEffect)
@@ -28,6 +33,14 @@ class CalculatorDisplay extends StatelessWidget {
               spreadRadius: 2,
             ),
         ],
+        image: theme.backgroundImage != null ? DecorationImage(
+          image: NetworkImage(theme.backgroundImage!),
+          fit: BoxFit.cover,
+          colorFilter: ColorFilter.mode(
+            Colors.black.withValues(alpha: 0.3),
+            BlendMode.darken,
+          ),
+        ) : null,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.end,
@@ -36,16 +49,14 @@ class CalculatorDisplay extends StatelessWidget {
           // 主显示屏
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             child: Text(
               state.display,
               style: TextStyle(
                 fontSize: 30,
                 fontWeight: FontWeight.w300,
-                color: state.isError
-                    ? Colors.red
-                    : _parseColor(theme.displayTextColor),
-                // fontFamily: 'monospace',
+                color: _parseColor(theme.displayTextColor),
+                fontFamily: 'monospace',
               ),
               textAlign: TextAlign.right,
               maxLines: 1,
@@ -53,33 +64,21 @@ class CalculatorDisplay extends StatelessWidget {
             ),
           ),
           
-          // 状态信息（简化版）
-          if (state.memory != 0 || state.previousValue != null)
+          // 状态显示
+          if ((state.operator?.isNotEmpty ?? false) || (state.previousValue?.isNotEmpty ?? false))
             Container(
-              margin: const EdgeInsets.only(top: 4),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  // 内存指示器
-                  if (state.memory != 0)
-                    Text(
-                      'M',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: _parseColor(theme.displayTextColor).withValues(alpha: 0.7),
-                      ),
-                    ),
-                  
-                  // 操作指示器
-                  if (state.previousValue != null && state.operator != null)
-                    Text(
-                      '${state.previousValue} ${state.operator}',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: _parseColor(theme.displayTextColor).withValues(alpha: 0.5),
-                      ),
-                    ),
-                ],
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              child: Text(
+                '${state.previousValue ?? ''} ${state.operator ?? ''}',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: _parseColor(theme.displayTextColor).withValues(alpha: 0.7),
+                  fontFamily: 'monospace',
+                ),
+                textAlign: TextAlign.right,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
         ],
@@ -87,18 +86,24 @@ class CalculatorDisplay extends StatelessWidget {
     );
   }
 
+  /// 构建渐变色
+  LinearGradient _buildGradient(List<String> gradientColors) {
+    return LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: gradientColors.map((color) => _parseColor(color)).toList(),
+    );
+  }
+
   Color _parseColor(String colorString) {
-    try {
-      String hexString = colorString;
-      if (hexString.startsWith('#')) {
-        hexString = hexString.substring(1);
-      }
-      if (hexString.length == 6) {
-        hexString = 'FF$hexString';
-      }
-      return Color(int.parse(hexString, radix: 16));
-    } catch (e) {
-      return Colors.white;
+    final cleanColor = colorString.replaceAll('#', '');
+    
+    if (cleanColor.length == 6) {
+      return Color(int.parse('FF$cleanColor', radix: 16));
+    } else if (cleanColor.length == 8) {
+      return Color(int.parse(cleanColor, radix: 16));
+    } else {
+      return Colors.grey;
     }
   }
 } 

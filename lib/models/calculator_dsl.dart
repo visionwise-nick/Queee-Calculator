@@ -4,52 +4,76 @@ import '../core/calculator_engine.dart';
 class CalculatorTheme {
   final String name;
   final String backgroundColor;
+  final List<String>? backgroundGradient; // 背景渐变色
+  final String? backgroundImage; // 背景图片URL
   final String displayBackgroundColor;
+  final List<String>? displayBackgroundGradient; // 显示区渐变
   final String displayTextColor;
   final String primaryButtonColor;
+  final List<String>? primaryButtonGradient; // 主按钮渐变
   final String primaryButtonTextColor;
   final String secondaryButtonColor;
+  final List<String>? secondaryButtonGradient; // 次按钮渐变
   final String secondaryButtonTextColor;
   final String operatorButtonColor;
+  final List<String>? operatorButtonGradient; // 运算符渐变
   final String operatorButtonTextColor;
   final double fontSize;
   final double buttonBorderRadius;
   final bool hasGlowEffect;
   final String? shadowColor;
+  final double? buttonElevation; // 按钮阴影高度
+  final List<String>? buttonShadowColors; // 多层阴影颜色
 
   const CalculatorTheme({
     required this.name,
     this.backgroundColor = '#000000',
+    this.backgroundGradient,
+    this.backgroundImage,
     this.displayBackgroundColor = '#222222',
+    this.displayBackgroundGradient,
     this.displayTextColor = '#FFFFFF',
     this.primaryButtonColor = '#333333',
+    this.primaryButtonGradient,
     this.primaryButtonTextColor = '#FFFFFF',
     this.secondaryButtonColor = '#555555',
+    this.secondaryButtonGradient,
     this.secondaryButtonTextColor = '#FFFFFF',
     this.operatorButtonColor = '#FF9F0A',
+    this.operatorButtonGradient,
     this.operatorButtonTextColor = '#FFFFFF',
     this.fontSize = 24.0,
     this.buttonBorderRadius = 8.0,
     this.hasGlowEffect = false,
     this.shadowColor,
+    this.buttonElevation,
+    this.buttonShadowColors,
   });
 
   factory CalculatorTheme.fromJson(Map<String, dynamic> json) {
     return CalculatorTheme(
-      name: json['name'] ?? '未命名主题',
+      name: json['name'] ?? 'Default',
       backgroundColor: json['backgroundColor'] ?? '#000000',
+      backgroundGradient: json['backgroundGradient']?.cast<String>(),
+      backgroundImage: json['backgroundImage'],
       displayBackgroundColor: json['displayBackgroundColor'] ?? '#222222',
+      displayBackgroundGradient: json['displayBackgroundGradient']?.cast<String>(),
       displayTextColor: json['displayTextColor'] ?? '#FFFFFF',
       primaryButtonColor: json['primaryButtonColor'] ?? '#333333',
+      primaryButtonGradient: json['primaryButtonGradient']?.cast<String>(),
       primaryButtonTextColor: json['primaryButtonTextColor'] ?? '#FFFFFF',
       secondaryButtonColor: json['secondaryButtonColor'] ?? '#555555',
+      secondaryButtonGradient: json['secondaryButtonGradient']?.cast<String>(),
       secondaryButtonTextColor: json['secondaryButtonTextColor'] ?? '#FFFFFF',
       operatorButtonColor: json['operatorButtonColor'] ?? '#FF9F0A',
+      operatorButtonGradient: json['operatorButtonGradient']?.cast<String>(),
       operatorButtonTextColor: json['operatorButtonTextColor'] ?? '#FFFFFF',
-      fontSize: (json['fontSize'] as num?)?.toDouble() ?? 24.0,
-      buttonBorderRadius: (json['buttonBorderRadius'] as num?)?.toDouble() ?? 8.0,
+      fontSize: (json['fontSize'] ?? 24.0).toDouble(),
+      buttonBorderRadius: (json['buttonBorderRadius'] ?? 8.0).toDouble(),
       hasGlowEffect: json['hasGlowEffect'] ?? false,
       shadowColor: json['shadowColor'],
+      buttonElevation: json['buttonElevation']?.toDouble(),
+      buttonShadowColors: json['buttonShadowColors']?.cast<String>(),
     );
   }
 
@@ -57,18 +81,26 @@ class CalculatorTheme {
     return {
       'name': name,
       'backgroundColor': backgroundColor,
+      'backgroundGradient': backgroundGradient,
+      'backgroundImage': backgroundImage,
       'displayBackgroundColor': displayBackgroundColor,
+      'displayBackgroundGradient': displayBackgroundGradient,
       'displayTextColor': displayTextColor,
       'primaryButtonColor': primaryButtonColor,
+      'primaryButtonGradient': primaryButtonGradient,
       'primaryButtonTextColor': primaryButtonTextColor,
       'secondaryButtonColor': secondaryButtonColor,
+      'secondaryButtonGradient': secondaryButtonGradient,
       'secondaryButtonTextColor': secondaryButtonTextColor,
       'operatorButtonColor': operatorButtonColor,
+      'operatorButtonGradient': operatorButtonGradient,
       'operatorButtonTextColor': operatorButtonTextColor,
       'fontSize': fontSize,
       'buttonBorderRadius': buttonBorderRadius,
       'hasGlowEffect': hasGlowEffect,
-      if (shadowColor != null) 'shadowColor': shadowColor,
+      'shadowColor': shadowColor,
+      'buttonElevation': buttonElevation,
+      'buttonShadowColors': buttonShadowColors,
     };
   }
 }
@@ -116,9 +148,13 @@ class CalculatorButton {
   final String label;
   final CalculatorAction action;
   final GridPosition gridPosition;
-  final ButtonType type;
+  final String type; // primary, secondary, operator, special
   final String? customColor;
   final bool isWide;
+  final double widthMultiplier; // 宽度倍数，默认1.0
+  final double heightMultiplier; // 高度倍数，默认1.0
+  final List<String>? gradientColors; // 渐变色数组
+  final String? backgroundImage; // 背景图片URL
 
   const CalculatorButton({
     required this.id,
@@ -128,20 +164,25 @@ class CalculatorButton {
     required this.type,
     this.customColor,
     this.isWide = false,
+    this.widthMultiplier = 1.0,
+    this.heightMultiplier = 1.0,
+    this.gradientColors,
+    this.backgroundImage,
   });
 
   factory CalculatorButton.fromJson(Map<String, dynamic> json) {
     return CalculatorButton(
-      id: json['id']?.toString() ?? 'unknown',
-      label: json['label']?.toString() ?? '',
-      action: CalculatorAction.fromJson(json['action'] ?? {}),
-      gridPosition: GridPosition.fromJson(json['gridPosition'] ?? {}),
-      type: ButtonType.values.firstWhere(
-        (e) => e.toString() == 'ButtonType.${json['type']}',
-        orElse: () => ButtonType.primary,
-      ),
-      customColor: json['customColor']?.toString(),
+      id: json['id'],
+      label: json['label'],
+      action: CalculatorAction.fromJson(json['action']),
+      gridPosition: GridPosition.fromJson(json['gridPosition']),
+      type: json['type'],
+      customColor: json['customColor'],
       isWide: json['isWide'] ?? false,
+      widthMultiplier: (json['widthMultiplier'] ?? 1.0).toDouble(),
+      heightMultiplier: (json['heightMultiplier'] ?? 1.0).toDouble(),
+      gradientColors: json['gradientColors']?.cast<String>(),
+      backgroundImage: json['backgroundImage'],
     );
   }
 
@@ -151,9 +192,13 @@ class CalculatorButton {
       'label': label,
       'action': action.toJson(),
       'gridPosition': gridPosition.toJson(),
-      'type': type.toString().split('.').last,
-      if (customColor != null) 'customColor': customColor,
+      'type': type,
+      'customColor': customColor,
       'isWide': isWide,
+      'widthMultiplier': widthMultiplier,
+      'heightMultiplier': heightMultiplier,
+      'gradientColors': gradientColors,
+      'backgroundImage': backgroundImage,
     };
   }
 }
@@ -285,28 +330,28 @@ class CalculatorConfig {
             label: 'AC',
             action: const CalculatorAction(type: CalculatorActionType.clearAll),
             gridPosition: const GridPosition(row: 1, column: 0),
-            type: ButtonType.secondary,
+            type: 'secondary',
           ),
           CalculatorButton(
             id: 'negate',
             label: '±',
             action: const CalculatorAction(type: CalculatorActionType.negate),
             gridPosition: const GridPosition(row: 1, column: 1),
-            type: ButtonType.secondary,
+            type: 'secondary',
           ),
           CalculatorButton(
             id: 'percent',
             label: '%',
             action: const CalculatorAction(type: CalculatorActionType.expression, expression: 'x*0.01'),
             gridPosition: const GridPosition(row: 1, column: 2),
-            type: ButtonType.secondary,
+            type: 'secondary',
           ),
           CalculatorButton(
             id: 'divide',
             label: '÷',
             action: const CalculatorAction(type: CalculatorActionType.operator, value: '/'),
             gridPosition: const GridPosition(row: 1, column: 3),
-            type: ButtonType.operator,
+            type: 'operator',
           ),
           // 数字按钮 7-9
           CalculatorButton(
@@ -314,28 +359,28 @@ class CalculatorConfig {
             label: '7',
             action: const CalculatorAction(type: CalculatorActionType.input, value: '7'),
             gridPosition: const GridPosition(row: 2, column: 0),
-            type: ButtonType.primary,
+            type: 'primary',
           ),
           CalculatorButton(
             id: 'eight',
             label: '8',
             action: const CalculatorAction(type: CalculatorActionType.input, value: '8'),
             gridPosition: const GridPosition(row: 2, column: 1),
-            type: ButtonType.primary,
+            type: 'primary',
           ),
           CalculatorButton(
             id: 'nine',
             label: '9',
             action: const CalculatorAction(type: CalculatorActionType.input, value: '9'),
             gridPosition: const GridPosition(row: 2, column: 2),
-            type: ButtonType.primary,
+            type: 'primary',
           ),
           CalculatorButton(
             id: 'multiply',
             label: '×',
             action: const CalculatorAction(type: CalculatorActionType.operator, value: '*'),
             gridPosition: const GridPosition(row: 2, column: 3),
-            type: ButtonType.operator,
+            type: 'operator',
           ),
           // 数字按钮 4-6
           CalculatorButton(
@@ -343,28 +388,28 @@ class CalculatorConfig {
             label: '4',
             action: const CalculatorAction(type: CalculatorActionType.input, value: '4'),
             gridPosition: const GridPosition(row: 3, column: 0),
-            type: ButtonType.primary,
+            type: 'primary',
           ),
           CalculatorButton(
             id: 'five',
             label: '5',
             action: const CalculatorAction(type: CalculatorActionType.input, value: '5'),
             gridPosition: const GridPosition(row: 3, column: 1),
-            type: ButtonType.primary,
+            type: 'primary',
           ),
           CalculatorButton(
             id: 'six',
             label: '6',
             action: const CalculatorAction(type: CalculatorActionType.input, value: '6'),
             gridPosition: const GridPosition(row: 3, column: 2),
-            type: ButtonType.primary,
+            type: 'primary',
           ),
           CalculatorButton(
             id: 'subtract',
             label: '-',
             action: const CalculatorAction(type: CalculatorActionType.operator, value: '-'),
             gridPosition: const GridPosition(row: 3, column: 3),
-            type: ButtonType.operator,
+            type: 'operator',
           ),
           // 数字按钮 1-3
           CalculatorButton(
@@ -372,28 +417,28 @@ class CalculatorConfig {
             label: '1',
             action: const CalculatorAction(type: CalculatorActionType.input, value: '1'),
             gridPosition: const GridPosition(row: 4, column: 0),
-            type: ButtonType.primary,
+            type: 'primary',
           ),
           CalculatorButton(
             id: 'two',
             label: '2',
             action: const CalculatorAction(type: CalculatorActionType.input, value: '2'),
             gridPosition: const GridPosition(row: 4, column: 1),
-            type: ButtonType.primary,
+            type: 'primary',
           ),
           CalculatorButton(
             id: 'three',
             label: '3',
             action: const CalculatorAction(type: CalculatorActionType.input, value: '3'),
             gridPosition: const GridPosition(row: 4, column: 2),
-            type: ButtonType.primary,
+            type: 'primary',
           ),
           CalculatorButton(
             id: 'add',
             label: '+',
             action: const CalculatorAction(type: CalculatorActionType.operator, value: '+'),
             gridPosition: const GridPosition(row: 4, column: 3),
-            type: ButtonType.operator,
+            type: 'operator',
           ),
           // 最后一行：0, ., =
           CalculatorButton(
@@ -401,7 +446,7 @@ class CalculatorConfig {
             label: '0',
             action: const CalculatorAction(type: CalculatorActionType.input, value: '0'),
             gridPosition: const GridPosition(row: 5, column: 0, columnSpan: 2),
-            type: ButtonType.primary,
+            type: 'primary',
             isWide: true,
           ),
           CalculatorButton(
@@ -409,14 +454,14 @@ class CalculatorConfig {
             label: '.',
             action: const CalculatorAction(type: CalculatorActionType.decimal),
             gridPosition: const GridPosition(row: 5, column: 2),
-            type: ButtonType.primary,
+            type: 'primary',
           ),
           CalculatorButton(
             id: 'equals',
             label: '=',
             action: const CalculatorAction(type: CalculatorActionType.equals),
             gridPosition: const GridPosition(row: 5, column: 3),
-            type: ButtonType.operator,
+            type: 'operator',
           ),
         ],
       ),

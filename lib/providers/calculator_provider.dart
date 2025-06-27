@@ -50,14 +50,16 @@ class CalculatorProvider extends ChangeNotifier {
   // 获取按钮文字颜色
   Color getButtonTextColor(CalculatorButton button) {
     switch (button.type) {
-      case ButtonType.primary:
+      case 'primary':
         return _parseColor(_config.theme.primaryButtonTextColor);
-      case ButtonType.secondary:
+      case 'secondary':
         return _parseColor(_config.theme.secondaryButtonTextColor);
-      case ButtonType.operator:
+      case 'operator':
         return _parseColor(_config.theme.operatorButtonTextColor);
-      case ButtonType.special:
+      case 'special':
         return _parseColor(_config.theme.operatorButtonTextColor);
+      default:
+        return _parseColor(_config.theme.primaryButtonTextColor);
     }
   }
 
@@ -68,14 +70,16 @@ class CalculatorProvider extends ChangeNotifier {
     }
 
     switch (button.type) {
-      case ButtonType.primary:
+      case 'primary':
         return _parseColor(_config.theme.primaryButtonColor);
-      case ButtonType.secondary:
+      case 'secondary':
         return _parseColor(_config.theme.secondaryButtonColor);
-      case ButtonType.operator:
+      case 'operator':
         return _parseColor(_config.theme.operatorButtonColor);
-      case ButtonType.special:
+      case 'special':
         return _parseColor(_config.theme.operatorButtonColor);
+      default:
+        return _parseColor(_config.theme.primaryButtonColor);
     }
   }
 
