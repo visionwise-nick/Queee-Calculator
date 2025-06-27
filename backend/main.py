@@ -96,6 +96,7 @@ class CalculatorConfig(BaseModel):
     createdAt: str
     authorPrompt: Optional[str] = None
     thinkingProcess: Optional[str] = None  # AI的思考过程
+    aiResponse: Optional[str] = None  # AI的回复消息
 
 class CustomizationRequest(BaseModel):
     user_input: str = Field(..., description="用户的自然语言描述")
@@ -255,23 +256,37 @@ async def customize_calculator(request: CustomizationRequest) -> CalculatorConfi
         
         # 检查是否有当前配置（最重要的继承依据）
         if request.current_config:
+            theme = request.current_config.get('theme', {})
+            layout = request.current_config.get('layout', {})
+            buttons = layout.get('buttons', [])
+            
             current_config_info = f"""
-📋 【当前计算器配置】
+📋 【当前计算器配置 - 必须继承】
 名称: {request.current_config.get('name', '未知')}
 描述: {request.current_config.get('description', '未知')}
-主题: {request.current_config.get('theme', {}).get('name', '未知主题')}
-按钮数量: {len(request.current_config.get('layout', {}).get('buttons', []))}
-布局: {request.current_config.get('layout', {}).get('rows', '?')}行×{request.current_config.get('layout', {}).get('columns', '?')}列
+主题: {theme.get('name', '未知主题')}
+按钮数量: {len(buttons)}
+布局: {layout.get('rows', '?')}行×{layout.get('columns', '?')}列
 
-🎨 当前主题配色:
-- 背景色: {request.current_config.get('theme', {}).get('backgroundColor', '未知')}
-- 显示屏: {request.current_config.get('theme', {}).get('displayBackgroundColor', '未知')}
-- 主要按钮: {request.current_config.get('theme', {}).get('primaryButtonColor', '未知')}
-- 运算符按钮: {request.current_config.get('theme', {}).get('operatorButtonColor', '未知')}
+🎨 当前主题配色 (保持不变除非用户明确要求修改):
+- 背景色: {theme.get('backgroundColor', '未知')}
+- 显示屏: {theme.get('displayBackgroundColor', '未知')}
+- 显示文字: {theme.get('displayTextColor', '未知')}
+- 主要按钮: {theme.get('primaryButtonColor', '未知')}
+- 主要按钮文字: {theme.get('primaryButtonTextColor', '未知')}
+- 次要按钮: {theme.get('secondaryButtonColor', '未知')}
+- 运算符按钮: {theme.get('operatorButtonColor', '未知')}
+- 字体大小: {theme.get('fontSize', '未知')}
+- 按钮圆角: {theme.get('buttonBorderRadius', '未知')}
 
-⚠️ 这是需要继承和保持的基础设计！
+🔘 当前按钮布局 (保持不变除非用户明确要求修改):
+{chr(10).join([f"- {btn.get('label', '?')} ({btn.get('type', '?')}) 位置: {btn.get('gridPosition', {}).get('row', '?')},{btn.get('gridPosition', {}).get('column', '?')}" for btn in buttons[:10]])}
+{f'... 还有 {len(buttons)-10} 个按钮' if len(buttons) > 10 else ''}
+
+⚠️ 继承原则: 除非用户明确提到要修改的部分，其他所有配置必须保持完全一致！
 """
             is_iterative_request = True
+            print("🔧 检测到现有配置，启用继承模式")
         
         if request.conversation_history:
             conversation_context = "\n\n📚 对话历史分析：\n"
@@ -282,29 +297,47 @@ async def customize_calculator(request: CustomizationRequest) -> CalculatorConfi
                 content = msg.get('content', '')
                 conversation_context += f"{role}: {content}\n"
                 
-                                # 检测是否为增量修改请求
-                if msg.get("role") == "user" and any(keyword in content.lower() for keyword in [
+                                # 检测是否为增量修改请求 - 扩展关键词检测
+                modification_keywords = [
                     '修改', '改变', '调整', '优化', '增加', '删除', '换', '改成', '变成', 
-                    '把', '将', '设置', '改为', '换成', '加一个', '去掉', '改下', '换个'
-                ]):
+                    '把', '将', '设置', '改为', '换成', '加一个', '去掉', '改下', '换个',
+                    '添加', '加', '减少', '缩小', '放大', '变大', '变小', '调大', '调小',
+                    '字体', '颜色', '主题', '按钮', '布局', '描述', '功能', '样式'
+                ]
+                if msg.get("role") == "user" and any(keyword in content.lower() for keyword in modification_keywords):
                     is_iterative_request = True
+                    print(f"🔍 检测到修改意图关键词: {[kw for kw in modification_keywords if kw in content.lower()]}")
         
         # 根据对话类型构建不同的提示策略
         if is_iterative_request and request.current_config:
             # 增量修改模式
             design_instruction = """
-🔄 【增量修改模式】
-重要原则：
-1. 保持现有设计的核心特征和风格
-2. 仅针对用户明确提及的部分进行修改
-3. 未提及的按钮、颜色、布局保持不变
-4. 优先微调而非重新设计
+🔄 【增量修改模式 - 严格继承】
+❗ 核心原则: 完全复制当前配置，只修改用户明确要求的部分
 
-修改策略：
-- 如果用户要求改变某个按钮，只修改该按钮
-- 如果用户要求调整颜色，只改变相关颜色属性
-- 如果用户要求添加功能，在现有布局基础上扩展
-- 保持整体主题风格的一致性
+📋 执行步骤:
+1. 从当前配置中复制所有字段（name, description, theme, layout等）
+2. 识别用户要求修改的具体部分
+3. 只对那些部分进行精确修改
+4. 其他所有内容保持完全一致
+
+🚫 严禁操作:
+- 重新设计整体布局
+- 改变用户未提及的按钮
+- 修改用户未提及的颜色
+- 改变按钮位置或数量（除非明确要求）
+- 更换主题风格（除非明确要求）
+
+✅ 允许操作:
+- 仅修改用户明确提到的属性
+- 在明确要求时添加新按钮
+- 在明确要求时调整特定颜色
+- 在明确要求时修改描述文字
+
+🎯 示例:
+- 用户说"字体变小" → 只修改 fontSize，其他全部保持
+- 用户说"增加描述" → 只修改 description，其他全部保持
+- 用户说"按钮变蓝" → 只修改相关按钮颜色，其他全部保持
 """
         else:
             # 全新设计模式
@@ -417,6 +450,14 @@ async def customize_calculator(request: CustomizationRequest) -> CalculatorConfi
             config_data['authorPrompt'] = request.user_input
         if thinking_process:
             config_data['thinkingProcess'] = thinking_process
+        
+        # 生成智能回复消息
+        if is_iterative_request and request.current_config:
+            # 继承修改的简洁确认
+            config_data['aiResponse'] = "✅ 已按您的要求完成调整！"
+        else:
+            # 全新创建的欢迎消息
+            config_data['aiResponse'] = f"🎉 \"{config_data.get('name', '计算器')}\" 已准备就绪！\n\n💡 提示：您可以随时说出想要的调整，我会在保持现有设计基础上进行精确修改"
         
         # 直接验证生成的配置结构，完全信任AI的输出
         calculator_config = CalculatorConfig(**config_data)

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../providers/calculator_provider.dart';
 import '../services/ai_service.dart';
@@ -162,8 +163,6 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
     _textController.clear();
     _focusNode.requestFocus();
 
-    await _addUserMessage(userInput);
-
     setState(() {
       _isLoading = true;
     });
@@ -172,6 +171,7 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
       final provider = Provider.of<CalculatorProvider>(context, listen: false);
       final currentConfig = provider.config;
       
+      // AIService会自动处理消息记录，我们只需要获取结果
       final config = await AIService.generateCalculatorFromPrompt(
         userInput,
         currentConfig: currentConfig,
@@ -179,12 +179,10 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
 
       if (config != null) {
         await provider.applyConfig(config);
-
-        await _addAssistantMessage(
-          '🎉 完美！我为你创建了"${config.name}"！\n\n${config.description}\n\n还想要什么调整吗？随时告诉我！',
-          config: config,
-        );
+        // 重新加载会话以获取AI记录的消息
+        await _reloadSession();
       } else {
+        // 只有在失败时才手动添加错误消息
         await _addAssistantMessage('😅 抱歉，我遇到了一些困难。能换个方式描述你的想法吗？');
       }
     } catch (e) {
@@ -193,6 +191,21 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
       setState(() {
         _isLoading = false;
       });
+    }
+  }
+
+  /// 重新加载会话以同步AIService记录的消息
+  Future<void> _reloadSession() async {
+    try {
+      final session = await ConversationService.getCurrentSession();
+      if (session != null) {
+        setState(() {
+          _messages = session.messages;
+        });
+        _scrollToBottom();
+      }
+    } catch (e) {
+      print('重新加载会话失败: $e');
     }
   }
 
@@ -435,33 +448,35 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
                       ),
                     ),
                   ],
-                  Container(
-                    constraints: BoxConstraints(
-                      maxWidth: MediaQuery.of(context).size.width * 0.7,
-                    ),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    decoration: BoxDecoration(
-                      color: _getBubbleColor(message),
-                      borderRadius: _getBubbleRadius(message, isFirst),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-                          message.content,
-                          style: TextStyle(
-                            color: _getTextColor(message),
-                            fontSize: 16,
-                            height: 1.4,
+                  GestureDetector(
+                    onLongPress: () => _showMessageOptions(message, index),
+                    child: Container(
+                      constraints: BoxConstraints(
+                        maxWidth: MediaQuery.of(context).size.width * 0.7,
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: _getBubbleColor(message),
+                        borderRadius: _getBubbleRadius(message, isFirst),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
                           ),
-                        ),
+                        ],
+                      ),
+                      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+                            message.content,
+                            style: TextStyle(
+                              color: _getTextColor(message),
+                              fontSize: 16,
+                              height: 1.4,
+                            ),
+                          ),
                         if (message.metadata?['hasConfig'] == true) ...[
                           const SizedBox(height: 12),
                           Wrap(
@@ -545,6 +560,7 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
                         ],
                       ],
                     ),
+                    ),
                   ),
                 ],
               ),
@@ -552,6 +568,216 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
           ),
         );
       },
+    );
+  }
+
+  /// 显示消息选项菜单（编辑、复制等）
+  void _showMessageOptions(ConversationMessage message, int index) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        margin: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 8),
+              Container(
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Text(
+                  '消息选项',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.grey.shade800,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              ListTile(
+                leading: Icon(Icons.copy, color: Colors.blue.shade600),
+                title: const Text('复制消息'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _copyMessage(message);
+                },
+              ),
+              if (message.type == MessageType.user) ...[
+                ListTile(
+                  leading: Icon(Icons.edit, color: Colors.orange.shade600),
+                  title: const Text('编辑消息'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _editMessage(message, index);
+                  },
+                ),
+              ],
+              ListTile(
+                leading: Icon(Icons.delete, color: Colors.red.shade600),
+                title: const Text('删除消息'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _deleteMessage(index);
+                },
+              ),
+              const SizedBox(height: 16),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// 复制消息内容
+  void _copyMessage(ConversationMessage message) {
+    Clipboard.setData(ClipboardData(text: message.content));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('消息已复制到剪贴板'),
+        backgroundColor: Colors.green.shade600,
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
+  /// 编辑用户消息
+  void _editMessage(ConversationMessage message, int index) {
+    final controller = TextEditingController(text: message.content);
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('编辑消息'),
+        content: TextField(
+          controller: controller,
+          maxLines: null,
+          decoration: const InputDecoration(
+            hintText: '输入新的消息内容...',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('取消'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final newContent = controller.text.trim();
+              if (newContent.isNotEmpty && newContent != message.content) {
+                Navigator.pop(context);
+                await _updateMessage(index, newContent);
+              } else {
+                Navigator.pop(context);
+              }
+            },
+            child: const Text('保存'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 更新消息内容
+  Future<void> _updateMessage(int index, String newContent) async {
+    try {
+      final oldMessage = _messages[index];
+      final updatedMessage = ConversationMessage(
+        id: oldMessage.id,
+        type: oldMessage.type,
+        content: newContent,
+        timestamp: oldMessage.timestamp,
+        metadata: oldMessage.metadata,
+      );
+
+      // 更新本地状态
+      setState(() {
+        _messages[index] = updatedMessage;
+      });
+
+      // 更新存储的会话
+      await ConversationService.updateMessage(updatedMessage);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('消息已更新'),
+          backgroundColor: Colors.blue.shade600,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('更新失败: $e'),
+          backgroundColor: Colors.red.shade600,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
+  }
+
+  /// 删除消息
+  Future<void> _deleteMessage(int index) async {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('删除消息'),
+        content: const Text('确定要删除这条消息吗？此操作无法撤销。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('取消'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              try {
+                final messageToDelete = _messages[index];
+                
+                // 更新本地状态
+                setState(() {
+                  _messages.removeAt(index);
+                });
+
+                // 从存储中删除
+                await ConversationService.deleteMessage(messageToDelete.id);
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: const Text('消息已删除'),
+                    backgroundColor: Colors.orange.shade600,
+                    duration: const Duration(seconds: 2),
+                  ),
+                );
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('删除失败: $e'),
+                    backgroundColor: Colors.red.shade600,
+                    duration: const Duration(seconds: 3),
+                  ),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('删除', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
     );
   }
 

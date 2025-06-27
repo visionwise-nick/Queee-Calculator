@@ -195,6 +195,59 @@ class ConversationService {
     await prefs.remove(_currentSessionKey);
   }
 
+  /// 更新消息
+  static Future<ConversationSession?> updateMessage(ConversationMessage updatedMessage) async {
+    final currentSessionId = await getCurrentSessionId();
+    if (currentSessionId == null) return null;
+
+    final sessions = await getAllSessions();
+    final sessionIndex = sessions.indexWhere((s) => s.id == currentSessionId);
+    
+    if (sessionIndex == -1) return null;
+
+    final currentSession = sessions[sessionIndex];
+    final messageIndex = currentSession.messages.indexWhere((m) => m.id == updatedMessage.id);
+    
+    if (messageIndex == -1) return null;
+
+    final updatedMessages = [...currentSession.messages];
+    updatedMessages[messageIndex] = updatedMessage;
+
+    final updatedSession = currentSession.copyWith(
+      updatedAt: DateTime.now(),
+      messages: updatedMessages,
+    );
+
+    sessions[sessionIndex] = updatedSession;
+    await _saveSessions(sessions);
+    
+    return updatedSession;
+  }
+
+  /// 删除消息
+  static Future<ConversationSession?> deleteMessage(String messageId) async {
+    final currentSessionId = await getCurrentSessionId();
+    if (currentSessionId == null) return null;
+
+    final sessions = await getAllSessions();
+    final sessionIndex = sessions.indexWhere((s) => s.id == currentSessionId);
+    
+    if (sessionIndex == -1) return null;
+
+    final currentSession = sessions[sessionIndex];
+    final updatedMessages = currentSession.messages.where((m) => m.id != messageId).toList();
+
+    final updatedSession = currentSession.copyWith(
+      updatedAt: DateTime.now(),
+      messages: updatedMessages,
+    );
+
+    sessions[sessionIndex] = updatedSession;
+    await _saveSessions(sessions);
+    
+    return updatedSession;
+  }
+
   /// 生成消息ID
   static String generateMessageId() {
     return 'msg_${DateTime.now().millisecondsSinceEpoch}_${DateTime.now().microsecond}';

@@ -60,10 +60,21 @@ class AIService {
         
         print('✅ AI 配置生成成功: ${config.name}');
         
-        // 记录AI响应
-        final responseMsg = currentConfig != null 
-            ? '优化了计算器配置: ${config.name}'
-            : '生成了计算器配置: ${config.name}';
+        // 使用AI生成的智能回复消息
+        String responseMsg = '✅ 配置已生成完成'; // 默认消息
+        
+        // 优先使用AI返回的自定义回复
+        final configJson = config.toJson();
+        if (configJson['aiResponse'] != null && configJson['aiResponse'].toString().isNotEmpty) {
+          responseMsg = configJson['aiResponse'].toString();
+        } else {
+          // 备用方案：根据上下文生成回复
+          if (currentConfig != null) {
+            responseMsg = '✅ 已按您的要求完成调整！';
+          } else {
+            responseMsg = '🎉 "${config.name}" 已准备就绪！\n\n💡 提示：您可以随时说出想要的调整，我会在保持现有设计基础上进行精确修改';
+          }
+        }
         await _recordAssistantMessage(responseMsg);
         
         return config;
