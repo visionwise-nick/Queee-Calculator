@@ -34,6 +34,21 @@ class CalculatorTheme(BaseModel):
     hasGlowEffect: bool = False
     shadowColor: str | None = None
     soundEffects: list[SoundEffect] | None = None
+    # 新增样式字段
+    buttonSpacing: float | None = None
+    buttonElevation: float | None = None
+    buttonBorderColor: str | None = None
+    buttonBorderWidth: float | None = None
+    gradientStartColor: str | None = None
+    gradientEndColor: str | None = None
+    hasRippleEffect: bool = True
+    hasVibration: bool = False
+    accentColor: str | None = None
+    displayFontSize: float = 32.0
+    displayFontFamily: str | None = None
+    isDisplayBold: bool = False
+    containerPadding: float | None = None
+    containerMargin: float | None = None
 
 class GridPosition(BaseModel):
     row: int
@@ -154,6 +169,11 @@ SYSTEM_PROMPT = """
 
 **重要**: 如果用户要求自定义按钮功能或布局，你必须修改相应的按钮配置，不能使用标准模板！
 
+**新功能支持**:
+- 一键运算按钮: square(平方), cube(立方), sqrt(开根号), factorial(阶乘), reciprocal(倒数), tip15/tip18/tip20(小费), double(翻倍), half(减半)
+- 自定义按钮: 可添加任意功能的按钮，如addConstant_5(加5), multiplyBy_2.5(乘以2.5), powerOf_3(三次方)
+- 扩展样式: 支持按钮间距、阴影、边框、渐变色、水波纹效果、震动反馈等
+
 **设计原则**:
 - 考虑色彩心理学和用户体验
 - 确保文字在背景上有足够的对比度
@@ -161,6 +181,7 @@ SYSTEM_PROMPT = """
 - 特效使用要适度，不影响功能性
 - 音效搭配要与主题风格一致，音量设置合理
 - 如果用户要求特殊功能按钮（如小费计算），必须替换相应的标准按钮
+- 支持动态添加按钮，可以扩展到5x4或6x4布局
 
 **音效搭配指南**:
 - 赛博朋克/科技风: 使用电子音效 "sounds/cyberpunk/cyber_click.wav"
@@ -191,6 +212,20 @@ SYSTEM_PROMPT = """
     "buttonBorderRadius": "number",
     "hasGlowEffect": "boolean",
     "shadowColor": "string (可选, e.g., '#RRGGBB')",
+    "buttonSpacing": "number (可选, 按钮间距)",
+    "buttonElevation": "number (可选, 按钮阴影高度)",
+    "buttonBorderColor": "string (可选, 按钮边框颜色)",
+    "buttonBorderWidth": "number (可选, 按钮边框宽度)",
+    "gradientStartColor": "string (可选, 渐变起始色)",
+    "gradientEndColor": "string (可选, 渐变结束色)",
+    "hasRippleEffect": "boolean (水波纹效果, 默认true)",
+    "hasVibration": "boolean (震动反馈, 默认false)",
+    "accentColor": "string (可选, 强调色)",
+    "displayFontSize": "number (显示屏字体大小, 默认32)",
+    "displayFontFamily": "string (可选, 显示屏字体)",
+    "isDisplayBold": "boolean (显示屏字体是否加粗, 默认false)",
+    "containerPadding": "number (可选, 容器内边距)",
+    "containerMargin": "number (可选, 容器外边距)",
     "soundEffects": [
       {
         "trigger": "string (buttonPress|calculation|error|clear)",
@@ -201,21 +236,40 @@ SYSTEM_PROMPT = """
   },
   "layout": {
     "name": "string (布局名称)",
-    "rows": "integer",
+    "rows": "integer (标准4x6，可扩展到5x6或6x6)",
     "columns": "integer",
     "buttons": [
       {
         "id": "string (e.g., 'btn-7')",
-        "label": "string (e.g., '7')",
-        "action": { "type": "string (input|operator|clear|equals|...)", "value": "string (e.g., '7', '+', 'C')" },
+        "label": "string (e.g., '7', 'x²', '15%')",
+        "action": { 
+          "type": "string (input|operator|clear|equals|quickCalc|custom|tip|scientific|...)", 
+          "value": "string (e.g., '7', '+', 'square', 'tip15', 'addConstant_10')" 
+        },
         "gridPosition": { "row": "integer", "column": "integer", "columnSpan": "integer (可选)" },
-        "type": "string (primary|secondary|operator)",
-        "isWide": "boolean (可选)"
+        "type": "string (primary|secondary|operator|special)",
+        "customColor": "string (可选, 自定义按钮颜色)",
+        "customTextColor": "string (可选, 自定义文字颜色)",
+        "icon": "string (可选, 图标名称)",
+        "isWide": "boolean (可选)",
+        "isHigh": "boolean (可选)"
       }
     ],
     "description": "string (对这个设计的简短描述)"
   }
 }
+
+**新增按钮操作类型**:
+- quickCalc: 一键运算 (square, cube, sqrt, factorial, reciprocal, tip15, tip18, tip20, double, half)
+- custom: 自定义函数 (addConstant_数值, multiplyBy_数值, powerOf_数值)
+- tip: 小费计算 (直接传入百分比字符串，如"15", "18", "20")
+- scientific: 科学计算 (sin, cos, tan, log, ln等)
+- memory: 内存操作 (MS, MR, MC, M+, M-)
+
+**按钮示例**:
+{"id": "square", "label": "x²", "action": {"type": "quickCalc", "value": "square"}, "gridPosition": {"row": 1, "column": 1}, "type": "special"}
+{"id": "tip15", "label": "15%", "action": {"type": "quickCalc", "value": "tip15"}, "gridPosition": {"row": 1, "column": 2}, "type": "special"}
+{"id": "add10", "label": "+10", "action": {"type": "custom", "value": "addConstant_10"}, "gridPosition": {"row": 1, "column": 3}, "type": "special"}
 
 这是一个标准的计算器布局，你可以此为基础进行修改：
 - 4列，6行 (包括显示屏占用的行)

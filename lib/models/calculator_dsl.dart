@@ -19,6 +19,22 @@ class CalculatorTheme {
   final bool hasGlowEffect;
   final String? shadowColor;
   final List<SoundEffect>? soundEffects;
+  
+  // 新增样式选项
+  final double? buttonSpacing;        // 按钮间距
+  final double? buttonElevation;      // 按钮阴影高度
+  final String? buttonBorderColor;    // 按钮边框颜色
+  final double? buttonBorderWidth;    // 按钮边框宽度
+  final String? gradientStartColor;   // 渐变起始颜色
+  final String? gradientEndColor;     // 渐变结束颜色
+  final bool hasRippleEffect;         // 是否有水波纹效果
+  final bool hasVibration;            // 是否有震动反馈
+  final String? accentColor;          // 强调色
+  final double displayFontSize;       // 显示屏字体大小
+  final String? displayFontFamily;    // 显示屏字体
+  final bool isDisplayBold;           // 显示屏字体是否加粗
+  final double? containerPadding;     // 容器内边距
+  final double? containerMargin;      // 容器外边距
 
   const CalculatorTheme({
     required this.name,
@@ -38,6 +54,21 @@ class CalculatorTheme {
     this.hasGlowEffect = false,
     this.shadowColor,
     this.soundEffects,
+    // 新增字段
+    this.buttonSpacing,
+    this.buttonElevation,
+    this.buttonBorderColor,
+    this.buttonBorderWidth,
+    this.gradientStartColor,
+    this.gradientEndColor,
+    this.hasRippleEffect = true,
+    this.hasVibration = false,
+    this.accentColor,
+    this.displayFontSize = 32.0,
+    this.displayFontFamily,
+    this.isDisplayBold = false,
+    this.containerPadding,
+    this.containerMargin,
   });
 
   factory CalculatorTheme.fromJson(Map<String, dynamic> json) {
@@ -61,6 +92,21 @@ class CalculatorTheme {
       soundEffects: (json['soundEffects'] as List?)
           ?.map((e) => SoundEffect.fromJson(e))
           .toList(),
+      // 新增字段解析
+      buttonSpacing: (json['buttonSpacing'] as num?)?.toDouble(),
+      buttonElevation: (json['buttonElevation'] as num?)?.toDouble(),
+      buttonBorderColor: json['buttonBorderColor'],
+      buttonBorderWidth: (json['buttonBorderWidth'] as num?)?.toDouble(),
+      gradientStartColor: json['gradientStartColor'],
+      gradientEndColor: json['gradientEndColor'],
+      hasRippleEffect: json['hasRippleEffect'] ?? true,
+      hasVibration: json['hasVibration'] ?? false,
+      accentColor: json['accentColor'],
+      displayFontSize: (json['displayFontSize'] as num?)?.toDouble() ?? 32.0,
+      displayFontFamily: json['displayFontFamily'],
+      isDisplayBold: json['isDisplayBold'] ?? false,
+      containerPadding: (json['containerPadding'] as num?)?.toDouble(),
+      containerMargin: (json['containerMargin'] as num?)?.toDouble(),
     );
   }
 
@@ -84,6 +130,21 @@ class CalculatorTheme {
       if (shadowColor != null) 'shadowColor': shadowColor,
       if (soundEffects != null)
         'soundEffects': soundEffects!.map((e) => e.toJson()).toList(),
+      // 新增字段序列化
+      if (buttonSpacing != null) 'buttonSpacing': buttonSpacing,
+      if (buttonElevation != null) 'buttonElevation': buttonElevation,
+      if (buttonBorderColor != null) 'buttonBorderColor': buttonBorderColor,
+      if (buttonBorderWidth != null) 'buttonBorderWidth': buttonBorderWidth,
+      if (gradientStartColor != null) 'gradientStartColor': gradientStartColor,
+      if (gradientEndColor != null) 'gradientEndColor': gradientEndColor,
+      'hasRippleEffect': hasRippleEffect,
+      'hasVibration': hasVibration,
+      if (accentColor != null) 'accentColor': accentColor,
+      'displayFontSize': displayFontSize,
+      if (displayFontFamily != null) 'displayFontFamily': displayFontFamily,
+      'isDisplayBold': isDisplayBold,
+      if (containerPadding != null) 'containerPadding': containerPadding,
+      if (containerMargin != null) 'containerMargin': containerMargin,
     };
   }
 }

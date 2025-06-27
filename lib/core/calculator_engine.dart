@@ -17,6 +17,8 @@ enum CalculatorActionType {
   memory,     // 内存操作 (MS, MR, MC, M+, M-)
   scientific, // 科学计算 (sin, cos, sqrt, pow, etc.)
   bitwise,    // 位运算 (AND, OR, XOR, NOT)
+  quickCalc,  // 一键运算 (平方、立方、开根号、阶乘等)
+  custom,     // 自定义函数
 }
 
 /// 计算器操作定义
@@ -138,6 +140,10 @@ class CalculatorEngine {
           return _handleScientific(action.value!, action.params);
         case CalculatorActionType.bitwise:
           return _handleBitwise(action.value!, action.params);
+        case CalculatorActionType.quickCalc:
+          return _handleQuickCalc(action.value!);
+        case CalculatorActionType.custom:
+          return _handleCustom(action.value!, action.params);
       }
     } catch (e) {
       return _state.copyWith(display: 'Error', isError: true);
@@ -478,6 +484,91 @@ class CalculatorEngine {
     }
     
     return _state.copyWith(display: result.toString());
+  }
+
+  CalculatorState _handleQuickCalc(String operation) {
+    if (_state.isError) return _state;
+    
+    try {
+      double currentValue = double.parse(_state.display);
+      double result;
+      
+      switch (operation) {
+        case 'square':
+          result = currentValue * currentValue;
+          break;
+        case 'cube':
+          result = currentValue * currentValue * currentValue;
+          break;
+        case 'sqrt':
+          result = math.sqrt(currentValue);
+          break;
+        case 'factorial':
+          if (currentValue < 0 || currentValue != currentValue.toInt()) {
+            throw Exception('Factorial only for non-negative integers');
+          }
+          result = _factorial(currentValue.toInt()).toDouble();
+          break;
+        case 'reciprocal':
+          if (currentValue == 0) throw Exception('Division by zero');
+          result = 1 / currentValue;
+          break;
+        case 'tip15':
+          result = currentValue * 0.15;
+          break;
+        case 'tip18':
+          result = currentValue * 0.18;
+          break;
+        case 'tip20':
+          result = currentValue * 0.20;
+          break;
+        case 'double':
+          result = currentValue * 2;
+          break;
+        case 'half':
+          result = currentValue / 2;
+          break;
+        default:
+          return _state;
+      }
+      
+      return _state.copyWith(display: _formatResult(result));
+    } catch (e) {
+      return _state.copyWith(display: 'Error', isError: true);
+    }
+  }
+  
+  CalculatorState _handleCustom(String function, Map<String, dynamic>? params) {
+    if (_state.isError) return _state;
+    
+    try {
+      double currentValue = double.parse(_state.display);
+      
+      // 解析自定义函数
+      if (function.startsWith('addConstant_')) {
+        double constant = double.parse(function.split('_')[1]);
+        double result = currentValue + constant;
+        return _state.copyWith(display: _formatResult(result));
+      } else if (function.startsWith('multiplyBy_')) {
+        double multiplier = double.parse(function.split('_')[1]);
+        double result = currentValue * multiplier;
+        return _state.copyWith(display: _formatResult(result));
+      } else if (function.startsWith('powerOf_')) {
+        double exponent = double.parse(function.split('_')[1]);
+        double result = math.pow(currentValue, exponent).toDouble();
+        return _state.copyWith(display: _formatResult(result));
+      }
+      
+      return _state;
+    } catch (e) {
+      return _state.copyWith(display: 'Error', isError: true);
+    }
+  }
+  
+  int _factorial(int n) {
+    if (n <= 1) return 1;
+    if (n > 20) throw Exception('Number too large'); // 防止溢出
+    return n * _factorial(n - 1);
   }
 
   /// 重置计算器状态
