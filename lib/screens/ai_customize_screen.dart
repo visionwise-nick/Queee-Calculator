@@ -73,8 +73,8 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
 
   Future<void> _addWelcomeMessages() async {
     final welcomeMessages = [
-      '👋 你好！我是你的计算器设计师',
-      '✨ 我可以帮你设计独特的计算器\n\n🎨 **试试这些想法：**\n• "设计一个深色主题的计算器"\n• "我想要彩虹色按钮"\n• "添加一些科学计算功能"\n• "让按钮更大更圆润"',
+      '👋 你好！我是你的专属计算器设计师',
+      '✨ 我不只是改改颜色，而是创造完整的设计作品！\n\n🎨 我能为你打造：\n• 完整的主题设计（赛博朋克、极简、可爱风等）\n• 专业功能计算器（金融、科学、工程）\n• 独特的视觉效果（发光、渐变、纹理）\n• 个性化的用户体验\n\n💡 点击灯泡查看设计画廊，或者直接告诉我你的想法！',
     ];
 
     for (int i = 0; i < welcomeMessages.length; i++) {
@@ -182,24 +182,27 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
 
   void _showQuickReplies() {
     final quickReplies = [
-      '🌙 暗色主题',
-      '🌈 彩虹按钮',
-      '🔢 科学计算',
-      '💰 金融计算',
-      '🎨 更换颜色',
-      '📏 调整大小',
+      '设计一个赛博朋克风格的计算器，黑色背景配霓虹蓝按键，有发光效果和未来感字体',
+      '创建一个专业金融计算器，深海蓝主题，包含复利、贷款、投资回报率等专业按钮',
+      '我想要一个粉色渐变的可爱计算器，圆润按钮，还要有心形等号和星星装饰',
+      '设计一个极简黑白计算器，像苹果产品一样干净优雅，按钮有轻微阴影',
+      '创建一个游戏主题计算器，像素风格，8位色彩，按钮看起来像游戏机按键',
+      '我需要一个工程师专用计算器，包含三角函数、对数、幂运算等科学计算功能',
+      '设计一个温暖的木质纹理计算器，棕色系配色，按钮有木头质感',
+      '创建一个夜间模式计算器，深色背景保护眼睛，橙色数字易于阅读',
     ];
 
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
+      isScrollControlled: true,
       builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.8,
         decoration: const BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
         child: Column(
-          mainAxisSize: MainAxisSize.min,
           children: [
             Container(
               width: 40,
@@ -210,32 +213,133 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
-            const Padding(
-              padding: EdgeInsets.all(16),
-              child: Text(
-                '💡 快速想法',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.amber.shade100,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(Icons.palette, color: Colors.amber.shade700),
+                  ),
+                  const SizedBox(width: 12),
+                  const Text(
+                    '🎨 设计灵感画廊',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                itemCount: quickReplies.length,
+                itemBuilder: (context, index) {
+                  final reply = quickReplies[index];
+                  final colors = [
+                    [Colors.purple.shade100, Colors.purple.shade50],
+                    [Colors.blue.shade100, Colors.blue.shade50],
+                    [Colors.pink.shade100, Colors.pink.shade50],
+                    [Colors.grey.shade100, Colors.grey.shade50],
+                    [Colors.green.shade100, Colors.green.shade50],
+                    [Colors.orange.shade100, Colors.orange.shade50],
+                    [Colors.brown.shade100, Colors.brown.shade50],
+                    [Colors.indigo.shade100, Colors.indigo.shade50],
+                  ];
+                  
+                  final colorPair = colors[index % colors.length];
+                  final icons = [
+                    Icons.flash_on,
+                    Icons.account_balance,
+                    Icons.favorite,
+                    Icons.apple,
+                    Icons.games,
+                    Icons.engineering,
+                    Icons.nature,
+                    Icons.bedtime,
+                  ];
+                  
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: () {
+                          Navigator.pop(context);
+                          _sendMessage(reply);
+                        },
+                        borderRadius: BorderRadius.circular(16),
+                        child: Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: colorPair,
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: colorPair[0]),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(12),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.1),
+                                      blurRadius: 4,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: Icon(
+                                  icons[index % icons.length],
+                                  color: colorPair[0],
+                                  size: 24,
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Text(
+                                  reply,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    height: 1.4,
+                                    color: Colors.grey.shade800,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                              Icon(
+                                Icons.arrow_forward_ios,
+                                size: 16,
+                                color: Colors.grey.shade400,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: quickReplies.map((reply) => 
-                  ActionChip(
-                    label: Text(reply),
-                    onPressed: () {
-                      Navigator.pop(context);
-                      _sendMessage(reply);
-                    },
-                    backgroundColor: Colors.purple.shade50,
-                    labelStyle: TextStyle(color: Colors.purple.shade700),
-                  ),
-                ).toList(),
+              padding: const EdgeInsets.all(20),
+              child: Text(
+                '💡 点击任意设计开始创作',
+                style: TextStyle(
+                  color: Colors.grey.shade600,
+                  fontSize: 14,
+                ),
               ),
             ),
-            const SizedBox(height: 32),
           ],
         ),
       ),
