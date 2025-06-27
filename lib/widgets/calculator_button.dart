@@ -122,15 +122,25 @@ class _CalculatorButtonWidgetState extends State<CalculatorButtonWidget>
   }
 
   Widget _buildButtonContent(Color textColor, CalculatorTheme theme) {
-    // 显示文字
-    return Text(
-      widget.button.label,
-      style: TextStyle(
-        fontSize: _getButtonFontSize(theme.fontSize),
-        fontWeight: _getButtonFontWeight(),
-        color: textColor,
-        // fontFamily: 'monospace',
-      ),
+    return Consumer<CalculatorProvider>(
+      builder: (context, provider, child) {
+        // 根据布局行数动态调整字体大小
+        final layout = provider.config.layout;
+        double adjustedFontSize = _getButtonFontSize(theme.fontSize, layout.rows);
+        
+        // 显示文字
+        return Text(
+          widget.button.label,
+          style: TextStyle(
+            fontSize: adjustedFontSize,
+            fontWeight: _getButtonFontWeight(),
+            color: textColor,
+            // fontFamily: 'monospace',
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        );
+      },
     );
   }
 
@@ -148,15 +158,25 @@ class _CalculatorButtonWidgetState extends State<CalculatorButtonWidget>
     }
   }
 
-  /// 获取按钮字体大小
-  double _getButtonFontSize(double baseFontSize) {
+  /// 获取按钮字体大小 - 根据行数动态调整
+  double _getButtonFontSize(double baseFontSize, int totalRows) {
+    // 根据总行数调整基础字体大小
+    double adjustedBase = baseFontSize;
+    if (totalRows > 6) {
+      // 当行数超过6时，缩小字体
+      double scaleFactor = 6.0 / totalRows;
+      adjustedBase = baseFontSize * scaleFactor;
+      adjustedBase = adjustedBase.clamp(12.0, baseFontSize); // 最小12px
+    }
+    
+    // 根据按钮类型进一步调整
     switch (widget.button.type) {
       case ButtonType.operator:
-        return baseFontSize + 4;
+        return adjustedBase + 2; // 减少额外增量
       case ButtonType.secondary:
-        return baseFontSize - 2;
+        return adjustedBase - 1; // 减少缩减量
       default:
-        return baseFontSize;
+        return adjustedBase;
     }
   }
 

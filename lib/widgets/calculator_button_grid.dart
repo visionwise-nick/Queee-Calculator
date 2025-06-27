@@ -36,7 +36,7 @@ class CalculatorButtonGrid extends StatelessWidget {
       if (position.row < layout.rows && position.column < layout.columns) {
         final buttonWidget = CalculatorButtonWidget(
           button: button,
-                          onPressed: () => provider.executeAction(button.action),
+          onPressed: () => provider.executeAction(button.action),
         );
         
         // 处理跨列的按钮（如 0 按钮）
@@ -53,6 +53,14 @@ class CalculatorButtonGrid extends StatelessWidget {
       }
     }
 
+    // 计算动态按钮高度 - 根据行数调整
+    double buttonHeight = 70.0; // 基础高度
+    if (layout.rows > 6) {
+      // 如果超过6行，动态缩小按钮高度
+      buttonHeight = 400.0 / (layout.rows - 1); // 减去显示屏行
+      buttonHeight = buttonHeight.clamp(45.0, 70.0); // 最小45px，最大70px
+    }
+
     return Column(
       children: List.generate(layout.rows, (rowIndex) {
         // 跳过显示区域占用的行
@@ -60,7 +68,8 @@ class CalculatorButtonGrid extends StatelessWidget {
           return const SizedBox.shrink();
         }
         
-        return Expanded(
+        return Container(
+          height: buttonHeight,
           child: Row(
             children: List.generate(layout.columns, (colIndex) {
               final widget = grid[rowIndex][colIndex];

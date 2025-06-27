@@ -381,13 +381,13 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Row(
-      children: [
+          children: [
             Icon(Icons.refresh, color: Colors.orange),
             SizedBox(width: 8),
             Text('开始新对话'),
           ],
         ),
-        content: const Text('要开始一个全新的设计对话吗？'),
+        content: const Text('要开始一个全新的设计对话吗？\n\n计算器将重置为默认样式。'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
@@ -396,10 +396,28 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
           ElevatedButton(
             onPressed: () async {
               Navigator.of(context).pop();
+              
+              // 重置为默认计算器配置
+              final provider = Provider.of<CalculatorProvider>(context, listen: false);
+              final defaultConfig = CalculatorConfig.createDefault();
+              await provider.applyConfig(defaultConfig);
+              
+              // 删除当前对话会话
               if (_currentSession != null) {
                 await ConversationService.deleteSession(_currentSession!.id);
               }
+              
+              // 重新加载对话（会创建新会话）
               await _loadCurrentSession();
+              
+              // 显示重置成功提示
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: const Text('✅ 已重置为默认计算器，开始新的设计对话！'),
+                  backgroundColor: Colors.green.shade600,
+                  duration: const Duration(seconds: 2),
+                ),
+              );
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.orange,
