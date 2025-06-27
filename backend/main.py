@@ -77,19 +77,24 @@ class CalculatorConfig(BaseModel):
 class CustomizationRequest(BaseModel):
     prompt: str = Field(..., description="用户的自然语言描述")
 
-# 简化的AI系统提示
-SYSTEM_PROMPT = """你是AI计算器设计师。严格按照以下格式返回JSON，无其他文字。
+# 强化的AI系统提示
+SYSTEM_PROMPT = """你是AI计算器设计师。必须返回包含完整17个基础按钮的计算器JSON配置。
 
-基础操作类型：
-- input: 数字输入，需要value字段
-- operator: 运算符，需要value字段(+,-,*,/)
-- equals: 等号
-- clearAll: 全清除
-- negate: 正负号
-- decimal: 小数点
-- expression: 表达式运算，需要expression字段
+必须包含的17个基础按钮：
+1. 数字按钮：0,1,2,3,4,5,6,7,8,9 (action.type="input", action.value="数字")
+2. 运算符：+,-,*,/ (action.type="operator", action.value="运算符")
+3. 等号：= (action.type="equals")
+4. 清除：AC (action.type="clearAll") 
+5. 正负号：± (action.type="negate")
+6. 小数点：. (action.type="decimal")
 
-完整示例：
+特殊功能按钮使用表达式：action.type="expression", action.expression="数学表达式"
+- 平方：expression: "x*x"
+- 立方：expression: "pow(x,3)" 
+- 开根号：expression: "sqrt(x)"
+- 小费15%：expression: "x*0.15"
+
+标准完整示例（包含所有必需按钮）：
 {
   "name": "蓝色平方计算器",
   "description": "带平方功能的蓝色计算器",
@@ -97,7 +102,15 @@ SYSTEM_PROMPT = """你是AI计算器设计师。严格按照以下格式返回JS
     "name": "蓝色主题",
     "backgroundColor": "#001133",
     "displayBackgroundColor": "#002244",
-    "operatorButtonColor": "#0066ff"
+    "primaryButtonColor": "#333333",
+    "primaryButtonTextColor": "#ffffff",
+    "secondaryButtonColor": "#555555", 
+    "secondaryButtonTextColor": "#ffffff",
+    "operatorButtonColor": "#0066ff",
+    "operatorButtonTextColor": "#ffffff",
+    "displayTextColor": "#ffffff",
+    "fontSize": 24.0,
+    "buttonBorderRadius": 8.0
   },
   "layout": {
     "name": "标准布局",
@@ -107,10 +120,31 @@ SYSTEM_PROMPT = """你是AI计算器设计师。严格按照以下格式返回JS
       {"id": "clear", "label": "AC", "action": {"type": "clearAll"}, "gridPosition": {"row": 1, "column": 0}, "type": "secondary"},
       {"id": "negate", "label": "±", "action": {"type": "negate"}, "gridPosition": {"row": 1, "column": 1}, "type": "secondary"},
       {"id": "square", "label": "x²", "action": {"type": "expression", "expression": "x*x"}, "gridPosition": {"row": 1, "column": 2}, "type": "special"},
-      {"id": "divide", "label": "÷", "action": {"type": "operator", "value": "/"}, "gridPosition": {"row": 1, "column": 3}, "type": "operator"}
+      {"id": "divide", "label": "÷", "action": {"type": "operator", "value": "/"}, "gridPosition": {"row": 1, "column": 3}, "type": "operator"},
+      
+      {"id": "seven", "label": "7", "action": {"type": "input", "value": "7"}, "gridPosition": {"row": 2, "column": 0}, "type": "primary"},
+      {"id": "eight", "label": "8", "action": {"type": "input", "value": "8"}, "gridPosition": {"row": 2, "column": 1}, "type": "primary"},
+      {"id": "nine", "label": "9", "action": {"type": "input", "value": "9"}, "gridPosition": {"row": 2, "column": 2}, "type": "primary"},
+      {"id": "multiply", "label": "×", "action": {"type": "operator", "value": "*"}, "gridPosition": {"row": 2, "column": 3}, "type": "operator"},
+      
+      {"id": "four", "label": "4", "action": {"type": "input", "value": "4"}, "gridPosition": {"row": 3, "column": 0}, "type": "primary"},
+      {"id": "five", "label": "5", "action": {"type": "input", "value": "5"}, "gridPosition": {"row": 3, "column": 1}, "type": "primary"},
+      {"id": "six", "label": "6", "action": {"type": "input", "value": "6"}, "gridPosition": {"row": 3, "column": 2}, "type": "primary"},
+      {"id": "subtract", "label": "-", "action": {"type": "operator", "value": "-"}, "gridPosition": {"row": 3, "column": 3}, "type": "operator"},
+      
+      {"id": "one", "label": "1", "action": {"type": "input", "value": "1"}, "gridPosition": {"row": 4, "column": 0}, "type": "primary"},
+      {"id": "two", "label": "2", "action": {"type": "input", "value": "2"}, "gridPosition": {"row": 4, "column": 1}, "type": "primary"},
+      {"id": "three", "label": "3", "action": {"type": "input", "value": "3"}, "gridPosition": {"row": 4, "column": 2}, "type": "primary"},
+      {"id": "add", "label": "+", "action": {"type": "operator", "value": "+"}, "gridPosition": {"row": 4, "column": 3}, "type": "operator"},
+      
+      {"id": "zero", "label": "0", "action": {"type": "input", "value": "0"}, "gridPosition": {"row": 5, "column": 0, "columnSpan": 2}, "type": "primary", "isWide": true},
+      {"id": "decimal", "label": ".", "action": {"type": "decimal"}, "gridPosition": {"row": 5, "column": 2}, "type": "primary"},
+      {"id": "equals", "label": "=", "action": {"type": "equals"}, "gridPosition": {"row": 5, "column": 3}, "type": "operator"}
     ]
   }
-}"""
+}
+
+只返回JSON，无其他文字。特殊功能可以替换任何按钮，但必须保留上述17个基础按钮。"""
 
 @app.get("/health")
 async def health_check():
@@ -172,11 +206,35 @@ async def customize_calculator(request: CustomizationRequest) -> CalculatorConfi
         
         # 检查必需的基础按钮
         button_labels = [btn.label for btn in calculator_config.layout.buttons]
-        required_basics = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '+', '-', '×', '÷', '=', 'AC']
-        missing = [req for req in required_basics if req not in button_labels and req.replace('×', '*').replace('÷', '/') not in button_labels]
+        button_types = [btn.action.type for btn in calculator_config.layout.buttons]
         
-        if missing:
-            raise ValueError(f"缺少必需的基础按钮: {missing}")
+        # 必需的数字按钮
+        required_numbers = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
+        missing_numbers = [num for num in required_numbers if num not in button_labels]
+        
+        # 必需的运算符按钮
+        required_operators = ['+', '-', '*', '/', '×', '÷']
+        has_operators = any(op in button_labels for op in required_operators)
+        
+        # 必需的功能按钮
+        has_equals = 'equals' in button_types or '=' in button_labels
+        has_clear = 'clearAll' in button_types or 'AC' in button_labels
+        has_decimal = 'decimal' in button_types or '.' in button_labels
+        
+        errors = []
+        if missing_numbers:
+            errors.append(f"缺少数字按钮: {missing_numbers}")
+        if not has_operators:
+            errors.append("缺少运算符按钮 (+, -, *, /)")
+        if not has_equals:
+            errors.append("缺少等号按钮 (=)")
+        if not has_clear:
+            errors.append("缺少清除按钮 (AC)")
+        if not has_decimal:
+            errors.append("缺少小数点按钮 (.)")
+            
+        if errors:
+            raise ValueError(f"配置验证失败: {'; '.join(errors)}")
         
         return calculator_config
         

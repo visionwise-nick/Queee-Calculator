@@ -271,6 +271,7 @@ class CalculatorEngine {
     
     try {
       double currentValue = double.parse(_state.display);
+      print('🔢 表达式计算：当前值=$currentValue, 表达式=$expression');
       
       // 替换表达式中的占位符
       String processedExpression = expression
@@ -278,10 +279,15 @@ class CalculatorEngine {
           .replaceAll('input', currentValue.toString())
           .replaceAll('value', currentValue.toString());
       
+      print('🔢 处理后表达式：$processedExpression');
+      
       // 计算表达式结果
       double result = _evaluateExpression(processedExpression);
+      print('🔢 计算结果：$result');
+      
       return _state.copyWith(display: _formatResult(result));
     } catch (e) {
+      print('❌ 表达式计算错误：$e');
       return _state.copyWith(display: 'Error', isError: true);
     }
   }
