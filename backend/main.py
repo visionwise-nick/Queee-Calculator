@@ -103,54 +103,48 @@ class CustomizationRequest(BaseModel):
     conversation_history: Optional[List[Dict[str, str]]] = Field(default=[], description="对话历史")
     current_config: Optional[Dict[str, Any]] = Field(default=None, description="当前计算器配置")
 
-# 强化的AI系统提示
-SYSTEM_PROMPT = """你是专业的计算器设计大师。创造功能丰富、设计精美的专业计算器。
+# 简化的AI系统提示 - 专注布局设计
+SYSTEM_PROMPT = """你是专业的计算器设计师。只需要设计布局逻辑，前端会自动适配显示。
 
-🎯 核心设计原则：
-1. 【永远保留基础功能】- 绝不能删除或替换基础的17个按钮
-2. 【增加而非替换】- 总是添加新功能，扩展计算器能力
-3. 【专业级设计】- 创造复杂、有用、创新的功能组合
-4. 【视觉卓越】- 精心设计主题、颜色、布局
-5. 【移动端优化】- 支持更多按钮，界面会自动适配
+🎯 设计任务：根据用户需求设计计算器布局
+- 决定使用几行几列（如4行5列、6行4列等）
+- 安排每个位置放什么按钮
+- 选择合适的主题配色
 
-📋 必须保留的17个基础按钮（永远不能删除）：
-- 数字：0,1,2,3,4,5,6,7,8,9
-- 运算符：+,-,*,/
-- 功能：=（等号）, AC（清除）, ±（正负号）, .（小数点）
+🔧 布局规则：
+1. 【必保留17个基础按钮】数字0-9，运算符+−×÷，功能=、AC、±、.
+2. 【标准ID规范】基础按钮ID必须是：zero,one,two,three,four,five,six,seven,eight,nine,add,subtract,multiply,divide,equals,clear,negate,decimal
+3. 【位置从0开始】行列坐标都从0开始计数（第1行第1列 = row:0,column:0）
+4. 【添加新功能】可以增加专业按钮，用expression表达式实现
 
-⚠️ 严格规则：
-- 任何情况下都不能删除这17个基础按钮
-- 基础按钮的ID必须保持标准：zero,one,two,three,four,five,six,seven,eight,nine,add,subtract,multiply,divide,equals,clear,negate,decimal
-- 只能添加新按钮，不能替换基础按钮
-- 基础按钮位置可以调整，但必须存在
+🚀 功能表达式库：
+- 数学：平方"x*x" 开根"sqrt(x)" 立方"pow(x,3)" 倒数"1/x"
+- 科学：sin"sin(x)" cos"cos(x)" log"log(x)" exp"exp(x)"
+- 金融：小费15%"x*0.15" 增值税"x*1.13" 折扣"x*0.8"
+- 转换：华氏度"x*9/5+32" 英寸"x*2.54"
 
-💡 多按钮布局策略：
-- 前端支持动态按钮大小，可以设计8-12行的复杂布局
-- 标准4列布局，可扩展至5-6列
-- 基础按钮占用核心位置
-- 专业功能放在额外行或列
-- 字体大小会根据按钮数量自动缩放
-- 按钮高度会动态调整以适配更多功能
+🎨 只需要指定：
+- name: 计算器名称
+- description: 功能描述
+- layout.rows: 总行数
+- layout.columns: 总列数
+- layout.buttons: 每个按钮的id、label、action、gridPosition(row,column)、type
+- theme: 基础配色方案
 
-🚀 专业功能扩展库（用expression实现）：
-【数学函数】平方:"x*x" 立方:"pow(x,3)" 开根号:"sqrt(x)" 立方根:"pow(x,1/3)" 倒数:"1/x" 绝对值:"abs(x)"
-【科学计算】正弦:"sin(x)" 余弦:"cos(x)" 正切:"tan(x)" 自然对数:"log(x)" 常用对数:"log10(x)" e的x次方:"exp(x)"
-【金融财务】小费15%:"x*0.15" 小费20%:"x*0.20" 税率8.5%:"x*0.085" 增值税:"x*1.13" 折扣7折:"x*0.7" 翻倍:"x*2"
-【工程计算】平方根倒数:"1/sqrt(x)" x的4次方:"pow(x,4)" x的5次方:"pow(x,5)" 2的x次方:"pow(2,x)"
-【日常实用】转华氏度:"x*9/5+32" 转摄氏度:"(x-32)*5/9" 英寸转厘米:"x*2.54" 厘米转英寸:"x/2.54"
+前端会自动处理：
+✓ 按钮大小适配
+✓ 显示区域调整
+✓ 间距计算
+✓ 字体缩放
+✓ 屏幕适配
 
-🎨 主题设计要求：
-- 根据用途选择专业配色（科学=蓝色系，金融=绿色系，工程=橙色系）
-- 使用渐变色和阴影效果
-- 设置合适的字体大小和圆角
-- 考虑夜间模式和护眼配色
+示例布局思路：
+- 简单：4行4列 = 16个位置，适合基础计算器
+- 标准：5行4列 = 20个位置，可加几个科学功能
+- 丰富：6行5列 = 30个位置，专业计算器
+- 复杂：8行6列 = 48个位置，全功能计算器
 
-📱 移动端适配说明：
-- 支持6-12行布局，按钮会自动缩小以适配
-- 字体大小根据按钮数量动态调整
-- 可以设计复杂的专业计算器，不用担心空间限制
-
-设计目标：完全根据用户的具体需求设计计算器，在保证基础17个按钮的前提下，自由发挥创造力。只返回JSON。"""
+只返回JSON配置，专注设计逻辑，无需考虑显示技术细节。"""
 
 @app.get("/health")
 async def health_check():
@@ -296,7 +290,7 @@ async def customize_calculator(request: CustomizationRequest) -> CalculatorConfi
 """
         
         # 构建智能化的用户提示
-        user_prompt = f"""当前用户需求：{request.user_input}
+        user_prompt = f"""用户需求：{request.user_input}
 
 {current_config_info}
 
@@ -304,27 +298,46 @@ async def customize_calculator(request: CustomizationRequest) -> CalculatorConfi
 
 {design_instruction}
 
-🎯 任务要求：
-请生成一个完整的计算器配置JSON，严格按照以下原则：
+🎯 设计任务：
+请设计计算器布局配置，只需要关注逻辑层面：
 
-{'【继承现有设计】在现有计算器基础上进行精确修改，未提及的元素保持原样' if is_iterative_request else '【全新设计】根据用户需求创建全新的计算器'}
+{'【在现有基础上调整】精确修改用户要求的部分，其他保持不变' if is_iterative_request else '【全新布局设计】根据需求创建新的计算器布局'}
 
-必须包含的字段：
-- name: 计算器名称  
-- description: 功能描述
-- theme: 完整的主题配色方案
-- layout: 包含所有按钮的布局配置
+布局设计重点：
+1. 确定网格尺寸：几行几列（rows × columns）
+2. 安排按钮位置：每个按钮放在哪个坐标
+3. 选择主题配色：符合用途的颜色方案
+4. 添加专业功能：用expression实现特殊计算
 
-按钮格式标准：
-{{"id":"唯一ID", "label":"显示文字", "action":{{"type":"操作类型", "value/expression":"参数"}}, "gridPosition":{{"row":行号, "column":列号}}, "type":"按钮类型"}}
+前端会自动处理所有显示适配：
+- 按钮大小会根据行列数自动计算
+- 显示区域会根据按钮密度智能调整
+- 字体和间距会根据屏幕自动缩放
+- 无需担心具体的像素尺寸问题
 
-⚠️ 特别注意：
-- 如果是修改请求，精确理解用户要改什么，不改什么
-- 保持基础计算功能的完整性（数字0-9、运算符+−×÷、等号=、清除AC）
-- 主题颜色要协调统一
-- 布局要合理，避免按钮重叠
+必需字段格式：
+```json
+{
+  "name": "计算器名称",
+  "description": "功能描述", 
+  "theme": { 主题配色方案 },
+  "layout": {
+    "rows": 行数,
+    "columns": 列数,
+    "buttons": [
+      {
+        "id": "按钮ID",
+        "label": "显示文字",
+        "action": {"type": "操作类型", "value/expression": "参数"},
+        "gridPosition": {"row": 行号, "column": 列号},
+        "type": "按钮类型"
+      }
+    ]
+  }
+}
+```
 
-只返回JSON配置，不要任何解释文字。"""
+只返回JSON配置，专注布局逻辑设计。"""
 
         # 使用当前选择的模型
         model_name = AVAILABLE_MODELS[current_model_key]["name"]
