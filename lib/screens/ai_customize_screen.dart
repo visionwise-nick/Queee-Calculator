@@ -35,31 +35,31 @@ class _AICustomizeScreenState extends State<AICustomizeScreen> {
           ),
           body: SingleChildScrollView(
             child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // 介绍卡片
-                  _buildIntroCard(provider),
-                  
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // 介绍卡片
+                _buildIntroCard(provider),
+                
+                const SizedBox(height: 24),
+                
+                // 输入区域
+                _buildInputSection(provider),
+                
+                const SizedBox(height: 24),
+                
+                // 示例提示
+                _buildExamplePrompts(provider),
+                
                   const SizedBox(height: 24),
-                  
-                  // 输入区域
-                  _buildInputSection(provider),
-                  
-                  const SizedBox(height: 24),
-                  
-                  // 示例提示
-                  _buildExamplePrompts(provider),
-                  
-                  const SizedBox(height: 24),
-                  
-                  // 生成按钮
-                  _buildGenerateButton(provider),
+                
+                // 生成按钮
+                _buildGenerateButton(provider),
                   
                   // 底部安全间距
                   const SizedBox(height: 32),
-                ],
+              ],
               ),
             ),
           ),
