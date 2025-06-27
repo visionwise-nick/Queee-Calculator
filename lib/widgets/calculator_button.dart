@@ -6,11 +6,13 @@ import '../models/calculator_dsl.dart';
 class CalculatorButtonWidget extends StatefulWidget {
   final CalculatorButton button;
   final VoidCallback onPressed;
+  final Size? fixedSize;
 
   const CalculatorButtonWidget({
     super.key,
     required this.button,
     required this.onPressed,
+    this.fixedSize,
   });
 
   @override
@@ -58,66 +60,79 @@ class _CalculatorButtonWidgetState extends State<CalculatorButtonWidget>
           builder: (context, child) {
             return Transform.scale(
               scale: _scaleAnimation.value,
-              child: Container(
-                margin: const EdgeInsets.all(2),
-                child: Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    onTapDown: (_) {
-                      setState(() => _isPressed = true);
-                      _animationController.forward();
-                    },
-                    onTapUp: (_) {
-                      setState(() => _isPressed = false);
-                      _animationController.reverse();
-                      widget.onPressed();
-                    },
-                    onTapCancel: () {
-                      setState(() => _isPressed = false);
-                      _animationController.reverse();
-                    },
-                    borderRadius: BorderRadius.circular(theme.buttonBorderRadius),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: buttonColor,
-                        borderRadius: BorderRadius.circular(theme.buttonBorderRadius),
-                        boxShadow: theme.hasGlowEffect
-                            ? [
-                                BoxShadow(
-                                                                     color: buttonColor.withValues(alpha: 0.3),
-                                  blurRadius: _isPressed ? 15 : 8,
-                                  spreadRadius: _isPressed ? 3 : 1,
-                                ),
-                              ]
-                            : [
-                                BoxShadow(
-                                                                     color: Colors.black.withValues(alpha: 0.1),
-                                  blurRadius: 4,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
-                        gradient: _isPressed
-                            ? LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                                colors: [
-                                                                     buttonColor.withValues(alpha: 0.8),
-                                  buttonColor,
-                                ],
-                              )
-                            : null,
-                      ),
-                      child: Center(
-                        child: _buildButtonContent(textColor, theme),
-                      ),
-                    ),
+              child: widget.fixedSize != null 
+                ? SizedBox(
+                    width: widget.fixedSize!.width,
+                    height: widget.fixedSize!.height,
+                    child: _buildButtonContainer(buttonColor, textColor, theme),
+                  )
+                : Container(
+                    margin: const EdgeInsets.all(2),
+                    child: _buildButtonContainer(buttonColor, textColor, theme),
                   ),
-                ),
-              ),
             );
           },
         );
       },
+    );
+  }
+
+  Widget _buildButtonContainer(Color buttonColor, Color textColor, CalculatorTheme theme) {
+    return Container(
+      margin: widget.fixedSize != null ? EdgeInsets.zero : const EdgeInsets.all(2),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTapDown: (_) {
+            setState(() => _isPressed = true);
+            _animationController.forward();
+          },
+          onTapUp: (_) {
+            setState(() => _isPressed = false);
+            _animationController.reverse();
+            widget.onPressed();
+          },
+          onTapCancel: () {
+            setState(() => _isPressed = false);
+            _animationController.reverse();
+          },
+          borderRadius: BorderRadius.circular(theme.buttonBorderRadius),
+          child: Container(
+            decoration: BoxDecoration(
+              color: buttonColor,
+              borderRadius: BorderRadius.circular(theme.buttonBorderRadius),
+              boxShadow: theme.hasGlowEffect
+                  ? [
+                      BoxShadow(
+                        color: buttonColor.withValues(alpha: 0.3),
+                        blurRadius: _isPressed ? 15 : 8,
+                        spreadRadius: _isPressed ? 3 : 1,
+                      ),
+                    ]
+                  : [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.1),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+              gradient: _isPressed
+                  ? LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        buttonColor.withValues(alpha: 0.8),
+                        buttonColor,
+                      ],
+                    )
+                  : null,
+            ),
+            child: Center(
+              child: _buildButtonContent(textColor, theme),
+            ),
+          ),
+        ),
+      ),
     );
   }
 
