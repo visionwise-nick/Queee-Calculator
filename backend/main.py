@@ -18,8 +18,18 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 配置Gemini AI
-genai.configure(api_key=os.getenv('GEMINI_API_KEY'))
+# Gemini AI 延迟初始化 - 避免启动时阻塞
+def initialize_genai():
+    """延迟初始化Google AI，避免启动时阻塞"""
+    api_key = os.getenv('GEMINI_API_KEY')
+    if not api_key:
+        raise ValueError("GEMINI_API_KEY environment variable is required")
+    
+    genai.configure(api_key=api_key)
+    return True
+
+# 初始化标志
+_genai_initialized = False
 
 # 可用模型配置
 AVAILABLE_MODELS = {
@@ -369,16 +379,38 @@ async def customize_calculator(request: CustomizationRequest) -> CalculatorConfi
 
 只返回JSON配置，专注布局逻辑设计。"""
 
+        # 在使用AI前确保初始化
+        global _genai_initialized
+        if not _genai_initialized:
+            print("🔧 首次初始化Google AI...")
+            try:
+                initialize_genai()
+                _genai_initialized = True
+                print("✅ Google AI 初始化成功")
+            except Exception as init_error:
+                print(f"❌ Google AI 初始化失败: {str(init_error)}")
+                raise ValueError(f"AI服务初始化失败: {str(init_error)}")
+        
         # 使用当前选择的模型
         model_name = AVAILABLE_MODELS[current_model_key]["name"]
         model_display = AVAILABLE_MODELS[current_model_key]["display_name"]
         print(f"🤖 使用模型: {model_display} ({model_name})")
         
-        model = genai.GenerativeModel(model_name)
-        response = model.generate_content([SYSTEM_PROMPT, user_prompt])
-        
-        if not response.text:
-            raise ValueError("AI没有返回有效响应")
+        try:
+            model = genai.GenerativeModel(model_name)
+            print(f"📡 开始调用AI模型...")
+            response = model.generate_content([SYSTEM_PROMPT, user_prompt])
+            print(f"✅ AI模型调用成功")
+            
+            if not response.text:
+                print(f"⚠️ AI返回空响应")
+                raise ValueError("AI没有返回有效响应")
+            
+            print(f"📝 AI响应长度: {len(response.text)} 字符")
+        except Exception as ai_error:
+            print(f"❌ AI调用失败: {str(ai_error)}")
+            print(f"🔧 错误类型: {type(ai_error).__name__}")
+            raise ValueError(f"AI服务调用失败: {str(ai_error)}")
         
         # 提取思考过程（如果是thinking模型）
         thinking_process = None
@@ -425,6 +457,14 @@ async def customize_calculator(request: CustomizationRequest) -> CalculatorConfi
         # 解析JSON
         try:
             config_data = json.loads(response_text)
+            
+            # 确保必需字段存在
+            if 'theme' in config_data and 'name' not in config_data['theme']:
+                config_data['theme']['name'] = config_data.get('name', '默认主题')
+            
+            if 'layout' in config_data and 'name' not in config_data['layout']:
+                config_data['layout']['name'] = config_data.get('name', '默认布局')
+                
         except json.JSONDecodeError as e:
             print(f"JSON解析错误: {e}")
             print(f"响应内容: {response_text}")
