@@ -394,7 +394,7 @@ class _AICustomizeScreenState extends State<AICustomizeScreen> {
         
         // 应用新配置
         if (mounted) {
-          context.read<CalculatorProvider>().updateConfig(generatedConfig);
+          context.read<CalculatorProvider>().applyConfig(generatedConfig);
           
           // 显示成功消息并返回
           ScaffoldMessenger.of(context).showSnackBar(

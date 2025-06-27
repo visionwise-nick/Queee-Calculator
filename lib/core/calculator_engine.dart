@@ -1,6 +1,6 @@
 import 'dart:math' as math;
 
-/// 计算器操作类型
+/// 计算器操作类型 - 简化版本
 enum CalculatorActionType {
   input,      // 输入数字
   operator,   // 运算符 (+, -, *, /)
@@ -9,30 +9,20 @@ enum CalculatorActionType {
   clearAll,   // 全部清除
   backspace,  // 退格
   decimal,    // 小数点
-  percentage, // 百分比
   negate,     // 正负号
-  tip,        // 小费计算
-  financial,  // 金融计算 (复利、税后、ROI等)
-  macro,      // 自定义宏操作
-  memory,     // 内存操作 (MS, MR, MC, M+, M-)
-  scientific, // 科学计算 (sin, cos, sqrt, pow, etc.)
-  bitwise,    // 位运算 (AND, OR, XOR, NOT)
-  quickCalc,  // 一键运算 (平方、立方、开根号、阶乘等)
-  custom,     // 自定义函数
+  expression, // 表达式计算 - 新的通用类型
 }
 
 /// 计算器操作定义
 class CalculatorAction {
   final CalculatorActionType type;
   final String? value;
-  final String? macro;
-  final Map<String, dynamic>? params;
+  final String? expression; // 新增：数学表达式
 
   const CalculatorAction({
     required this.type,
     this.value,
-    this.macro,
-    this.params,
+    this.expression,
   });
 
   factory CalculatorAction.fromJson(Map<String, dynamic> json) {
@@ -42,8 +32,7 @@ class CalculatorAction {
         orElse: () => CalculatorActionType.input,
       ),
       value: json['value']?.toString(),
-      macro: json['macro']?.toString(),
-      params: json['params'],
+      expression: json['expression']?.toString(),
     );
   }
 
@@ -51,8 +40,7 @@ class CalculatorAction {
     return {
       'type': type.toString().split('.').last,
       if (value != null) 'value': value,
-      if (macro != null) 'macro': macro,
-      if (params != null) 'params': params,
+      if (expression != null) 'expression': expression,
     };
   }
 }
@@ -64,7 +52,6 @@ class CalculatorState {
   final String? operator;
   final bool waitingForOperand;
   final double memory;
-  final String base; // 进制：'decimal', 'hex', 'binary', 'octal'
   final bool isError;
 
   const CalculatorState({
@@ -73,7 +60,6 @@ class CalculatorState {
     this.operator,
     this.waitingForOperand = false,
     this.memory = 0,
-    this.base = 'decimal',
     this.isError = false,
   });
 
@@ -83,7 +69,6 @@ class CalculatorState {
     String? operator,
     bool? waitingForOperand,
     double? memory,
-    String? base,
     bool? isError,
     bool clearPreviousValue = false,
     bool clearOperator = false,
@@ -94,13 +79,12 @@ class CalculatorState {
       operator: clearOperator ? null : (operator ?? this.operator),
       waitingForOperand: waitingForOperand ?? this.waitingForOperand,
       memory: memory ?? this.memory,
-      base: base ?? this.base,
       isError: isError ?? this.isError,
     );
   }
 }
 
-/// 计算器核心引擎
+/// 简化的计算器核心引擎
 class CalculatorEngine {
   CalculatorState _state = const CalculatorState();
 
@@ -124,26 +108,10 @@ class CalculatorEngine {
           return _handleBackspace();
         case CalculatorActionType.decimal:
           return _handleDecimal();
-        case CalculatorActionType.percentage:
-          return _handlePercentage();
         case CalculatorActionType.negate:
           return _handleNegate();
-        case CalculatorActionType.tip:
-          return _handleTip(action.value!);
-        case CalculatorActionType.financial:
-          return _handleFinancial(action.value!, action.params);
-        case CalculatorActionType.macro:
-          return _handleMacro(action.macro!, action.params);
-        case CalculatorActionType.memory:
-          return _handleMemory(action.value!);
-        case CalculatorActionType.scientific:
-          return _handleScientific(action.value!, action.params);
-        case CalculatorActionType.bitwise:
-          return _handleBitwise(action.value!, action.params);
-        case CalculatorActionType.quickCalc:
-          return _handleQuickCalc(action.value!);
-        case CalculatorActionType.custom:
-          return _handleCustom(action.value!, action.params);
+        case CalculatorActionType.expression:
+          return _handleExpression(action.expression!);
       }
     } catch (e) {
       return _state.copyWith(display: 'Error', isError: true);
@@ -162,7 +130,6 @@ class CalculatorEngine {
       );
     } else {
       String newDisplay = _state.display == '0' ? digit : _state.display + digit;
-      // 限制显示长度
       if (newDisplay.length <= 10) {
         _state = _state.copyWith(display: newDisplay);
       }
@@ -259,7 +226,6 @@ class CalculatorEngine {
       isError: false,
       clearPreviousValue: true,
       clearOperator: true,
-      // 保留内存和进制设置
     );
     return _state;
   }
@@ -291,13 +257,6 @@ class CalculatorEngine {
     return _state;
   }
 
-  CalculatorState _handlePercentage() {
-    if (_state.isError) return _state;
-    
-    double value = double.parse(_state.display) / 100;
-    return _state.copyWith(display: _formatResult(value));
-  }
-
   CalculatorState _handleNegate() {
     if (_state.isError) return _state;
     
@@ -306,77 +265,50 @@ class CalculatorEngine {
     return _state;
   }
 
-  CalculatorState _handleTip(String percentage) {
-    if (_state.isError) return _state;
-    
-    try {
-      double value = double.parse(_state.display);
-      double tipRate = double.parse(percentage);
-      double tipAmount = value * tipRate;
-      return _state.copyWith(display: _formatResult(tipAmount));
-    } catch (e) {
-      return _state.copyWith(display: 'Error', isError: true);
-    }
-  }
-
-  CalculatorState _handleFinancial(String function, Map<String, dynamic>? params) {
+  /// 新的通用表达式处理器 - 支持任意数学表达式
+  CalculatorState _handleExpression(String expression) {
     if (_state.isError) return _state;
     
     try {
       double currentValue = double.parse(_state.display);
-      double result;
       
-      switch (function) {
-        case 'compoundInterest':
-          // 复利计算: A = P(1 + r)^t
-          // 这里简化为年利率5%，1年期
-          double rate = params?['rate'] ?? 0.05; // 默认5%年利率
-          double time = params?['time'] ?? 1.0;  // 默认1年
-          result = currentValue * math.pow(1 + rate, time);
-          break;
-          
-        case 'roi':
-          // 投资收益率计算: ROI = (收益 - 投资) / 投资 * 100%
-          // 这里假设当前值是收益，需要输入投资成本
-          double investment = params?['investment'] ?? (currentValue * 0.8); // 假设80%是投资成本
-          result = ((currentValue - investment) / investment) * 100;
-          break;
-          
-        case 'afterTax':
-          // 税后收益: 税前收益 * (1 - 税率)
-          double taxRate = params?['taxRate'] ?? 0.20; // 默认20%税率
-          result = currentValue * (1 - taxRate);
-          break;
-          
-        default:
-          return _state;
-      }
+      // 替换表达式中的占位符
+      String processedExpression = expression
+          .replaceAll('x', currentValue.toString())
+          .replaceAll('input', currentValue.toString())
+          .replaceAll('value', currentValue.toString());
       
+      // 计算表达式结果
+      double result = _evaluateExpression(processedExpression);
       return _state.copyWith(display: _formatResult(result));
     } catch (e) {
       return _state.copyWith(display: 'Error', isError: true);
     }
   }
 
-  CalculatorState _handleMacro(String macro, Map<String, dynamic>? params) {
-    // 解析并执行宏命令，例如 "input * 0.15" (计算小费)
-    try {
-      double currentValue = double.parse(_state.display);
-      String expression = macro.replaceAll('input', currentValue.toString());
-      
-      // 简单的表达式计算器
-      double result = _evaluateExpression(expression);
-      return _state.copyWith(display: _formatResult(result));
-    } catch (e) {
-      return _state.copyWith(display: 'Error', isError: true);
-    }
-  }
-
+  /// 强化的表达式计算器 - 支持数学函数
   double _evaluateExpression(String expression) {
-    // 这里可以实现更复杂的表达式解析
-    // 简单示例：支持基本的算术运算
+    // 移除空格
     expression = expression.replaceAll(' ', '');
     
+    // 支持的数学函数
+    expression = expression.replaceAllMapped(RegExp(r'sqrt\(([^)]+)\)'), (match) {
+      double value = _evaluateExpression(match.group(1)!);
+      return math.sqrt(value).toString();
+    });
+    
+    expression = expression.replaceAllMapped(RegExp(r'pow\(([^,]+),([^)]+)\)'), (match) {
+      double base = _evaluateExpression(match.group(1)!);
+      double exponent = _evaluateExpression(match.group(2)!);
+      return math.pow(base, exponent).toString();
+    });
+    
+    // 处理基本算术运算
+    return _evaluateBasicExpression(expression);
+  }
+
+  double _evaluateBasicExpression(String expression) {
+    // 简单的算术表达式计算器
     if (expression.contains('*')) {
       var parts = expression.split('*');
       return double.parse(parts[0]) * double.parse(parts[1]);
@@ -392,183 +324,6 @@ class CalculatorEngine {
     }
     
     return double.parse(expression);
-  }
-
-  CalculatorState _handleMemory(String operation) {
-    double currentValue = double.parse(_state.display);
-    
-    switch (operation) {
-      case 'MS': // Memory Store
-        _state = _state.copyWith(memory: currentValue);
-        break;
-      case 'MR': // Memory Recall
-        _state = _state.copyWith(display: _formatResult(_state.memory));
-        break;
-      case 'MC': // Memory Clear
-        _state = _state.copyWith(memory: 0);
-        break;
-      case 'M+': // Memory Add
-        _state = _state.copyWith(memory: _state.memory + currentValue);
-        break;
-      case 'M-': // Memory Subtract
-        _state = _state.copyWith(memory: _state.memory - currentValue);
-        break;
-    }
-    return _state;
-  }
-
-  CalculatorState _handleScientific(String function, Map<String, dynamic>? params) {
-    double currentValue = double.parse(_state.display);
-    double result;
-    
-    switch (function) {
-      case 'sin':
-        result = math.sin(currentValue);
-        break;
-      case 'cos':
-        result = math.cos(currentValue);
-        break;
-      case 'tan':
-        result = math.tan(currentValue);
-        break;
-      case 'sqrt':
-        result = math.sqrt(currentValue);
-        break;
-      case 'pow':
-        double exponent = params?['exponent'] ?? 2.0;
-        result = math.pow(currentValue, exponent).toDouble();
-        break;
-      case 'log':
-        result = math.log(currentValue);
-        break;
-      case 'ln':
-        result = math.log(currentValue) / math.ln10;
-        break;
-      default:
-        return _state;
-    }
-    
-    return _state.copyWith(display: _formatResult(result));
-  }
-
-  CalculatorState _handleBitwise(String operation, Map<String, dynamic>? params) {
-    int currentValue = int.parse(_state.display);
-    int result;
-    
-    switch (operation) {
-      case 'AND':
-        int operand = params?['operand'] ?? 0;
-        result = currentValue & operand;
-        break;
-      case 'OR':
-        int operand = params?['operand'] ?? 0;
-        result = currentValue | operand;
-        break;
-      case 'XOR':
-        int operand = params?['operand'] ?? 0;
-        result = currentValue ^ operand;
-        break;
-      case 'NOT':
-        result = ~currentValue;
-        break;
-      case 'LSH': // Left Shift
-        int positions = params?['positions'] ?? 1;
-        result = currentValue << positions;
-        break;
-      case 'RSH': // Right Shift
-        int positions = params?['positions'] ?? 1;
-        result = currentValue >> positions;
-        break;
-      default:
-        return _state;
-    }
-    
-    return _state.copyWith(display: result.toString());
-  }
-
-  CalculatorState _handleQuickCalc(String operation) {
-    if (_state.isError) return _state;
-    
-    try {
-      double currentValue = double.parse(_state.display);
-      double result;
-      
-      switch (operation) {
-        case 'square':
-          result = currentValue * currentValue;
-          break;
-        case 'cube':
-          result = currentValue * currentValue * currentValue;
-          break;
-        case 'sqrt':
-          result = math.sqrt(currentValue);
-          break;
-        case 'factorial':
-          if (currentValue < 0 || currentValue != currentValue.toInt()) {
-            throw Exception('Factorial only for non-negative integers');
-          }
-          result = _factorial(currentValue.toInt()).toDouble();
-          break;
-        case 'reciprocal':
-          if (currentValue == 0) throw Exception('Division by zero');
-          result = 1 / currentValue;
-          break;
-        case 'tip15':
-          result = currentValue * 0.15;
-          break;
-        case 'tip18':
-          result = currentValue * 0.18;
-          break;
-        case 'tip20':
-          result = currentValue * 0.20;
-          break;
-        case 'double':
-          result = currentValue * 2;
-          break;
-        case 'half':
-          result = currentValue / 2;
-          break;
-        default:
-          return _state;
-      }
-      
-      return _state.copyWith(display: _formatResult(result));
-    } catch (e) {
-      return _state.copyWith(display: 'Error', isError: true);
-    }
-  }
-  
-  CalculatorState _handleCustom(String function, Map<String, dynamic>? params) {
-    if (_state.isError) return _state;
-    
-    try {
-      double currentValue = double.parse(_state.display);
-      
-      // 解析自定义函数
-      if (function.startsWith('addConstant_')) {
-        double constant = double.parse(function.split('_')[1]);
-        double result = currentValue + constant;
-        return _state.copyWith(display: _formatResult(result));
-      } else if (function.startsWith('multiplyBy_')) {
-        double multiplier = double.parse(function.split('_')[1]);
-        double result = currentValue * multiplier;
-        return _state.copyWith(display: _formatResult(result));
-      } else if (function.startsWith('powerOf_')) {
-        double exponent = double.parse(function.split('_')[1]);
-        double result = math.pow(currentValue, exponent).toDouble();
-        return _state.copyWith(display: _formatResult(result));
-      }
-      
-      return _state;
-    } catch (e) {
-      return _state.copyWith(display: 'Error', isError: true);
-    }
-  }
-  
-  int _factorial(int n) {
-    if (n <= 1) return 1;
-    if (n > 20) throw Exception('Number too large'); // 防止溢出
-    return n * _factorial(n - 1);
   }
 
   /// 重置计算器状态

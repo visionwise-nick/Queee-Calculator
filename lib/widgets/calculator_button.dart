@@ -49,7 +49,7 @@ class _CalculatorButtonWidgetState extends State<CalculatorButtonWidget>
   Widget build(BuildContext context) {
     return Consumer<CalculatorProvider>(
       builder: (context, provider, child) {
-        final buttonColor = provider.getButtonColor(widget.button);
+        final buttonColor = provider.getButtonBackgroundColor(widget.button);
         final textColor = provider.getButtonTextColor(widget.button);
         final theme = provider.config.theme;
 
@@ -122,23 +122,14 @@ class _CalculatorButtonWidgetState extends State<CalculatorButtonWidget>
   }
 
   Widget _buildButtonContent(Color textColor, CalculatorTheme theme) {
-    // 如果有图标，显示图标
-    if (widget.button.icon != null) {
-      return Icon(
-        _getIconData(widget.button.icon!),
-        color: textColor,
-        size: theme.fontSize,
-      );
-    }
-
-    // 否则显示文字
+    // 显示文字
     return Text(
       widget.button.label,
       style: TextStyle(
         fontSize: _getButtonFontSize(theme.fontSize),
         fontWeight: _getButtonFontWeight(),
         color: textColor,
-        fontFamily: theme.fontFamily,
+        // fontFamily: 'monospace',
       ),
     );
   }

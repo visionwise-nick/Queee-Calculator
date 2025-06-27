@@ -75,7 +75,10 @@ class CalculatorScreen extends StatelessWidget {
                 // 计算器显示屏
                 Expanded(
                   flex: 2,
-                  child: CalculatorDisplay(),
+                  child: CalculatorDisplay(
+                    state: provider.state,
+                    theme: provider.config.theme,
+                  ),
                 ),
                 
                 // 按钮网格
@@ -92,23 +95,4 @@ class CalculatorScreen extends StatelessWidget {
   }
 }
 
-extension on CalculatorProvider {
-  Color getBackgroundColor() {
-    return _parseColor(config.theme.backgroundColor);
-  }
-  
-  Color getDisplayTextColor() {
-    return _parseColor(config.theme.displayTextColor);
-  }
-  
-  Color _parseColor(String colorString) {
-    try {
-      if (colorString.startsWith('#')) {
-        return Color(int.parse(colorString.substring(1), radix: 16) | 0xFF000000);
-      }
-      return Colors.grey;
-    } catch (e) {
-      return Colors.grey;
-    }
-  }
-} 
+ 

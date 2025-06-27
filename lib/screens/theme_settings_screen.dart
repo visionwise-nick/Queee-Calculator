@@ -2,32 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/calculator_provider.dart';
 import '../services/config_service.dart';
-import '../models/calculator_dsl.dart';
 
-class ThemeSettingsScreen extends StatefulWidget {
+class ThemeSettingsScreen extends StatelessWidget {
   const ThemeSettingsScreen({super.key});
-
-  @override
-  State<ThemeSettingsScreen> createState() => _ThemeSettingsScreenState();
-}
-
-class _ThemeSettingsScreenState extends State<ThemeSettingsScreen> {
-  List<String> _presetThemes = [];
-  bool _loading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadPresetThemes();
-  }
-
-  Future<void> _loadPresetThemes() async {
-    final presets = await ConfigService.getAvailablePresets();
-    setState(() {
-      _presetThemes = presets;
-      _loading = false;
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -36,536 +13,153 @@ class _ThemeSettingsScreenState extends State<ThemeSettingsScreen> {
         return Scaffold(
           backgroundColor: provider.getBackgroundColor(),
           appBar: AppBar(
-            title: const Text(
+            title: Text(
               '主题设置',
-              style: TextStyle(fontWeight: FontWeight.bold),
+              style: TextStyle(color: provider.getDisplayTextColor()),
             ),
-            backgroundColor: provider.getBackgroundColor(),
-            foregroundColor: provider.getDisplayTextColor(),
-            elevation: 0,
+            backgroundColor: provider.getDisplayBackgroundColor(),
+            iconTheme: IconThemeData(color: provider.getDisplayTextColor()),
           ),
-          body: _loading
-              ? const Center(child: CircularProgressIndicator())
-              : ListView(
-                  padding: const EdgeInsets.all(16),
-                  children: [
-                    // 当前主题信息
-                    _buildCurrentThemeCard(provider),
-                    
-                    const SizedBox(height: 24),
-                    
-                    // 音效设置
-                    _buildSoundSettingsCard(provider),
-                    
-                    const SizedBox(height: 24),
-                    
-                    // 预设主题
-                    Text(
-                      '预设主题',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: provider.getDisplayTextColor(),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    
-                    ..._presetThemes.map((preset) => _buildThemeCard(preset, provider)),
-                    
-                    const SizedBox(height: 24),
-                    
-                    // AI 定制按钮
-                    _buildAICustomizeButton(provider),
-                  ],
+          body: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                // 预设主题列表
+                Expanded(
+                  child: _buildPresetThemesList(provider),
                 ),
+                
+                // AI 定制按钮
+                Container(
+                  width: double.infinity,
+                  margin: const EdgeInsets.only(top: 16),
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.of(context).pushNamed('/ai-customize');
+                    },
+                    icon: const Icon(Icons.auto_awesome),
+                    label: const Text('AI 智能定制'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: provider.getButtonBackgroundColor(
+                        provider.config.layout.buttons.first,
+                      ),
+                      foregroundColor: provider.getButtonTextColor(
+                        provider.config.layout.buttons.first,
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         );
       },
     );
   }
 
-  Widget _buildCurrentThemeCard(CalculatorProvider provider) {
-    final config = provider.config;
-    return Card(
-      color: provider.getDisplayBackgroundColor(),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(
-                  Icons.palette,
-                  color: provider.getDisplayTextColor(),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  '当前主题',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: provider.getDisplayTextColor(),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Text(
-              config.name,
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: provider.getDisplayTextColor(),
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              config.description,
-              style: TextStyle(
-                fontSize: 14,
-                color: provider.getDisplayTextColor().withValues(alpha: 0.7),
-              ),
-            ),
-            if (config.authorPrompt != null) ...[
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: provider.getButtonColor(provider.config.layout.buttons.first).withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  '原始需求：${config.authorPrompt}',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontStyle: FontStyle.italic,
-                    color: provider.getDisplayTextColor().withValues(alpha: 0.8),
-                  ),
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSoundSettingsCard(CalculatorProvider provider) {
-    final soundService = provider.soundService;
-    final soundEffects = provider.config.theme.soundEffects;
-    
-    return Card(
-      color: provider.getDisplayBackgroundColor(),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(
-                  Icons.volume_up,
-                  color: provider.getDisplayTextColor(),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  '音效设置',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: provider.getDisplayTextColor(),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            
-            // 音效开关
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  '启用音效',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: provider.getDisplayTextColor(),
-                  ),
-                ),
-                Switch(
-                  value: soundService.soundEnabled,
-                  onChanged: (value) {
-                    soundService.setSoundEnabled(value);
-                    setState(() {});
-                  },
-                  activeColor: _parseColor(provider.config.theme.operatorButtonColor),
-                ),
-              ],
-            ),
-            
-            if (soundService.soundEnabled) ...[
-              const SizedBox(height: 16),
-              
-              // 主音量控制
-              Text(
-                '主音量',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: provider.getDisplayTextColor(),
-                ),
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Icon(
-                    Icons.volume_down,
-                    color: provider.getDisplayTextColor().withValues(alpha: 0.7),
-                  ),
-                  Expanded(
-                    child: Slider(
-                      value: soundService.masterVolume,
-                      onChanged: (value) {
-                        soundService.setMasterVolume(value);
-                        setState(() {});
-                      },
-                      activeColor: _parseColor(provider.config.theme.operatorButtonColor),
-                      inactiveColor: provider.getDisplayTextColor().withValues(alpha: 0.3),
-                    ),
-                  ),
-                  Icon(
-                    Icons.volume_up,
-                    color: provider.getDisplayTextColor().withValues(alpha: 0.7),
-                  ),
-                ],
-              ),
-              
-              // 音效测试按钮
-              const SizedBox(height: 16),
-              Text(
-                '音效预览',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: provider.getDisplayTextColor(),
-                ),
-              ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  _buildSoundTestButton('按键音效', 'buttonPress', provider),
-                  _buildSoundTestButton('计算音效', 'calculation', provider),
-                  _buildSoundTestButton('清除音效', 'clear', provider),
-                  _buildSoundTestButton('错误音效', 'error', provider),
-                ],
-              ),
-              
-              // 音效信息
-              if (soundEffects != null && soundEffects.isNotEmpty) ...[
-                const SizedBox(height: 16),
-                Text(
-                  '音效配置',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: provider.getDisplayTextColor(),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: provider.getButtonColor(provider.config.layout.buttons.first).withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: provider.getDisplayTextColor().withValues(alpha: 0.2),
-                    ),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: soundEffects.map((effect) => Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 2),
-                      child: Text(
-                        '${effect.trigger}: ${effect.soundUrl} (音量: ${(effect.volume * 100).toInt()}%)',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: provider.getDisplayTextColor().withValues(alpha: 0.8),
-                          fontFamily: 'monospace',
-                        ),
-                      ),
-                    )).toList(),
-                  ),
-                ),
-              ],
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSoundTestButton(String label, String trigger, CalculatorProvider provider) {
-    return ElevatedButton(
-      onPressed: () => provider.soundService.playSound(trigger),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: provider.getButtonColor(provider.config.layout.buttons.first),
-        foregroundColor: provider.getButtonTextColor(provider.config.layout.buttons.first),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
-      ),
-      child: Text(
-        label,
-        style: const TextStyle(fontSize: 12),
-      ),
-    );
-  }
-
-  Widget _buildThemeCard(String presetName, CalculatorProvider provider) {
-    return FutureBuilder<CalculatorConfig>(
-      future: ConfigService.loadPresetConfig(presetName),
+  Widget _buildPresetThemesList(CalculatorProvider provider) {
+    return FutureBuilder<List<String>>(
+      future: ConfigService.getAvailablePresets(),
       builder: (context, snapshot) {
-        if (!snapshot.hasData) {
-          return const Card(
-            child: Padding(
-              padding: EdgeInsets.all(16),
-              child: Center(child: CircularProgressIndicator()),
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return Center(
+            child: Text(
+              '没有可用的预设主题',
+              style: TextStyle(color: provider.getDisplayTextColor()),
             ),
           );
         }
-        
+
+        return ListView.builder(
+          itemCount: snapshot.data!.length,
+          itemBuilder: (context, index) {
+            final presetName = snapshot.data![index];
+            return _buildPresetThemeCard(provider, presetName);
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildPresetThemeCard(CalculatorProvider provider, String presetName) {
+    return FutureBuilder(
+      future: ConfigService.loadPresetConfig(presetName),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return const SizedBox.shrink();
+        }
+
         final config = snapshot.data!;
-        final isCurrentTheme = provider.config.id == config.id;
-        
+        final isSelected = provider.config.theme.name == config.theme.name;
+
         return Card(
+          margin: const EdgeInsets.only(bottom: 12),
           color: provider.getDisplayBackgroundColor(),
-          child: InkWell(
-            onTap: isCurrentTheme ? null : () => _selectTheme(config, provider),
-            borderRadius: BorderRadius.circular(8),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  // 主题预览色块
-                  Container(
-                    width: 60,
-                    height: 60,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(8),
-                      color: _parseColor(config.theme.backgroundColor),
-                      border: Border.all(
-                        color: provider.getDisplayTextColor().withValues(alpha: 0.3),
-                        width: 1,
-                      ),
-                    ),
-                    child: Column(
-                      children: [
-                        Expanded(
-                          child: Container(
-                            margin: const EdgeInsets.all(4),
-                            decoration: BoxDecoration(
-                              color: _parseColor(config.theme.displayBackgroundColor),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                          ),
-                        ),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Container(
-                                height: 16,
-                                margin: const EdgeInsets.fromLTRB(2, 0, 1, 2),
-                                decoration: BoxDecoration(
-                                  color: _parseColor(config.theme.primaryButtonColor),
-                                  borderRadius: BorderRadius.circular(2),
-                                ),
-                              ),
-                            ),
-                            Expanded(
-                              child: Container(
-                                height: 16,
-                                margin: const EdgeInsets.fromLTRB(1, 0, 2, 2),
-                                decoration: BoxDecoration(
-                                  color: _parseColor(config.theme.operatorButtonColor),
-                                  borderRadius: BorderRadius.circular(2),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  
-                  const SizedBox(width: 16),
-                  
-                  // 主题信息
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          config.name,
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: provider.getDisplayTextColor(),
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          config.description,
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: provider.getDisplayTextColor().withValues(alpha: 0.7),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  
-                  // 选中状态指示器
-                  if (isCurrentTheme)
-                    Icon(
-                      Icons.check_circle,
-                      color: _parseColor(config.theme.operatorButtonColor),
-                    )
-                  else
-                    Icon(
-                      Icons.radio_button_unchecked,
-                      color: provider.getDisplayTextColor().withValues(alpha: 0.5),
-                    ),
-                ],
+          child: ListTile(
+            leading: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8),
+                gradient: LinearGradient(
+                  colors: [
+                    _parseColor(config.theme.primaryButtonColor),
+                    _parseColor(config.theme.operatorButtonColor),
+                  ],
+                ),
               ),
             ),
+            title: Text(
+              config.theme.name,
+              style: TextStyle(
+                color: provider.getDisplayTextColor(),
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
+            subtitle: Text(
+              config.description,
+              style: TextStyle(
+                color: provider.getDisplayTextColor().withValues(alpha: 0.7),
+              ),
+            ),
+            trailing: isSelected
+                ? Icon(
+                    Icons.check_circle,
+                    color: _parseColor(config.theme.operatorButtonColor),
+                  )
+                : null,
+            onTap: () async {
+              await provider.applyConfig(config);
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('已应用主题：${config.theme.name}'),
+                    backgroundColor: _parseColor(config.theme.operatorButtonColor),
+                  ),
+                );
+              }
+            },
           ),
         );
       },
     );
   }
 
-  Widget _buildAICustomizeButton(CalculatorProvider provider) {
-    return Card(
-      color: provider.getDisplayBackgroundColor(),
-      child: InkWell(
-        onTap: () => _showAICustomizeDialog(),
-        borderRadius: BorderRadius.circular(8),
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Row(
-            children: [
-              Container(
-                width: 60,
-                height: 60,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(8),
-                  gradient: const LinearGradient(
-                    colors: [Colors.purple, Colors.blue],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                ),
-                child: const Icon(
-                  Icons.auto_awesome,
-                  color: Colors.white,
-                  size: 30,
-                ),
-              ),
-              
-              const SizedBox(width: 16),
-              
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'AI 定制计算器',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: provider.getDisplayTextColor(),
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '用自然语言描述你想要的计算器',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: provider.getDisplayTextColor().withValues(alpha: 0.7),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              
-              Icon(
-                Icons.arrow_forward_ios,
-                color: provider.getDisplayTextColor().withValues(alpha: 0.5),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _selectTheme(CalculatorConfig config, CalculatorProvider provider) {
-    provider.updateConfig(config);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('已切换到「${config.name}」主题'),
-        duration: const Duration(seconds: 2),
-      ),
-    );
-  }
-
-  void _showAICustomizeDialog() {
-    // TODO: 实现 AI 定制对话框
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('AI 定制计算器'),
-        content: const Text('即将推出：用自然语言定制你的专属计算器！'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('期待中'),
-          ),
-        ],
-      ),
-    );
-  }
-
   Color _parseColor(String colorString) {
     try {
-      if (colorString.startsWith('#')) {
-        return Color(int.parse(colorString.substring(1), radix: 16) | 0xFF000000);
+      String hexString = colorString;
+      if (hexString.startsWith('#')) {
+        hexString = hexString.substring(1);
       }
-      return Colors.grey;
-    } catch (e) {
-      return Colors.grey;
-    }
-  }
-}
-
-extension on CalculatorProvider {
-  Color getBackgroundColor() {
-    return _parseColor(config.theme.backgroundColor);
-  }
-  
-  Color getDisplayBackgroundColor() {
-    return _parseColor(config.theme.displayBackgroundColor);
-  }
-  
-  Color getDisplayTextColor() {
-    return _parseColor(config.theme.displayTextColor);
-  }
-  
-  Color _parseColor(String colorString) {
-    try {
-      if (colorString.startsWith('#')) {
-        return Color(int.parse(colorString.substring(1), radix: 16) | 0xFF000000);
+      if (hexString.length == 6) {
+        hexString = 'FF$hexString';
       }
-      return Colors.grey;
+      return Color(int.parse(hexString, radix: 16));
     } catch (e) {
       return Colors.grey;
     }

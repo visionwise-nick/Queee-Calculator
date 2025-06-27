@@ -36,7 +36,7 @@ class CalculatorButtonGrid extends StatelessWidget {
       if (position.row < layout.rows && position.column < layout.columns) {
         final buttonWidget = CalculatorButtonWidget(
           button: button,
-          onPressed: () => provider.executeButtonAction(button.id),
+                          onPressed: () => provider.executeAction(button.action),
         );
         
         // 处理跨列的按钮（如 0 按钮）
@@ -56,7 +56,7 @@ class CalculatorButtonGrid extends StatelessWidget {
     return Column(
       children: List.generate(layout.rows, (rowIndex) {
         // 跳过显示区域占用的行
-        if (rowIndex == 0 && layout.hasDisplay) {
+        if (rowIndex == 0) {
           return const SizedBox.shrink();
         }
         

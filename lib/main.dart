@@ -13,7 +13,7 @@ class QueueCalculatorApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
-      create: (context) => CalculatorProvider()..initializeConfig(),
+      create: (context) => CalculatorProvider()..initialize(),
       child: MaterialApp(
         title: 'Queee Calculator',
         debugShowCheckedModeBanner: false,

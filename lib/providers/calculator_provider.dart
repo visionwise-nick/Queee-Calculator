@@ -1,99 +1,52 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../core/calculator_engine.dart';
 import '../models/calculator_dsl.dart';
 import '../services/config_service.dart';
-import '../services/sound_service.dart';
 
 class CalculatorProvider extends ChangeNotifier {
   final CalculatorEngine _engine = CalculatorEngine();
-  final SoundService _soundService = SoundService();
   CalculatorConfig _config = CalculatorConfig.createDefault();
 
-  CalculatorState get state => _engine.state;
   CalculatorConfig get config => _config;
+  CalculatorState get state => _engine.state;
 
-  /// 执行计算器操作
-  void execute(CalculatorAction action) {
-    // 根据操作类型播放不同音效
-    String soundTrigger = 'buttonPress';
-    if (action.type == CalculatorActionType.equals) {
-      soundTrigger = 'calculation';
-    } else if (action.type == CalculatorActionType.clearAll) {
-      soundTrigger = 'clear';
-    }
-    
+  // 初始化
+  Future<void> initialize() async {
+    await _loadConfig();
+  }
+
+     // 加载配置
+   Future<void> _loadConfig() async {
+     try {
+       final loadedConfig = await ConfigService.loadCurrentConfig();
+       _config = loadedConfig;
+       notifyListeners();
+     } catch (e) {
+       print('配置加载失败: $e');
+     }
+   }
+
+   // 应用新配置
+   Future<void> applyConfig(CalculatorConfig newConfig) async {
+     _config = newConfig;
+     await ConfigService.saveCurrentConfig(_config);
+     notifyListeners();
+   }
+
+  // 执行计算器操作
+  void executeAction(CalculatorAction action) {
     _engine.execute(action);
-    _soundService.playSound(soundTrigger);
     notifyListeners();
   }
 
-  /// 通过按钮ID执行操作
-  void executeButtonAction(String buttonId) {
-    final button = _config.layout.buttons.firstWhere(
-      (b) => b.id == buttonId,
-      orElse: () => throw Exception('Button not found: $buttonId'),
-    );
-    
-    execute(button.action);
-  }
-
-  /// 更新计算器配置
-  void updateConfig(CalculatorConfig newConfig) {
-    _config = newConfig;
-    // 更新音效配置
-    _soundService.setSoundEffects(_config.theme.soundEffects);
-    ConfigService.saveCurrentConfig(newConfig);
-    notifyListeners();
-  }
-
-  /// 初始化配置
-  Future<void> initializeConfig() async {
-    await _soundService.initialize();
-    _config = await ConfigService.loadCurrentConfig();
-    _soundService.setSoundEffects(_config.theme.soundEffects);
-    notifyListeners();
-  }
-
-  /// 加载预设主题
-  Future<void> loadPresetTheme(String presetName) async {
-    final config = await ConfigService.loadPresetConfig(presetName);
-    updateConfig(config);
-  }
-
-  /// 重置计算器
+  // 重置计算器
   void reset() {
     _engine.reset();
     notifyListeners();
   }
 
-  /// 获取音效服务实例
-  SoundService get soundService => _soundService;
-
-  /// 获取按钮颜色
-  Color getButtonColor(CalculatorButton button) {
-    if (button.customColor != null) {
-      return _parseColor(button.customColor!);
-    }
-    
-    switch (button.type) {
-      case ButtonType.primary:
-        return _parseColor(_config.theme.primaryButtonColor);
-      case ButtonType.secondary:
-        return _parseColor(_config.theme.secondaryButtonColor);
-      case ButtonType.operator:
-        return _parseColor(_config.theme.operatorButtonColor);
-      case ButtonType.special:
-        return _parseColor(_config.theme.secondaryButtonColor);
-    }
-  }
-
-  /// 获取按钮文字颜色
+  // 获取按钮文字颜色
   Color getButtonTextColor(CalculatorButton button) {
-    if (button.customTextColor != null) {
-      return _parseColor(button.customTextColor!);
-    }
-    
     switch (button.type) {
       case ButtonType.primary:
         return _parseColor(_config.theme.primaryButtonTextColor);
@@ -102,25 +55,56 @@ class CalculatorProvider extends ChangeNotifier {
       case ButtonType.operator:
         return _parseColor(_config.theme.operatorButtonTextColor);
       case ButtonType.special:
-        return _parseColor(_config.theme.secondaryButtonTextColor);
+        return _parseColor(_config.theme.operatorButtonTextColor);
     }
   }
 
-  /// 解析颜色字符串
+  // 获取按钮背景颜色
+  Color getButtonBackgroundColor(CalculatorButton button) {
+    if (button.customColor != null) {
+      return _parseColor(button.customColor!);
+    }
+
+    switch (button.type) {
+      case ButtonType.primary:
+        return _parseColor(_config.theme.primaryButtonColor);
+      case ButtonType.secondary:
+        return _parseColor(_config.theme.secondaryButtonColor);
+      case ButtonType.operator:
+        return _parseColor(_config.theme.operatorButtonColor);
+      case ButtonType.special:
+        return _parseColor(_config.theme.operatorButtonColor);
+    }
+  }
+
+  // 获取显示屏背景颜色
+  Color getDisplayBackgroundColor() {
+    return _parseColor(_config.theme.displayBackgroundColor);
+  }
+
+  // 获取显示屏文字颜色
+  Color getDisplayTextColor() {
+    return _parseColor(_config.theme.displayTextColor);
+  }
+
+  // 获取主背景颜色
+  Color getBackgroundColor() {
+    return _parseColor(_config.theme.backgroundColor);
+  }
+
+  // 解析颜色字符串
   Color _parseColor(String colorString) {
     try {
-      if (colorString.startsWith('#')) {
-        return Color(int.parse(colorString.substring(1), radix: 16) | 0xFF000000);
+      String hexString = colorString;
+      if (hexString.startsWith('#')) {
+        hexString = hexString.substring(1);
       }
-      return Colors.grey;
+      if (hexString.length == 6) {
+        hexString = 'FF$hexString';
+      }
+      return Color(int.parse(hexString, radix: 16));
     } catch (e) {
-      return Colors.grey;
+      return Colors.grey; // 默认颜色
     }
-  }
-
-  @override
-  void dispose() {
-    _soundService.dispose();
-    super.dispose();
   }
 } 

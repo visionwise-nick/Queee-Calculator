@@ -1,853 +1,189 @@
-import os
-import google.generativeai as genai
-from fastapi import FastAPI, HTTPException, Body
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+from typing import List, Optional, Dict, Any
+import google.generativeai as genai
 import json
-import uuid
+import os
 from datetime import datetime
-from typing import Optional, Dict, Any
 
-# --- Pydantic Models for Validation ---
-# 这些模型将确保AI生成的JSON与Flutter应用所需的结构一致
+app = FastAPI(title="Queee Calculator AI Backend", version="2.0.0")
 
-class SoundEffect(BaseModel):
-    trigger: str
-    soundUrl: str
-    volume: float = 1.0
+# 配置CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-class CalculatorTheme(BaseModel):
-    name: str
-    backgroundColor: str
-    displayBackgroundColor: str
-    displayTextColor: str
-    primaryButtonColor: str
-    primaryButtonTextColor: str
-    secondaryButtonColor: str
-    secondaryButtonTextColor: str
-    operatorButtonColor: str
-    operatorButtonTextColor: str
-    backgroundImage: str | None = None
-    fontFamily: str | None = None
-    fontSize: float = 24.0
-    buttonBorderRadius: float = 8.0
-    hasGlowEffect: bool = False
-    shadowColor: str | None = None
-    soundEffects: list[SoundEffect] | None = None
-    # 新增样式字段
-    buttonSpacing: float | None = None
-    buttonElevation: float | None = None
-    buttonBorderColor: str | None = None
-    buttonBorderWidth: float | None = None
-    gradientStartColor: str | None = None
-    gradientEndColor: str | None = None
-    hasRippleEffect: bool = True
-    hasVibration: bool = False
-    accentColor: str | None = None
-    displayFontSize: float = 32.0
-    displayFontFamily: str | None = None
-    isDisplayBold: bool = False
-    containerPadding: float | None = None
-    containerMargin: float | None = None
+# 配置Gemini AI
+genai.configure(api_key=os.getenv('GEMINI_API_KEY'))
 
+# Pydantic模型 - 简化版
 class GridPosition(BaseModel):
     row: int
     column: int
-    rowSpan: int | None = None
-    columnSpan: int | None = None
+    columnSpan: Optional[int] = None
 
 class CalculatorAction(BaseModel):
-    type: str
-    value: str | None = None
+    type: str  # input, operator, equals, clear, clearAll, backspace, decimal, negate, expression
+    value: Optional[str] = None
+    expression: Optional[str] = None  # 数学表达式，如 "x*x", "x*0.15", "sqrt(x)"
 
 class CalculatorButton(BaseModel):
     id: str
     label: str
     action: CalculatorAction
     gridPosition: GridPosition
-    type: str # primary, secondary, operator, special
-    customColor: str | None = None
-    customTextColor: str | None = None
-    icon: str | None = None
+    type: str  # primary, secondary, operator, special
+    customColor: Optional[str] = None
     isWide: bool = False
-    isHigh: bool = False
+
+class CalculatorTheme(BaseModel):
+    name: str
+    backgroundColor: str = "#000000"
+    displayBackgroundColor: str = "#222222"
+    displayTextColor: str = "#FFFFFF"
+    primaryButtonColor: str = "#333333"
+    primaryButtonTextColor: str = "#FFFFFF"
+    secondaryButtonColor: str = "#555555"
+    secondaryButtonTextColor: str = "#FFFFFF"
+    operatorButtonColor: str = "#FF9F0A"
+    operatorButtonTextColor: str = "#FFFFFF"
+    fontSize: float = 24.0
+    buttonBorderRadius: float = 8.0
+    hasGlowEffect: bool = False
+    shadowColor: Optional[str] = None
 
 class CalculatorLayout(BaseModel):
     name: str
     rows: int
     columns: int
-    buttons: list[CalculatorButton]
-    hasDisplay: bool = True
-    displayRowSpan: int = 1
-    description: str = ''
+    buttons: List[CalculatorButton]
+    description: str = ""
 
 class CalculatorConfig(BaseModel):
     id: str
     name: str
-    version: str
+    description: str
     theme: CalculatorTheme
     layout: CalculatorLayout
+    version: str = "1.0.0"
+    createdAt: str
+    authorPrompt: Optional[str] = None
 
-# --- FastAPI App Initialization ---
-app = FastAPI()
+class CustomizationRequest(BaseModel):
+    prompt: str = Field(..., description="用户的自然语言描述")
 
-# 配置CORS，允许Flutter应用（在开发环境中）调用
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"], # 在生产环境中应配置为你的前端域名
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# 简化的AI系统提示
+SYSTEM_PROMPT = """你是AI计算器设计师。严格按照以下格式返回JSON，无其他文字。
 
-# --- Gemini AI Configuration ---
-# 请确保您已在环境中设置 GOOGLE_API_KEY
-try:
-    genai.configure(api_key=os.environ["GOOGLE_API_KEY"])
-    
-    # 可选择的模型版本 - 按性能排序
-    MODEL_OPTIONS = {
-        "gemini-2.5-pro": "最强性能版本",
-        "gemini-2.5-flash": "最新版本，性能更强",
-        "gemini-1.5-flash": "快速响应", 
-        "gemini-1.5-pro": "更强推理能力，但响应较慢"
-    }
-    
-    # 优先使用最新版本，如果不可用则降级
-    selected_model = "gemini-2.5-pro"  # 切换到 gemini-2.5-pro
-    
-    # 配置安全设置以允许创意内容生成
-    safety_settings = [
-        {
-            "category": "HARM_CATEGORY_HATE_SPEECH",
-            "threshold": "BLOCK_MEDIUM_AND_ABOVE"
-        },
-        {
-            "category": "HARM_CATEGORY_DANGEROUS_CONTENT", 
-            "threshold": "BLOCK_MEDIUM_AND_ABOVE"
-        },
-        {
-            "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-            "threshold": "BLOCK_MEDIUM_AND_ABOVE"
-        },
-        {
-            "category": "HARM_CATEGORY_HARASSMENT",
-            "threshold": "BLOCK_MEDIUM_AND_ABOVE"
-        }
-    ]
-    
-    model = genai.GenerativeModel(
-        selected_model,
-        safety_settings=safety_settings
-    )
-    
-    print(f"✅ 已加载模型: {selected_model}")
-    print(f"📝 模型说明: {MODEL_OPTIONS.get(selected_model, '未知模型')}")
-    
-except KeyError:
-    print("❌ 错误：请设置 'GOOGLE_API_KEY' 环境变量。")
-    model = None
-except Exception as e:
-    print(f"❌ 模型初始化失败: {e}")
-    model = None
+基础操作类型：
+- input: 数字输入，需要value字段
+- operator: 运算符，需要value字段(+,-,*,/)
+- equals: 等号
+- clearAll: 全清除
+- negate: 正负号
+- decimal: 小数点
+- expression: 表达式运算，需要expression字段
 
-# --- System Prompt for AI ---
-# 这是最关键的部分，它"教"AI如何成为一个计算器设计师
-SYSTEM_PROMPT = """
-你是一个专业的计算器设计师AI专家。你拥有深厚的UI/UX设计经验和色彩理论知识。
-
-**核心任务**: 根据用户的自然语言描述，生成一个精确的JSON格式计算器配置。
-
-**严格要求**:
-1. 输出必须是纯JSON，无任何解释、注释或markdown标记
-2. 严格遵循预定义的JSON结构
-3. 确保所有颜色值使用有效的十六进制格式（#RRGGBB）
-4. 所有按钮必须有合理的网格位置，不能重叠
-5. 主题配色必须协调且具有良好的对比度
-6. 必须包含音效配置（soundEffects数组）
-7. 必须包含所需的所有字段（id, name, description, version, createdAt, authorPrompt等）
-
-**关键要求 - 必须遵守**:
-1. 必须包含所有基本按钮：数字0-9、运算符(+,-,*,/)、等号(=)、清除(AC)、正负号(±)、小数点(.)
-2. 基本按钮的位置必须符合标准计算器布局
-3. 特殊功能按钮只能替换次要按钮(如%按钮)，或者扩展到5x6、6x6布局添加新按钮
-4. 绝对不能删除基本的数字和运算按钮！
-
-**新功能支持**:
-- 一键运算按钮: square(平方), cube(立方), sqrt(开根号), factorial(阶乘), reciprocal(倒数), tip15/tip18/tip20(小费), double(翻倍), half(减半)
-- 自定义按钮: 可添加任意功能的按钮，如addConstant_5(加5), multiplyBy_2.5(乘以2.5), powerOf_3(三次方)
-- 扩展样式: 支持按钮间距、阴影、边框、渐变色、水波纹效果、震动反馈等
-
-**特殊功能添加策略**:
-- 如果用户要求单个特殊功能：替换%按钮或±按钮
-- 如果用户要求多个特殊功能：扩展到5x6或6x6布局，在额外行添加新按钮
-- 永远保留所有数字按钮(0-9)、四则运算(+,-,*,/)、等号(=)、清除(AC)、小数点(.)
-
-**设计原则**:
-- 考虑色彩心理学和用户体验
-- 确保文字在背景上有足够的对比度
-- 按钮布局要符合标准计算器的使用习惯
-- 特效使用要适度，不影响功能性
-- 音效搭配要与主题风格一致，音量设置合理
-
-**音效搭配指南**:
-- 赛博朋克/科技风: 使用电子音效 "sounds/cyberpunk/cyber_click.wav"
-- 自然/温暖风: 使用自然音效 "sounds/nature/wood_tap.wav"
-- 极简/现代风: 使用轻柔音效 "sounds/minimal/soft_tick.wav"
-- 默认主题: 使用标准音效 "sounds/click_soft.wav"
-- 音量建议: buttonPress(0.6-0.8), calculation(0.7-0.9), error(0.5-0.7), clear(0.5-0.7)
-
-这是JSON的结构定义：
+完整示例：
 {
-  "id": "string (一个唯一的标识符，可以使用UUID)",
-  "name": "string (根据用户描述生成的名字)",
-  "version": "1.0.0",
+  "name": "蓝色平方计算器",
+  "description": "带平方功能的蓝色计算器",
   "theme": {
-    "name": "string (主题名称)",
-    "backgroundColor": "string (CSS颜色, e.g., '#RRGGBB')",
-    "displayBackgroundColor": "string",
-    "displayTextColor": "string",
-    "primaryButtonColor": "string",
-    "primaryButtonTextColor": "string",
-    "secondaryButtonColor": "string",
-    "secondaryButtonTextColor": "string",
-    "operatorButtonColor": "string",
-    "operatorButtonTextColor": "string",
-    "backgroundImage": "string (可选的URL)",
-    "fontFamily": "string (可选的字体名称)",
-    "fontSize": "number",
-    "buttonBorderRadius": "number",
-    "hasGlowEffect": "boolean",
-    "shadowColor": "string (可选, e.g., '#RRGGBB')",
-    "buttonSpacing": "number (可选, 按钮间距)",
-    "buttonElevation": "number (可选, 按钮阴影高度)",
-    "buttonBorderColor": "string (可选, 按钮边框颜色)",
-    "buttonBorderWidth": "number (可选, 按钮边框宽度)",
-    "gradientStartColor": "string (可选, 渐变起始色)",
-    "gradientEndColor": "string (可选, 渐变结束色)",
-    "hasRippleEffect": "boolean (水波纹效果, 默认true)",
-    "hasVibration": "boolean (震动反馈, 默认false)",
-    "accentColor": "string (可选, 强调色)",
-    "displayFontSize": "number (显示屏字体大小, 默认32)",
-    "displayFontFamily": "string (可选, 显示屏字体)",
-    "isDisplayBold": "boolean (显示屏字体是否加粗, 默认false)",
-    "containerPadding": "number (可选, 容器内边距)",
-    "containerMargin": "number (可选, 容器外边距)",
-    "soundEffects": [
-      {
-        "trigger": "string (buttonPress|calculation|error|clear)",
-        "soundUrl": "string (音效文件路径)",
-        "volume": "number (0.0-1.0之间的音量)"
-      }
-    ]
+    "name": "蓝色主题",
+    "backgroundColor": "#001133",
+    "displayBackgroundColor": "#002244",
+    "operatorButtonColor": "#0066ff"
   },
   "layout": {
-    "name": "string (布局名称)",
-    "rows": "integer (标准4x6，可扩展到5x6或6x6)",
-    "columns": "integer",
-    "buttons": [
-      {
-        "id": "string (e.g., 'btn-7')",
-        "label": "string (e.g., '7', 'x²', '15%')",
-        "action": { 
-          "type": "string (input|operator|clear|equals|quickCalc|custom|tip|scientific|...)", 
-          "value": "string (e.g., '7', '+', 'square', 'tip15', 'addConstant_10')" 
-        },
-        "gridPosition": { "row": "integer", "column": "integer", "columnSpan": "integer (可选)" },
-        "type": "string (primary|secondary|operator|special)",
-        "customColor": "string (可选, 自定义按钮颜色)",
-        "customTextColor": "string (可选, 自定义文字颜色)",
-        "icon": "string (可选, 图标名称)",
-        "isWide": "boolean (可选)",
-        "isHigh": "boolean (可选)"
-      }
-    ],
-    "description": "string (对这个设计的简短描述)"
-  }
-}
-
-**新增按钮操作类型**:
-- quickCalc: 一键运算 (square, cube, sqrt, factorial, reciprocal, tip15, tip18, tip20, double, half)
-- custom: 自定义函数 (addConstant_数值, multiplyBy_数值, powerOf_数值)
-- tip: 小费计算 (直接传入百分比字符串，如"15", "18", "20")
-- scientific: 科学计算 (sin, cos, tan, log, ln等)
-- memory: 内存操作 (MS, MR, MC, M+, M-)
-
-**按钮示例**:
-{"id": "square", "label": "x²", "action": {"type": "quickCalc", "value": "square"}, "gridPosition": {"row": 1, "column": 1}, "type": "special"}
-{"id": "tip15", "label": "15%", "action": {"type": "quickCalc", "value": "tip15"}, "gridPosition": {"row": 1, "column": 2}, "type": "special"}
-{"id": "add10", "label": "+10", "action": {"type": "custom", "value": "addConstant_10"}, "gridPosition": {"row": 1, "column": 3}, "type": "special"}
-
-这是一个标准的计算器布局，你可以此为基础进行修改：
-- 4列，6行 (包括显示屏占用的行)
-- 按钮类型 'primary' 用于数字, 'secondary' 用于 C/±/%, 'operator' 用于 +-*/=
-- 按钮从上到下，从左到右排列。
-- 0 按钮通常是 'isWide': true 并且 columnSpan: 2。
-
-示例1（标准主题）：
-用户请求: "我想要一个赛博朋克风格的计算器，黑底配霓虹蓝的按键。"
-你的回答应该是完整的JSON，包含所有必需字段：
-{
-  "id": "cyber-calc-2024",
-  "name": "赛博朋克计算器",
-  "description": "科幻风格的霓虹蓝计算器，带有发光效果",
-  "version": "1.0.0",
-  "createdAt": "2024-01-01T12:00:00.000Z",
-  "authorPrompt": "我想要一个赛博朋克风格的计算器，黑底配霓虹蓝的按键。",
-  "theme": {
-    "name": "赛博朋克",
-    "backgroundColor": "#0A0A0A",
-    "displayBackgroundColor": "#1A1A1A",
-    "displayTextColor": "#00FFFF",
-    "primaryButtonColor": "#1C1C1C",
-    "primaryButtonTextColor": "#00FFFF",
-    "secondaryButtonColor": "#330033",
-    "secondaryButtonTextColor": "#FF00FF",
-    "operatorButtonColor": "#003366",
-    "operatorButtonTextColor": "#00FFFF",
-    "fontSize": 24.0,
-    "buttonBorderRadius": 12.0,
-    "hasGlowEffect": true,
-    "shadowColor": "#00FFFF",
-    "soundEffects": [
-      {
-        "trigger": "buttonPress",
-        "soundUrl": "sounds/cyberpunk/cyber_click.wav",
-        "volume": 0.8
-      },
-      {
-        "trigger": "calculation",
-        "soundUrl": "sounds/cyberpunk/cyber_beep.wav",
-        "volume": 0.9
-      },
-      {
-        "trigger": "error",
-        "soundUrl": "sounds/error.wav",
-        "volume": 0.7
-      },
-      {
-        "trigger": "clear",
-        "soundUrl": "sounds/clear.wav",
-        "volume": 0.6
-      }
-    ]
-  },
-  "layout": {
-    "name": "标准计算器布局",
+    "name": "标准布局",
     "rows": 6,
     "columns": 4,
-    "hasDisplay": true,
-    "displayRowSpan": 1,
-    "description": "经典4x6布局",
     "buttons": [
       {"id": "clear", "label": "AC", "action": {"type": "clearAll"}, "gridPosition": {"row": 1, "column": 0}, "type": "secondary"},
       {"id": "negate", "label": "±", "action": {"type": "negate"}, "gridPosition": {"row": 1, "column": 1}, "type": "secondary"},
-      {"id": "percentage", "label": "%", "action": {"type": "percentage"}, "gridPosition": {"row": 1, "column": 2}, "type": "secondary"},
-      {"id": "divide", "label": "÷", "action": {"type": "operator", "value": "/"}, "gridPosition": {"row": 1, "column": 3}, "type": "operator"},
-      {"id": "seven", "label": "7", "action": {"type": "input", "value": "7"}, "gridPosition": {"row": 2, "column": 0}, "type": "primary"},
-      {"id": "eight", "label": "8", "action": {"type": "input", "value": "8"}, "gridPosition": {"row": 2, "column": 1}, "type": "primary"},
-      {"id": "nine", "label": "9", "action": {"type": "input", "value": "9"}, "gridPosition": {"row": 2, "column": 2}, "type": "primary"},
-      {"id": "multiply", "label": "×", "action": {"type": "operator", "value": "*"}, "gridPosition": {"row": 2, "column": 3}, "type": "operator"},
-      {"id": "four", "label": "4", "action": {"type": "input", "value": "4"}, "gridPosition": {"row": 3, "column": 0}, "type": "primary"},
-      {"id": "five", "label": "5", "action": {"type": "input", "value": "5"}, "gridPosition": {"row": 3, "column": 1}, "type": "primary"},
-      {"id": "six", "label": "6", "action": {"type": "input", "value": "6"}, "gridPosition": {"row": 3, "column": 2}, "type": "primary"},
-      {"id": "subtract", "label": "−", "action": {"type": "operator", "value": "-"}, "gridPosition": {"row": 3, "column": 3}, "type": "operator"},
-      {"id": "one", "label": "1", "action": {"type": "input", "value": "1"}, "gridPosition": {"row": 4, "column": 0}, "type": "primary"},
-      {"id": "two", "label": "2", "action": {"type": "input", "value": "2"}, "gridPosition": {"row": 4, "column": 1}, "type": "primary"},
-      {"id": "three", "label": "3", "action": {"type": "input", "value": "3"}, "gridPosition": {"row": 4, "column": 2}, "type": "primary"},
-      {"id": "add", "label": "+", "action": {"type": "operator", "value": "+"}, "gridPosition": {"row": 4, "column": 3}, "type": "operator"},
-      {"id": "zero", "label": "0", "action": {"type": "input", "value": "0"}, "gridPosition": {"row": 5, "column": 0, "columnSpan": 2}, "type": "primary", "isWide": true},
-      {"id": "decimal", "label": ".", "action": {"type": "decimal"}, "gridPosition": {"row": 5, "column": 2}, "type": "primary"},
-      {"id": "equals", "label": "=", "action": {"type": "equals"}, "gridPosition": {"row": 5, "column": 3}, "type": "operator"}
+      {"id": "square", "label": "x²", "action": {"type": "expression", "expression": "x*x"}, "gridPosition": {"row": 1, "column": 2}, "type": "special"},
+      {"id": "divide", "label": "÷", "action": {"type": "operator", "value": "/"}, "gridPosition": {"row": 1, "column": 3}, "type": "operator"}
     ]
   }
-}
+}"""
 
-示例2（添加平方功能）：
-用户请求: "给我一个有平方按钮的计算器"
-你必须保留所有基本按钮，只替换%按钮为平方按钮：
-{
-  "id": "square-calc-2024",
-  "name": "平方计算器",
-  "description": "带有平方功能的实用计算器",
-  "version": "1.0.0",
-  "createdAt": "2024-01-01T12:00:00.000Z",
-  "authorPrompt": "给我一个有平方按钮的计算器",
-  "theme": {
-    "name": "经典蓝",
-    "backgroundColor": "#f5f5f5",
-    "displayBackgroundColor": "#ffffff",
-    "displayTextColor": "#333333",
-    "primaryButtonColor": "#ffffff",
-    "primaryButtonTextColor": "#333333",
-    "secondaryButtonColor": "#e0e0e0",
-    "secondaryButtonTextColor": "#333333",
-    "operatorButtonColor": "#007bff",
-    "operatorButtonTextColor": "#ffffff",
-    "fontSize": 24.0,
-    "buttonBorderRadius": 8.0,
-    "hasGlowEffect": false,
-    "soundEffects": [
-      {"trigger": "buttonPress", "soundUrl": "sounds/click_soft.wav", "volume": 0.7},
-      {"trigger": "calculation", "soundUrl": "sounds/calculate.wav", "volume": 0.8},
-      {"trigger": "error", "soundUrl": "sounds/error.wav", "volume": 0.6},
-      {"trigger": "clear", "soundUrl": "sounds/clear.wav", "volume": 0.6}
-    ]
-  },
-  "layout": {
-    "name": "平方计算器布局",
-    "rows": 6,
-    "columns": 4,
-    "hasDisplay": true,
-    "displayRowSpan": 1,
-    "description": "标准布局+平方功能",
-    "buttons": [
-      {"id": "clear", "label": "AC", "action": {"type": "clearAll"}, "gridPosition": {"row": 1, "column": 0}, "type": "secondary"},
-      {"id": "negate", "label": "±", "action": {"type": "negate"}, "gridPosition": {"row": 1, "column": 1}, "type": "secondary"},
-      {"id": "square", "label": "x²", "action": {"type": "quickCalc", "value": "square"}, "gridPosition": {"row": 1, "column": 2}, "type": "special"},
-      {"id": "divide", "label": "÷", "action": {"type": "operator", "value": "/"}, "gridPosition": {"row": 1, "column": 3}, "type": "operator"},
-      {"id": "seven", "label": "7", "action": {"type": "input", "value": "7"}, "gridPosition": {"row": 2, "column": 0}, "type": "primary"},
-      {"id": "eight", "label": "8", "action": {"type": "input", "value": "8"}, "gridPosition": {"row": 2, "column": 1}, "type": "primary"},
-      {"id": "nine", "label": "9", "action": {"type": "input", "value": "9"}, "gridPosition": {"row": 2, "column": 2}, "type": "primary"},
-      {"id": "multiply", "label": "×", "action": {"type": "operator", "value": "*"}, "gridPosition": {"row": 2, "column": 3}, "type": "operator"},
-      {"id": "four", "label": "4", "action": {"type": "input", "value": "4"}, "gridPosition": {"row": 3, "column": 0}, "type": "primary"},
-      {"id": "five", "label": "5", "action": {"type": "input", "value": "5"}, "gridPosition": {"row": 3, "column": 1}, "type": "primary"},
-      {"id": "six", "label": "6", "action": {"type": "input", "value": "6"}, "gridPosition": {"row": 3, "column": 2}, "type": "primary"},
-      {"id": "subtract", "label": "−", "action": {"type": "operator", "value": "-"}, "gridPosition": {"row": 3, "column": 3}, "type": "operator"},
-      {"id": "one", "label": "1", "action": {"type": "input", "value": "1"}, "gridPosition": {"row": 4, "column": 0}, "type": "primary"},
-      {"id": "two", "label": "2", "action": {"type": "input", "value": "2"}, "gridPosition": {"row": 4, "column": 1}, "type": "primary"},
-      {"id": "three", "label": "3", "action": {"type": "input", "value": "3"}, "gridPosition": {"row": 4, "column": 2}, "type": "primary"},
-      {"id": "add", "label": "+", "action": {"type": "operator", "value": "+"}, "gridPosition": {"row": 4, "column": 3}, "type": "operator"},
-      {"id": "zero", "label": "0", "action": {"type": "input", "value": "0"}, "gridPosition": {"row": 5, "column": 0, "columnSpan": 2}, "type": "primary", "isWide": true},
-      {"id": "decimal", "label": ".", "action": {"type": "decimal"}, "gridPosition": {"row": 5, "column": 2}, "type": "primary"},
-      {"id": "equals", "label": "=", "action": {"type": "equals"}, "gridPosition": {"row": 5, "column": 3}, "type": "operator"}
-    ]
-  }
-}
+@app.get("/health")
+async def health_check():
+    return {"status": "healthy", "version": "2.0.0"}
 
-示例3（金融功能）：
-用户请求: "专业理财师计算器，添加复利、税后、ROI按钮"
-生成带有金融功能的计算器：
-{
-  ... 基础配置 ...
-  "layout": {
-    "buttons": [
-      {"id": "clear", "label": "AC", "action": {"type": "clearAll"}, "gridPosition": {"row": 1, "column": 0}, "type": "secondary"},
-      {"id": "compoundInterest", "label": "复利", "action": {"type": "financial", "value": "compoundInterest"}, "gridPosition": {"row": 1, "column": 1}, "type": "special"},
-      {"id": "afterTax", "label": "税后", "action": {"type": "financial", "value": "afterTax"}, "gridPosition": {"row": 1, "column": 2}, "type": "special"},
-      {"id": "roi", "label": "ROI", "action": {"type": "financial", "value": "roi"}, "gridPosition": {"row": 2, "column": 2}, "type": "special"},
-      ... 其他按钮 ...
-    ]
-  }
-}
-
-现在，请根据用户的请求生成配置。
-"""
-
-# --- API Endpoint ---
-class GenerateRequest(BaseModel):
-    prompt: str
-
-# --- 验证Prompt ---
-VALIDATION_PROMPT = """
-你是一个专业的JSON格式验证专家。你的任务是验证给定的JSON是否符合计算器配置的规范。
-
-请检查以下方面：
-1. 所有必需的字段是否存在 (id, name, description, theme, layout, version, createdAt)
-2. 颜色值是否为有效的十六进制格式 (#RRGGBB)
-3. 按钮配置是否合理 (位置不重叠，类型正确)
-4. 数据类型是否正确 (字符串、数字、布尔值)
-5. 按钮布局是否符合标准计算器习惯
-
-如果JSON格式正确且符合规范，请回复: "VALID"
-如果有问题，请回复: "INVALID: [具体问题描述]"
-
-请验证以下JSON配置:
-"""
-
-async def validate_config_with_ai(config_json: str) -> tuple[bool, str]:
-    """使用AI验证生成的配置是否符合规范"""
+@app.post("/customize")
+async def customize_calculator(request: CustomizationRequest) -> CalculatorConfig:
     try:
-        validation_prompt = f"{VALIDATION_PROMPT}\n\n{config_json}"
-        
-        response = model.generate_content(
-            validation_prompt,
-            generation_config={
-                "temperature": 0.1,  # 验证时使用更低的温度
-                "max_output_tokens": 500,
-            }
-        )
-        
-        result = response.text.strip()
-        
-        if result.startswith("VALID"):
-            return True, "配置验证通过"
-        elif result.startswith("INVALID:"):
-            return False, result[8:].strip()  # 去掉"INVALID:"前缀
-        else:
-            return False, f"验证结果不明确: {result}"
-            
-    except Exception as e:
-        print(f"AI验证过程出错: {e}")
-        return False, f"验证过程出错: {str(e)}"
+        # 构建用户提示
+        user_prompt = f"""设计计算器：{request.prompt}
 
-def basic_json_validation(config: Dict[str, Any]) -> tuple[bool, str]:
-    """基础的JSON结构验证"""
-    required_fields = ['id', 'name', 'description', 'theme', 'layout', 'version', 'createdAt']
-    
-    # 检查必需字段
-    for field in required_fields:
-        if field not in config:
-            return False, f"缺少必需字段: {field}"
-    
-    # 检查主题配置
-    theme = config.get('theme', {})
-    theme_required = ['name', 'backgroundColor', 'displayTextColor']
-    for field in theme_required:
-        if field not in theme:
-            return False, f"主题缺少必需字段: {field}"
-    
-    # 检查颜色格式
-    color_fields = [
-        'backgroundColor', 'displayBackgroundColor', 'displayTextColor',
-        'primaryButtonColor', 'secondaryButtonColor', 'operatorButtonColor'
-    ]
-    
-    for field in color_fields:
-        color = theme.get(field)
-        if color and not (isinstance(color, str) and color.startswith('#') and len(color) == 7):
-            return False, f"颜色格式错误: {field} = {color}"
-    
-    # 检查布局配置
-    layout = config.get('layout', {})
-    if 'buttons' not in layout:
-        return False, "布局缺少按钮配置"
-    
-    buttons = layout.get('buttons', [])
-    if len(buttons) < 16:  # 至少应该有16个基本按钮
-        return False, f"按钮数量过少: {len(buttons)}"
-    
-    # 检查必需的按钮是否存在
-    button_actions = [btn.get('action', {}).get('value') for btn in buttons]
-    button_types = [btn.get('action', {}).get('type') for btn in buttons]
-    
-    required_numbers = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
-    required_operators = ['+', '-', '*', '/']
-    
-    # 检查数字按钮
-    for num in required_numbers:
-        if num not in button_actions:
-            return False, f"缺少数字按钮: {num}"
-    
-    # 检查运算符按钮
-    for op in required_operators:
-        if op not in button_actions:
-            return False, f"缺少运算符按钮: {op}"
-    
-    # 检查必需的操作类型
-    if 'equals' not in button_types:
-        return False, "缺少等号按钮"
-    
-    if 'clearAll' not in button_types and 'clear' not in button_types:
-        return False, "缺少清除按钮"
-    
-    if 'decimal' not in button_types:
-        return False, "缺少小数点按钮"
-    
-    return True, "基础验证通过"
+要求完整JSON，包含：
+- name: 计算器名称
+- description: 描述
+- theme: 主题颜色配置
+- layout: 按钮布局(必须包含17个基础按钮)
 
-def auto_fix_json(json_str: str) -> str:
-    """尝试自动修复常见的JSON格式问题"""
-    try:
-        # 移除BOM和额外空白
-        json_str = json_str.strip().lstrip('\ufeff')
-        
-        # 尝试找到JSON的开始和结束
-        start_idx = json_str.find('{')
-        end_idx = json_str.rfind('}')
-        
-        if start_idx != -1 and end_idx != -1 and end_idx > start_idx:
-            json_str = json_str[start_idx:end_idx + 1]
-        
-        # 修复常见的格式问题
-        # 1. 修复单引号为双引号
-        json_str = json_str.replace("'", '"')
-        
-        # 2. 修复trailing comma（尾随逗号）
-        import re
-        json_str = re.sub(r',(\s*[}\]])', r'\1', json_str)
-        
-        # 3. 确保键名都有双引号
-        json_str = re.sub(r'(\w+):', r'"\1":', json_str)
-        
-        return json_str
-    except Exception as e:
-        print(f"JSON自动修复失败: {e}")
-        return json_str
+按钮格式：{{"id":"按钮ID", "label":"显示文字", "action":{{"type":"操作类型", "value":"值或表达式"}}, "gridPosition":{{"row":行, "column":列}}, "type":"按钮类型"}}
 
-def add_missing_fields(config: Dict[str, Any], user_prompt: str) -> Dict[str, Any]:
-    """为AI生成的配置添加缺失的必需字段"""
-    import uuid
-    from datetime import datetime
-    
-    # 确保基础字段存在
-    if 'id' not in config:
-        config['id'] = str(uuid.uuid4())[:8]
-    if 'version' not in config:
-        config['version'] = '1.0.0'
-    if 'createdAt' not in config:
-        config['createdAt'] = datetime.now().isoformat()
-    if 'authorPrompt' not in config:
-        config['authorPrompt'] = user_prompt
-    if 'description' not in config:
-        config['description'] = f"根据用户需求生成: {user_prompt[:50]}{'...' if len(user_prompt) > 50 else ''}"
-    
-    # 确保theme有soundEffects
-    if 'theme' in config and 'soundEffects' not in config['theme']:
-        # 根据主题名称选择音效
-        theme_name = config['theme'].get('name', '').lower()
-        if 'cyber' in theme_name or '赛博' in theme_name:
-            config['theme']['soundEffects'] = [
-                {"trigger": "buttonPress", "soundUrl": "sounds/cyberpunk/cyber_click.wav", "volume": 0.8},
-                {"trigger": "calculation", "soundUrl": "sounds/cyberpunk/cyber_beep.wav", "volume": 0.9},
-                {"trigger": "error", "soundUrl": "sounds/error.wav", "volume": 0.7},
-                {"trigger": "clear", "soundUrl": "sounds/clear.wav", "volume": 0.6}
-            ]
-        elif any(word in theme_name for word in ['nature', '自然', '木', '森林']):
-            config['theme']['soundEffects'] = [
-                {"trigger": "buttonPress", "soundUrl": "sounds/nature/wood_tap.wav", "volume": 0.7},
-                {"trigger": "calculation", "soundUrl": "sounds/nature/wind_chime.wav", "volume": 0.8},
-                {"trigger": "error", "soundUrl": "sounds/error.wav", "volume": 0.6},
-                {"trigger": "clear", "soundUrl": "sounds/clear.wav", "volume": 0.5}
-            ]
-        elif any(word in theme_name for word in ['minimal', '极简', '简约']):
-            config['theme']['soundEffects'] = [
-                {"trigger": "buttonPress", "soundUrl": "sounds/minimal/soft_tick.wav", "volume": 0.6},
-                {"trigger": "calculation", "soundUrl": "sounds/minimal/gentle_pop.wav", "volume": 0.8},
-                {"trigger": "error", "soundUrl": "sounds/error.wav", "volume": 0.5},
-                {"trigger": "clear", "soundUrl": "sounds/clear.wav", "volume": 0.5}
-            ]
-        else:
-            # 默认音效
-            config['theme']['soundEffects'] = [
-                {"trigger": "buttonPress", "soundUrl": "sounds/click_soft.wav", "volume": 0.7},
-                {"trigger": "calculation", "soundUrl": "sounds/calculate.wav", "volume": 0.8},
-                {"trigger": "error", "soundUrl": "sounds/error.wav", "volume": 0.6},
-                {"trigger": "clear", "soundUrl": "sounds/clear.wav", "volume": 0.6}
-            ]
-    
-    return config
+只返回JSON，无其他文字。"""
 
-def get_fallback_template(user_prompt: str) -> Dict[str, Any]:
-    """生成备用模板配置"""
-    current_time = datetime.now().isoformat()
-    config_id = str(uuid.uuid4())[:8]
-    
-    # 根据用户描述选择主题颜色
-    prompt_lower = user_prompt.lower()
-    
-    if any(word in prompt_lower for word in ['赛博朋克', 'cyberpunk', '霓虹', '蓝色']):
-        theme_colors = {
-            "backgroundColor": "#000012",
-            "displayBackgroundColor": "#001122",
-            "displayTextColor": "#00FFFF",
-            "primaryButtonColor": "#003366",
-            "primaryButtonTextColor": "#FFFFFF",
-            "secondaryButtonColor": "#004477",
-            "secondaryButtonTextColor": "#00FFFF",
-            "operatorButtonColor": "#0088FF",
-            "operatorButtonTextColor": "#FFFFFF"
-        }
-        theme_name = "赛博朋克风格"
-    elif any(word in prompt_lower for word in ['暖', '橙', '温暖', '阳光']):
-        theme_colors = {
-            "backgroundColor": "#FFF8F0",
-            "displayBackgroundColor": "#FFE4B5",
-            "displayTextColor": "#8B4513",
-            "primaryButtonColor": "#DEB887",
-            "primaryButtonTextColor": "#654321",
-            "secondaryButtonColor": "#F4A460",
-            "secondaryButtonTextColor": "#654321",
-            "operatorButtonColor": "#FF8C00",
-            "operatorButtonTextColor": "#FFFFFF"
-        }
-        theme_name = "温暖橙色风格"
-    else:
-        # 默认深色主题
-        theme_colors = {
-            "backgroundColor": "#1A1A1A",
-            "displayBackgroundColor": "#2A2A2A",
-            "displayTextColor": "#FFFFFF",
-            "primaryButtonColor": "#3A3A3A",
-            "primaryButtonTextColor": "#FFFFFF",
-            "secondaryButtonColor": "#4A4A4A",
-            "secondaryButtonTextColor": "#FFFFFF",
-            "operatorButtonColor": "#FF6B35",
-            "operatorButtonTextColor": "#FFFFFF"
-        }
-        theme_name = "现代深色风格"
-    
-    return {
-        "id": config_id,
-        "name": f"AI生成的{theme_name}计算器",
-        "description": f"根据用户描述生成的个性化计算器：{user_prompt[:50]}{'...' if len(user_prompt) > 50 else ''}",
-        "version": "1.0.0",
-        "createdAt": current_time,
-        "authorPrompt": user_prompt,
-        "theme": {
-            "name": theme_name,
-            "fontSize": 18.0,
-            "buttonBorderRadius": 8.0,
-            "hasGlowEffect": 'cyberpunk' in prompt_lower or '赛博朋克' in prompt_lower,
-            **theme_colors
-        },
-        "layout": {
-            "name": "标准计算器布局",
-            "rows": 6,
-            "columns": 4,
-            "hasDisplay": True,
-            "displayRowSpan": 1,
-            "description": "标准的四列六行计算器布局",
-            "buttons": [
-                {"id": "clear", "label": "C", "action": {"type": "clearAll"}, "gridPosition": {"row": 1, "column": 0}, "type": "secondary", "isWide": False, "isHigh": False},
-                {"id": "negate", "label": "±", "action": {"type": "negate"}, "gridPosition": {"row": 1, "column": 1}, "type": "secondary", "isWide": False, "isHigh": False},
-                {"id": "percentage", "label": "%", "action": {"type": "percentage"}, "gridPosition": {"row": 1, "column": 2}, "type": "secondary", "isWide": False, "isHigh": False},
-                {"id": "divide", "label": "÷", "action": {"type": "operator", "value": "/"}, "gridPosition": {"row": 1, "column": 3}, "type": "operator", "isWide": False, "isHigh": False},
-                {"id": "seven", "label": "7", "action": {"type": "input", "value": "7"}, "gridPosition": {"row": 2, "column": 0}, "type": "primary", "isWide": False, "isHigh": False},
-                {"id": "eight", "label": "8", "action": {"type": "input", "value": "8"}, "gridPosition": {"row": 2, "column": 1}, "type": "primary", "isWide": False, "isHigh": False},
-                {"id": "nine", "label": "9", "action": {"type": "input", "value": "9"}, "gridPosition": {"row": 2, "column": 2}, "type": "primary", "isWide": False, "isHigh": False},
-                {"id": "multiply", "label": "×", "action": {"type": "operator", "value": "*"}, "gridPosition": {"row": 2, "column": 3}, "type": "operator", "isWide": False, "isHigh": False},
-                {"id": "four", "label": "4", "action": {"type": "input", "value": "4"}, "gridPosition": {"row": 3, "column": 0}, "type": "primary", "isWide": False, "isHigh": False},
-                {"id": "five", "label": "5", "action": {"type": "input", "value": "5"}, "gridPosition": {"row": 3, "column": 1}, "type": "primary", "isWide": False, "isHigh": False},
-                {"id": "six", "label": "6", "action": {"type": "input", "value": "6"}, "gridPosition": {"row": 3, "column": 2}, "type": "primary", "isWide": False, "isHigh": False},
-                {"id": "subtract", "label": "-", "action": {"type": "operator", "value": "-"}, "gridPosition": {"row": 3, "column": 3}, "type": "operator", "isWide": False, "isHigh": False},
-                {"id": "one", "label": "1", "action": {"type": "input", "value": "1"}, "gridPosition": {"row": 4, "column": 0}, "type": "primary", "isWide": False, "isHigh": False},
-                {"id": "two", "label": "2", "action": {"type": "input", "value": "2"}, "gridPosition": {"row": 4, "column": 1}, "type": "primary", "isWide": False, "isHigh": False},
-                {"id": "three", "label": "3", "action": {"type": "input", "value": "3"}, "gridPosition": {"row": 4, "column": 2}, "type": "primary", "isWide": False, "isHigh": False},
-                {"id": "add", "label": "+", "action": {"type": "operator", "value": "+"}, "gridPosition": {"row": 4, "column": 3}, "type": "operator", "isWide": False, "isHigh": False},
-                {"id": "zero", "label": "0", "action": {"type": "input", "value": "0"}, "gridPosition": {"row": 5, "column": 0, "columnSpan": 2}, "type": "primary", "isWide": True, "isHigh": False},
-                {"id": "decimal", "label": ".", "action": {"type": "decimal"}, "gridPosition": {"row": 5, "column": 2}, "type": "primary", "isWide": False, "isHigh": False},
-                {"id": "equals", "label": "=", "action": {"type": "equals"}, "gridPosition": {"row": 5, "column": 3}, "type": "operator", "isWide": False, "isHigh": False}
-            ]
-        }
-    }
-
-@app.post("/generate-config", response_model=CalculatorConfig)
-async def generate_config(request: GenerateRequest):
-    if not model:
-        raise HTTPException(status_code=500, detail="AI服务未配置，请检查服务器日志和环境变量。")
-
-    user_prompt = request.prompt
-    full_prompt = f"{SYSTEM_PROMPT}\n\n用户请求: \"{user_prompt}\""
-
-    # 最多重试3次以提高成功率
-    max_retries = 3
-    last_error = None
-    
-    for attempt in range(max_retries):
+        # 调用Gemini AI
+        model = genai.GenerativeModel('gemini-2.0-flash-exp')
+        response = model.generate_content([SYSTEM_PROMPT, user_prompt])
+        
+        if not response.text:
+            raise ValueError("AI没有返回有效响应")
+        
+        # 清理响应文本
+        response_text = response.text.strip()
+        if response_text.startswith('```json'):
+            response_text = response_text[7:]
+        if response_text.endswith('```'):
+            response_text = response_text[:-3]
+        response_text = response_text.strip()
+        
+        # 解析JSON
         try:
-            print(f"🔄 尝试生成配置 (第 {attempt + 1}/{max_retries} 次)")
-            
-            # 配置生成参数以提高准确率
-            generation_config = {
-                "temperature": 0.2,  # 稍微增加一点创造性，但仍然保持较低水平
-                "max_output_tokens": 8192,
-                "top_p": 0.8,
-                "top_k": 40,
-            }
-            
-            response = model.generate_content(
-                full_prompt,
-                generation_config=generation_config,
-                safety_settings=safety_settings,
-            )
-            
-            if not response.text:
-                raise ValueError("AI未返回任何内容")
-            
-            # 清理AI返回的文本
-            cleaned_response_text = response.text.strip()
-            
-            # 移除可能的markdown代码块标记
-            if '```json' in cleaned_response_text:
-                start = cleaned_response_text.find('```json') + 7
-                end = cleaned_response_text.find('```', start)
-                if end != -1:
-                    cleaned_response_text = cleaned_response_text[start:end].strip()
-            elif '```' in cleaned_response_text:
-                cleaned_response_text = cleaned_response_text.replace('```', '').strip()
-            
-            print(f"🤖 AI生成的原始文本长度: {len(cleaned_response_text)}")
-            
-            # 解析JSON - 先尝试自动修复
-            try:
-                ai_json = json.loads(cleaned_response_text)
-            except json.JSONDecodeError as je:
-                print(f"⚠️  JSON解析失败，尝试自动修复: {je}")
-                # 尝试自动修复JSON
-                fixed_json_str = auto_fix_json(cleaned_response_text)
-                try:
-                    ai_json = json.loads(fixed_json_str)
-                    print("✅ JSON自动修复成功")
-                except json.JSONDecodeError as je2:
-                    raise ValueError(f"JSON解析失败，自动修复也失败: {je2}")
-            
-            # 第一步：基础验证
-            is_valid, validation_msg = basic_json_validation(ai_json)
-            if not is_valid:
-                raise ValueError(f"基础验证失败: {validation_msg}")
-            
-            print(f"✅ 基础验证通过: {validation_msg}")
-            
-            # 第二步：AI二次校验（降低严格度）
-            is_ai_valid, ai_validation_msg = await validate_config_with_ai(cleaned_response_text)
-            if not is_ai_valid:
-                print(f"⚠️  AI验证警告: {ai_validation_msg}")
-                # 只要基础验证通过，AI验证失败也继续处理
-                print("📝 基础验证已通过，忽略AI验证结果，继续处理...")
-            else:
-                print(f"✅ AI二次验证通过: {ai_validation_msg}")
-            
-            # 第三步：补充缺失字段
-            ai_json = add_missing_fields(ai_json, user_prompt)
-            print("🔧 已补充缺失的必需字段")
-            
-            # 验证Pydantic模型
-            config = CalculatorConfig.parse_obj(ai_json)
-            
-            print(f"🎉 配置生成成功: {config.name}")
-            return config
+            config_data = json.loads(response_text)
+        except json.JSONDecodeError as e:
+            print(f"JSON解析错误: {e}")
+            print(f"响应内容: {response_text}")
+            raise ValueError(f"AI返回了无效的JSON格式: {e}")
+        
+        # 添加必需字段
+        if 'id' not in config_data:
+            config_data['id'] = f"ai-generated-{int(datetime.now().timestamp())}"
+        if 'createdAt' not in config_data:
+            config_data['createdAt'] = datetime.now().isoformat()
+        if 'authorPrompt' not in config_data:
+            config_data['authorPrompt'] = request.prompt
+        
+        # 验证生成的配置
+        calculator_config = CalculatorConfig(**config_data)
+        
+        # 基础验证
+        if len(calculator_config.layout.buttons) < 16:
+            raise ValueError(f"按钮数量不足：需要至少16个按钮，当前只有{len(calculator_config.layout.buttons)}个")
+        
+        # 检查必需的基础按钮
+        button_labels = [btn.label for btn in calculator_config.layout.buttons]
+        required_basics = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '+', '-', '×', '÷', '=', 'AC']
+        missing = [req for req in required_basics if req not in button_labels and req.replace('×', '*').replace('÷', '/') not in button_labels]
+        
+        if missing:
+            raise ValueError(f"缺少必需的基础按钮: {missing}")
+        
+        return calculator_config
+        
+    except Exception as e:
+        print(f"处理错误: {e}")
+        raise HTTPException(status_code=500, detail=f"生成计算器配置失败: {str(e)}")
 
-        except Exception as e:
-            last_error = e
-            print(f"❌ 第 {attempt + 1} 次尝试失败: {e}")
-            
-            if attempt < max_retries - 1:
-                print("🔄 准备重试...")
-            else:
-                print("💥 所有尝试都失败了")
-
-    # 所有重试都失败后，使用备用模板
-    print("🔧 AI生成失败，使用智能备用模板...")
-    try:
-        fallback_config = get_fallback_template(user_prompt)
-        config = CalculatorConfig.parse_obj(fallback_config)
-        print(f"✅ 备用模板生成成功: {config.name}")
-        return config
-    except Exception as fallback_error:
-        error_detail = f"AI生成失败，备用模板也失败。AI错误: {last_error}，模板错误: {fallback_error}"
-        print(f"💥 彻底失败: {error_detail}")
-        raise HTTPException(
-            status_code=500, 
-            detail=error_detail
-        )
-
-@app.get("/")
-def read_root():
-    return {"message": "Queee Calculator AI Backend is running!"} 
-
-# 启动代码 - 使用uvicorn运行ASGI应用
 if __name__ == "__main__":
     import uvicorn
-    port = int(os.environ.get("PORT", 8080))
-    uvicorn.run(app, host="0.0.0.0", port=port) 
+    uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", 8000))) 

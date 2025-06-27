@@ -11,7 +11,7 @@ class AIService {
   static Future<CalculatorConfig?> generateCalculatorFromPrompt(String userPrompt) async {
     try {
       // 构建请求
-      final url = Uri.parse('$_baseUrl/generate-config');
+      final url = Uri.parse('$_baseUrl/customize');
       final headers = {
         'Content-Type': 'application/json',
       };
@@ -77,14 +77,14 @@ class AIService {
   /// 获取一些预设的示例提示
   static List<String> getSamplePrompts() {
     return [
-      '我想要一个赛博朋克风格的计算器，黑底配霓虹蓝的按键',
+      '我想要一个有平方功能的科学计算器，深蓝色主题',
+      '创建一个小费计算器，有15%和20%快捷键',
+      '我需要一个游戏风格的霓虹绿计算器',
+      '设计一个极简风格的白色计算器',
+      '创建一个工程师专用的计算器，有开根号和立方功能',
+      '我想要一个有翻倍和减半按钮的烘焙计算器',
       '给我一个温暖的橙色主题计算器',
-      '我需要一个简洁的白色极简风格计算器',
-      '创建一个绿色护眼主题的计算器',
-      '我想要一个深色模式的专业计算器',
-      '给我一个彩虹渐变色的有趣计算器',
       '我需要一个适合夜晚使用的暗色计算器',
-      '创建一个红色和金色的豪华主题计算器',
     ];
   }
 } 
