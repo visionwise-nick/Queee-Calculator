@@ -84,7 +84,7 @@ class CalculatorState {
   }
 }
 
-/// 简化的计算器核心引擎
+/// 增强的科学计算器引擎
 class CalculatorEngine {
   CalculatorState _state = const CalculatorState();
 
@@ -114,6 +114,7 @@ class CalculatorEngine {
           return _handleExpression(action.expression!);
       }
     } catch (e) {
+      print('❌ 计算器错误：$e');
       return _state.copyWith(display: 'Error', isError: true);
     }
   }
@@ -130,7 +131,7 @@ class CalculatorEngine {
       );
     } else {
       String newDisplay = _state.display == '0' ? digit : _state.display + digit;
-      if (newDisplay.length <= 10) {
+      if (newDisplay.length <= 15) { // 增加显示位数
         _state = _state.copyWith(display: newDisplay);
       }
     }
@@ -208,10 +209,23 @@ class CalculatorEngine {
   }
 
   String _formatResult(double result) {
+    // 处理特殊值
+    if (result.isNaN) return 'Error';
+    if (result.isInfinite) return result.isNegative ? '-∞' : '∞';
+    
+    // 处理极大或极小的数字
+    if (result.abs() > 1e10 || (result.abs() < 1e-6 && result != 0)) {
+      return result.toStringAsExponential(6);
+    }
+    
+    // 普通数字格式化
     if (result == result.toInt()) {
       return result.toInt().toString();
     } else {
-      return result.toStringAsFixed(8).replaceAll(RegExp(r'0*$'), '').replaceAll(RegExp(r'\.$'), '');
+      String formatted = result.toStringAsFixed(10);
+      // 移除尾部的0
+      formatted = formatted.replaceAll(RegExp(r'0*$'), '').replaceAll(RegExp(r'\.$'), '');
+      return formatted;
     }
   }
 
@@ -265,7 +279,7 @@ class CalculatorEngine {
     return _state;
   }
 
-  /// 新的通用表达式处理器 - 支持任意数学表达式
+  /// 增强的表达式处理器 - 支持完整的科学计算
   CalculatorState _handleExpression(String expression) {
     if (_state.isError) return _state;
     
@@ -273,19 +287,14 @@ class CalculatorEngine {
       double currentValue = double.parse(_state.display);
       print('🔢 表达式计算：当前值=$currentValue, 表达式=$expression');
       
-      // 替换表达式中的占位符
-      String processedExpression = expression
-          .replaceAll('x', currentValue.toString())
-          .replaceAll('input', currentValue.toString())
-          .replaceAll('value', currentValue.toString());
-      
-      print('🔢 处理后表达式：$processedExpression');
-      
       // 计算表达式结果
-      double result = _evaluateExpression(processedExpression);
+      double result = _evaluateScientificExpression(expression, currentValue);
       print('🔢 计算结果：$result');
       
-      _state = _state.copyWith(display: _formatResult(result));
+      _state = _state.copyWith(
+        display: _formatResult(result),
+        waitingForOperand: true,
+      );
       return _state;
     } catch (e) {
       print('❌ 表达式计算错误：$e');
@@ -294,43 +303,194 @@ class CalculatorEngine {
     }
   }
 
-  /// 强化的表达式计算器 - 支持数学函数
-  double _evaluateExpression(String expression) {
-    // 移除空格
-    expression = expression.replaceAll(' ', '');
-    
-    // 支持的数学函数
-    expression = expression.replaceAllMapped(RegExp(r'sqrt\(([^)]+)\)'), (match) {
-      double value = _evaluateExpression(match.group(1)!);
-      return math.sqrt(value).toString();
-    });
-    
-    expression = expression.replaceAllMapped(RegExp(r'pow\(([^,]+),([^)]+)\)'), (match) {
-      double base = _evaluateExpression(match.group(1)!);
-      double exponent = _evaluateExpression(match.group(2)!);
-      return math.pow(base, exponent).toString();
-    });
-    
-    // 处理基本算术运算
-    return _evaluateBasicExpression(expression);
-  }
+  /// 科学计算表达式解析器
+  double _evaluateScientificExpression(String expression, double x) {
+    // 替换变量
+    String processed = expression
+        .replaceAll('x', x.toString())
+        .replaceAll('input', x.toString())
+        .replaceAll('value', x.toString());
 
-  double _evaluateBasicExpression(String expression) {
-    // 简单的算术表达式计算器
-    if (expression.contains('*')) {
-      var parts = expression.split('*');
-      return double.parse(parts[0]) * double.parse(parts[1]);
-    } else if (expression.contains('/')) {
-      var parts = expression.split('/');
-      return double.parse(parts[0]) / double.parse(parts[1]);
-    } else if (expression.contains('+')) {
-      var parts = expression.split('+');
-      return double.parse(parts[0]) + double.parse(parts[1]);
-    } else if (expression.contains('-')) {
-      var parts = expression.split('-');
-      return double.parse(parts[0]) - double.parse(parts[1]);
+    print('🔧 处理后的表达式：$processed');
+    
+    // 直接使用数学函数
+    switch (expression.toLowerCase()) {
+      // 三角函数 (弧度)
+      case 'sin(x)':
+        return math.sin(x);
+      case 'cos(x)':
+        return math.cos(x);
+      case 'tan(x)':
+        return math.tan(x);
+      case 'asin(x)':
+        return math.asin(x);
+      case 'acos(x)':
+        return math.acos(x);
+      case 'atan(x)':
+        return math.atan(x);
+      
+      // 双曲函数
+      case 'sinh(x)':
+        return (math.exp(x) - math.exp(-x)) / 2;
+      case 'cosh(x)':
+        return (math.exp(x) + math.exp(-x)) / 2;
+      case 'tanh(x)':
+        return (math.exp(x) - math.exp(-x)) / (math.exp(x) + math.exp(-x));
+      
+      // 对数函数
+      case 'log(x)':
+      case 'ln(x)':
+        return math.log(x);
+      case 'log10(x)':
+        return math.log(x) / math.ln10;
+      case 'log2(x)':
+        return math.log(x) / math.log(2);
+      
+      // 指数函数
+      case 'exp(x)':
+      case 'e^x':
+        return math.exp(x);
+      
+      // 幂函数
+      case 'x*x':
+      case 'x^2':
+        return x * x;
+      case 'pow(x,3)':
+      case 'x^3':
+        return x * x * x;
+      case 'pow(x,4)':
+      case 'x^4':
+        return math.pow(x, 4).toDouble();
+      case 'pow(x,5)':
+      case 'x^5':
+        return math.pow(x, 5).toDouble();
+      case 'pow(2,x)':
+      case '2^x':
+        return math.pow(2, x).toDouble();
+      case 'pow(10,x)':
+      case '10^x':
+        return math.pow(10, x).toDouble();
+      
+      // 根号函数
+      case 'sqrt(x)':
+        return math.sqrt(x);
+      case 'pow(x,1/3)':
+      case 'cbrt(x)':
+        return math.pow(x, 1/3).toDouble();
+      
+      // 其他函数
+      case '1/x':
+        if (x == 0) throw Exception('Division by zero');
+        return 1 / x;
+      case 'abs(x)':
+        return x.abs();
+      case '1/sqrt(x)':
+        if (x <= 0) throw Exception('Invalid input for 1/sqrt(x)');
+        return 1 / math.sqrt(x);
+      
+      // 金融/百分比计算
+      case 'x*0.15':
+        return x * 0.15;
+      case 'x*0.20':
+        return x * 0.20;
+      case 'x*0.085':
+        return x * 0.085;
+      case 'x*1.13':
+        return x * 1.13;
+      case 'x*0.7':
+        return x * 0.7;
+      case 'x*2':
+        return x * 2;
+      
+      // 单位转换
+      case 'x*9/5+32':
+        return x * 9 / 5 + 32; // 摄氏度转华氏度
+      case '(x-32)*5/9':
+        return (x - 32) * 5 / 9; // 华氏度转摄氏度
+      case 'x*2.54':
+        return x * 2.54; // 英寸转厘米
+      case 'x/2.54':
+        return x / 2.54; // 厘米转英寸
+      case 'x*10.764':
+        return x * 10.764; // 平方米转平方英尺
+      case 'x/10.764':
+        return x / 10.764; // 平方英尺转平方米
+      
+      // 随机数生成
+      case 'random()':
+      case 'rand()':
+        return math.Random().nextDouble() * x;
+      
+      // 阶乘 (简化版本，只支持小整数)
+      case 'x!':
+      case 'factorial(x)':
+        if (x < 0 || x != x.toInt() || x > 20) {
+          throw Exception('Factorial only supports integers 0-20');
+        }
+        return _factorial(x.toInt()).toDouble();
     }
     
+    // 如果没有匹配的函数，尝试解析为一般表达式
+    return _parseGeneralExpression(processed);
+  }
+
+  /// 计算阶乘
+  int _factorial(int n) {
+    if (n <= 1) return 1;
+    return n * _factorial(n - 1);
+  }
+
+  /// 解析一般数学表达式 (简化版)
+  double _parseGeneralExpression(String expression) {
+    try {
+      // 简单表达式计算
+      return _evaluateSimpleExpression(expression);
+    } catch (e) {
+      print('⚠️ 表达式解析失败：$e');
+      throw Exception('无法计算表达式');
+    }
+  }
+
+  /// 简单表达式计算（回退方案）
+  double _evaluateSimpleExpression(String expression) {
+    // 处理基本的算术运算
+    expression = expression.replaceAll(' ', '');
+    
+    // 乘法
+    if (expression.contains('*')) {
+      var parts = expression.split('*');
+      if (parts.length == 2) {
+        return double.parse(parts[0]) * double.parse(parts[1]);
+      }
+    }
+    
+    // 除法
+    if (expression.contains('/')) {
+      var parts = expression.split('/');
+      if (parts.length == 2) {
+        double divisor = double.parse(parts[1]);
+        if (divisor == 0) throw Exception('Division by zero');
+        return double.parse(parts[0]) / divisor;
+      }
+    }
+    
+    // 加法
+    if (expression.contains('+')) {
+      var parts = expression.split('+');
+      if (parts.length == 2) {
+        return double.parse(parts[0]) + double.parse(parts[1]);
+      }
+    }
+    
+    // 减法
+    if (expression.contains('-') && !expression.startsWith('-')) {
+      var parts = expression.split('-');
+      if (parts.length == 2) {
+        return double.parse(parts[0]) - double.parse(parts[1]);
+      }
+    }
+    
+    // 直接解析数字
     return double.parse(expression);
   }
 

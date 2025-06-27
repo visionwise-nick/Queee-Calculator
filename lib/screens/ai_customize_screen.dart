@@ -308,7 +308,7 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
                               Expanded(
                                 child: Text(
                                   reply,
-                                  style: TextStyle(
+              style: TextStyle(
                                     fontSize: 14,
                                     height: 1.4,
                                     color: Colors.grey.shade800,
@@ -334,9 +334,9 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
               padding: const EdgeInsets.all(20),
               child: Text(
                 '💡 点击任意设计开始创作',
-                style: TextStyle(
+              style: TextStyle(
                   color: Colors.grey.shade600,
-                  fontSize: 14,
+                fontSize: 14,
                 ),
               ),
             ),
@@ -352,7 +352,7 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Row(
-          children: [
+      children: [
             Icon(Icons.refresh, color: Colors.orange),
             SizedBox(width: 8),
             Text('开始新对话'),
@@ -403,15 +403,15 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
                 left: isUser ? 64 : 16,
                 right: isUser ? 16 : 64,
               ),
-              child: Column(
+            child: Column(
                 crossAxisAlignment: isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-                children: [
+              children: [
                   if (isFirst && !isSystem) ...[
                     Padding(
                       padding: const EdgeInsets.only(bottom: 4, left: 12, right: 12),
                       child: Text(
                         isUser ? '你' : '🤖 AI助手',
-                        style: TextStyle(
+                  style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
                           color: Colors.grey.shade600,
@@ -436,9 +436,9 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
                       ],
                     ),
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
                           message.content,
                           style: TextStyle(
                             color: _getTextColor(message),
@@ -465,11 +465,11 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
                                     color: Colors.green.shade700,
                                     fontSize: 12,
                                     fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
                         ],
                       ],
                     ),
@@ -541,16 +541,16 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
-          children: [
-            SizedBox(
-              width: 20,
-              height: 20,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
+                children: [
+                  SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
                 valueColor: AlwaysStoppedAnimation<Color>(Colors.purple.shade400),
-              ),
-            ),
-            const SizedBox(width: 12),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
             Text(
               '正在设计中...',
               style: TextStyle(
@@ -559,7 +559,7 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
               ),
             ),
           ],
-        ),
+              ),
       ),
     );
   }
@@ -572,12 +572,12 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
         backgroundColor: Colors.white,
         elevation: 0,
         title: const Row(
-          children: [
+              children: [
             Icon(Icons.chat_bubble_outline, color: Color(0xFF6366F1), size: 24),
             SizedBox(width: 8),
-            Text(
+                Text(
               'AI设计师',
-              style: TextStyle(
+                  style: TextStyle(
                 color: Color(0xFF1F2937),
                 fontWeight: FontWeight.w600,
               ),
@@ -603,12 +603,12 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
       ),
       body: Column(
         children: [
-          Expanded(
-            child: ListView.builder(
+                Expanded(
+                  child: ListView.builder(
               controller: _scrollController,
               padding: const EdgeInsets.only(bottom: 16),
               itemCount: _messages.length + (_isLoading ? 1 : 0),
-              itemBuilder: (context, index) {
+                    itemBuilder: (context, index) {
                 if (index == _messages.length) {
                   return _buildTypingIndicator();
                 }
@@ -692,14 +692,14 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
                       onPressed: _isLoading 
                           ? null 
                           : () => _sendMessage(_textController.text),
-                    ),
                   ),
-                ],
+                ),
+              ],
               ),
             ),
           ),
         ],
-             ),
-     );
-   }
- } 
+      ),
+    );
+  }
+} 
