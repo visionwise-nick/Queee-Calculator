@@ -59,7 +59,7 @@ class _CalculatorButtonWidgetState extends State<CalculatorButtonWidget>
             return Transform.scale(
               scale: _scaleAnimation.value,
               child: Container(
-                margin: const EdgeInsets.all(4),
+                margin: const EdgeInsets.all(2),
                 child: Material(
                   color: Colors.transparent,
                   child: InkWell(
@@ -166,15 +166,15 @@ class _CalculatorButtonWidgetState extends State<CalculatorButtonWidget>
       // 当行数超过6时，缩小字体
       double scaleFactor = 6.0 / totalRows;
       adjustedBase = baseFontSize * scaleFactor;
-      adjustedBase = adjustedBase.clamp(12.0, baseFontSize); // 最小12px
+      adjustedBase = adjustedBase.clamp(10.0, baseFontSize); // 最小10px
     }
     
     // 根据按钮类型进一步调整
     switch (widget.button.type) {
       case ButtonType.operator:
-        return adjustedBase + 2; // 减少额外增量
+        return adjustedBase + 1; // 减少额外增量
       case ButtonType.secondary:
-        return adjustedBase - 1; // 减少缩减量
+        return adjustedBase - 0.5; // 减少缩减量
       default:
         return adjustedBase;
     }

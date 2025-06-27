@@ -114,18 +114,34 @@ class CalculatorScreen extends StatelessWidget {
                 ),
                 
                 // 计算器显示屏
-                Expanded(
-                  flex: 2,
-                  child: CalculatorDisplay(
-                    state: provider.state,
-                    theme: provider.config.theme,
-                  ),
+                Consumer<CalculatorProvider>(
+                  builder: (context, provider, child) {
+                    final layout = provider.config.layout;
+                    // 根据行数动态调整显示屏高度
+                    int displayFlex = layout.rows > 6 ? 1 : 2;
+                    
+                    return Expanded(
+                      flex: displayFlex,
+                      child: CalculatorDisplay(
+                        state: provider.state,
+                        theme: provider.config.theme,
+                      ),
+                    );
+                  },
                 ),
                 
                 // 按钮网格
-                Expanded(
-                  flex: 4,
-                  child: CalculatorButtonGrid(),
+                Consumer<CalculatorProvider>(
+                  builder: (context, provider, child) {
+                    final layout = provider.config.layout;
+                    // 根据行数动态调整按钮区域大小
+                    int buttonFlex = layout.rows > 6 ? 6 : 4;
+                    
+                    return Expanded(
+                      flex: buttonFlex,
+                      child: CalculatorButtonGrid(),
+                    );
+                  },
                 ),
               ],
             ),

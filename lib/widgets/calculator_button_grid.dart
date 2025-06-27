@@ -14,7 +14,7 @@ class CalculatorButtonGrid extends StatelessWidget {
         final layout = provider.config.layout;
         
         return Container(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(8),
           child: _buildGrid(layout, provider),
         );
       },
@@ -57,8 +57,8 @@ class CalculatorButtonGrid extends StatelessWidget {
     double buttonHeight = 70.0; // 基础高度
     if (layout.rows > 6) {
       // 如果超过6行，动态缩小按钮高度
-      buttonHeight = 400.0 / (layout.rows - 1); // 减去显示屏行
-      buttonHeight = buttonHeight.clamp(45.0, 70.0); // 最小45px，最大70px
+      buttonHeight = 350.0 / (layout.rows - 1); // 减去显示屏行，总高度减少
+      buttonHeight = buttonHeight.clamp(35.0, 60.0); // 最小35px，最大60px
     }
 
     return Column(

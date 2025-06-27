@@ -15,8 +15,8 @@ class CalculatorDisplay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(20),
-      margin: const EdgeInsets.all(8),
+      padding: const EdgeInsets.all(12),
+      margin: const EdgeInsets.all(4),
       decoration: BoxDecoration(
         color: _parseColor(theme.displayBackgroundColor),
         borderRadius: BorderRadius.circular(theme.buttonBorderRadius),
@@ -31,15 +31,16 @@ class CalculatorDisplay extends StatelessWidget {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.end,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           // 主显示屏
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 8),
+            padding: const EdgeInsets.symmetric(vertical: 4),
             child: Text(
               state.display,
               style: TextStyle(
-                fontSize: 36,
+                fontSize: 30,
                 fontWeight: FontWeight.w300,
                 color: state.isError
                     ? Colors.red
@@ -55,7 +56,7 @@ class CalculatorDisplay extends StatelessWidget {
           // 状态信息（简化版）
           if (state.memory != 0 || state.previousValue != null)
             Container(
-              margin: const EdgeInsets.only(top: 8),
+              margin: const EdgeInsets.only(top: 4),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -64,7 +65,7 @@ class CalculatorDisplay extends StatelessWidget {
                     Text(
                       'M',
                       style: TextStyle(
-                        fontSize: 14,
+                        fontSize: 12,
                         color: _parseColor(theme.displayTextColor).withValues(alpha: 0.7),
                       ),
                     ),
@@ -74,7 +75,7 @@ class CalculatorDisplay extends StatelessWidget {
                     Text(
                       '${state.previousValue} ${state.operator}',
                       style: TextStyle(
-                        fontSize: 14,
+                        fontSize: 12,
                         color: _parseColor(theme.displayTextColor).withValues(alpha: 0.5),
                       ),
                     ),
