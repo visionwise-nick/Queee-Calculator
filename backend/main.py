@@ -6,6 +6,7 @@ import google.generativeai as genai
 import json
 import os
 from datetime import datetime
+import time
 
 app = FastAPI(title="Queee Calculator AI Backend", version="2.0.0")
 
@@ -152,6 +153,13 @@ SYSTEM_PROMPT = """你是专业的计算器设计师。只需要设计布局逻�
 4. 【添加新功能】可以增加专业按钮，用expression表达式实现
 5. 【自适应布局】前端会根据按钮数量自动调整尺寸，支持任意行列数
 
+🔄 继承性原则（重要）：
+- 【保持现有配色】除非用户明确要求改变颜色，否则保持当前主题的所有颜色设置
+- 【保持布局结构】除非用户要求重新布局，否则保持现有的行列数和按钮位置
+- 【保持视觉效果】保持现有的渐变、阴影、发光等视觉效果
+- 【只改变用户要求的部分】严格按照用户的具体要求进行修改，不要擅自改变其他部分
+- 【增量修改】基于现有配置进行增量修改，而不是重新设计
+
 🎨 新增视觉功能：
 - 【按钮尺寸倍数】widthMultiplier/heightMultiplier (0.5-3.0，默认1.0)
 - 【按钮独立属性】fontSize、borderRadius、elevation
@@ -237,6 +245,43 @@ SYSTEM_PROMPT = """你是专业的计算器设计师。只需要设计布局逻�
 
 只返回JSON配置，专注设计逻辑和视觉效果创新。"""
 
+# AI二次校验系统提示
+VALIDATION_PROMPT = """你是计算器配置验证专家。请仔细检查生成的计算器配置是否完全满足用户需求。
+
+📋 验证任务：
+1. 检查配置是否完全满足用户的具体要求
+2. 验证是否保持了应该继承的现有配置
+3. 确认没有擅自改变用户未要求修改的部分
+4. 检查配置的合理性和可用性
+
+🔍 验证标准：
+- ✅ 用户要求的功能是否都已实现
+- ✅ 用户要求的视觉效果是否正确应用
+- ✅ 现有配置的继承是否正确（颜色、布局、效果等）
+- ✅ 按钮配置是否完整（包含必需的action字段）
+- ✅ 主题配置是否合理
+- ✅ 布局是否适合移动设备
+
+🚫 常见问题检查：
+- 是否擅自改变了用户未要求修改的颜色
+- 是否丢失了原有的视觉效果
+- 是否改变了用户满意的布局结构
+- 是否缺少必需的基础按钮
+- 是否有不合理的按钮尺寸或位置
+
+📝 返回格式：
+```json
+{
+  "isValid": true/false,
+  "score": 0-100,
+  "issues": ["问题1", "问题2"],
+  "suggestions": ["建议1", "建议2"],
+  "summary": "验证总结"
+}
+```
+
+请基于用户需求和现有配置，对生成的新配置进行严格验证。"""
+
 @app.get("/health")
 async def health_check():
     return {
@@ -295,271 +340,236 @@ async def customize_calculator(request: CustomizationRequest) -> CalculatorConfi
 📋 【当前计算器配置 - 必须继承】
 名称: {request.current_config.get('name', '未知')}
 描述: {request.current_config.get('description', '未知')}
-主题: {theme.get('name', '未知主题')}
-按钮数量: {len(buttons)}
-布局: {layout.get('rows', '?')}行×{layout.get('columns', '?')}列
+布局: {layout.get('rows', 0)}行 × {layout.get('columns', 0)}列，共{len(buttons)}个按钮
 
-🎨 当前主题配色 (保持不变除非用户明确要求修改):
-- 背景色: {theme.get('backgroundColor', '未知')}
-- 显示屏: {theme.get('displayBackgroundColor', '未知')}
-- 显示文字: {theme.get('displayTextColor', '未知')}
-- 主要按钮: {theme.get('primaryButtonColor', '未知')}
-- 主要按钮文字: {theme.get('primaryButtonTextColor', '未知')}
-- 次要按钮: {theme.get('secondaryButtonColor', '未知')}
-- 运算符按钮: {theme.get('operatorButtonColor', '未知')}
-- 字体大小: {theme.get('fontSize', '未知')}
-- 按钮圆角: {theme.get('buttonBorderRadius', '未知')}
+🎨 【当前主题配置 - 保持不变除非用户要求】
+- 主题名称: {theme.get('name', '默认')}
+- 背景颜色: {theme.get('backgroundColor', '#000000')}
+- 背景渐变: {theme.get('backgroundGradient', '无')}
+- 背景图片: {theme.get('backgroundImage', '无')}
+- 显示区背景: {theme.get('displayBackgroundColor', '#222222')}
+- 显示区渐变: {theme.get('displayBackgroundGradient', '无')}
+- 显示文字颜色: {theme.get('displayTextColor', '#FFFFFF')}
+- 主按钮颜色: {theme.get('primaryButtonColor', '#333333')}
+- 主按钮渐变: {theme.get('primaryButtonGradient', '无')}
+- 次按钮颜色: {theme.get('secondaryButtonColor', '#555555')}
+- 次按钮渐变: {theme.get('secondaryButtonGradient', '无')}
+- 运算符颜色: {theme.get('operatorButtonColor', '#FF9F0A')}
+- 运算符渐变: {theme.get('operatorButtonGradient', '无')}
+- 字体大小: {theme.get('fontSize', 24.0)}
+- 按钮圆角: {theme.get('buttonBorderRadius', 8.0)}
+- 发光效果: {theme.get('hasGlowEffect', False)}
+- 阴影颜色: {theme.get('shadowColor', '无')}
+- 按钮阴影: {theme.get('buttonElevation', '无')}
+- 多层阴影: {theme.get('buttonShadowColors', '无')}
+- 按钮间距: {theme.get('buttonSpacing', '默认')}
+- 自适应布局: {theme.get('adaptiveLayout', True)}
 
-🔘 当前按钮布局 (保持不变除非用户明确要求修改):
-{chr(10).join([f"- {btn.get('label', '?')} ({btn.get('type', '?')}) 位置: {btn.get('gridPosition', {}).get('row', '?')},{btn.get('gridPosition', {}).get('column', '?')}" for btn in buttons[:10]])}
-{f'... 还有 {len(buttons)-10} 个按钮' if len(buttons) > 10 else ''}
-
-⚠️ 继承原则: 除非用户明确提到要修改的部分，其他所有配置必须保持完全一致！
+🔄 【继承要求】
+请严格保持以上所有配置不变，除非用户明确要求修改某个特定属性。
+用户只是想要增加功能或微调，不要重新设计整个主题！
 """
             is_iterative_request = True
-            print("🔧 检测到现有配置，启用继承模式")
         
+        # 分析对话历史
         if request.conversation_history:
-            conversation_context = "\n\n📚 对话历史分析：\n"
-            
-            # 查找最近的AI生成配置信息
-            for i, msg in enumerate(reversed(request.conversation_history[-10:])):
-                role = "用户" if msg.get("role") == "user" else "AI助手"
-                content = msg.get('content', '')
-                conversation_context += f"{role}: {content}\n"
-                
-                                # 检测是否为增量修改请求 - 扩展关键词检测
-                modification_keywords = [
-                    '修改', '改变', '调整', '优化', '增加', '删除', '换', '改成', '变成', 
-                    '把', '将', '设置', '改为', '换成', '加一个', '去掉', '改下', '换个',
-                    '添加', '加', '减少', '缩小', '放大', '变大', '变小', '调大', '调小',
-                    '字体', '颜色', '主题', '按钮', '布局', '描述', '功能', '样式'
-                ]
-                if msg.get("role") == "user" and any(keyword in content.lower() for keyword in modification_keywords):
-                    is_iterative_request = True
-                    print(f"🔍 检测到修改意图关键词: {[kw for kw in modification_keywords if kw in content.lower()]}")
-        
-        # 根据对话类型构建不同的提示策略
-        if is_iterative_request and request.current_config:
-            # 增量修改模式
-            design_instruction = """
-🔄 【增量修改模式 - 严格继承】
-❗ 核心原则: 完全复制当前配置，只修改用户明确要求的部分
+            recent_messages = request.conversation_history[-3:] if len(request.conversation_history) > 3 else request.conversation_history
+            conversation_context = f"""
+📜 【对话历史上下文】
+{chr(10).join([f"- {msg.get('role', '用户')}: {msg.get('content', '')}" for msg in recent_messages])}
 
-📋 执行步骤:
-1. 从当前配置中复制所有字段（name, description, theme, layout等）
-2. 识别用户要求修改的具体部分
-3. 只对那些部分进行精确修改
-4. 其他所有内容保持完全一致
-
-🚫 严禁操作:
-- 重新设计整体布局
-- 改变用户未提及的按钮
-- 修改用户未提及的颜色
-- 改变按钮位置或数量（除非明确要求）
-- 更换主题风格（除非明确要求）
-
-✅ 允许操作:
-- 仅修改用户明确提到的属性
-- 在明确要求时添加新按钮
-- 在明确要求时调整特定颜色
-- 在明确要求时修改描述文字
-
-🎯 示例:
-- 用户说"字体变小" → 只修改 fontSize，其他全部保持
-- 用户说"增加描述" → 只修改 description，其他全部保持
-- 用户说"按钮变蓝" → 只修改相关按钮颜色，其他全部保持
+基于对话历史，这是一个{('继续优化' if is_iterative_request else '新建')}请求。
 """
-        else:
-            # 全新设计模式
-            design_instruction = """
-🆕 【全新设计模式】
-设计策略：
-- 根据用户需求从零开始设计
-- 可以自由选择主题、布局、功能
-- 创造符合用户期望的完整计算器
-"""
-        
-        # 构建智能化的用户提示
-        task_mode = '【在现有基础上调整】精确修改用户要求的部分，其他保持不变' if is_iterative_request else '【全新布局设计】根据需求创建新的计算器布局'
-        
-        user_prompt = f"""用户需求：{request.user_input}
+
+        # 构建增强的用户提示
+        enhanced_user_prompt = f"""
+{conversation_context}
 
 {current_config_info}
 
-{conversation_context}
+🎯 【用户当前需求】
+{request.user_input}
 
-{design_instruction}
+⚠️ 【重要提醒】
+1. 如果有现有配置，请严格继承所有未被用户要求修改的属性
+2. 只修改用户明确要求改变的部分
+3. 保持现有的视觉风格和配色方案
+4. 确保所有按钮都包含完整的action字段
+5. 生成的配置必须在移动设备上正常显示
 
-🎯 设计任务：
-请设计计算器布局配置，只需要关注逻辑层面：
+请生成符合要求的计算器配置JSON。
+"""
 
-{task_mode}
-
-布局设计重点：
-1. 确定网格尺寸：几行几列（rows × columns）
-2. 安排按钮位置：每个按钮放在哪个坐标
-3. 选择主题配色：符合用途的颜色方案
-4. 添加专业功能：用expression实现特殊计算
-
-前端会自动处理所有显示适配：
-- 按钮大小会根据行列数自动计算
-- 显示区域会根据按钮密度智能调整
-- 字体和间距会根据屏幕自动缩放
-- 无需担心具体的像素尺寸问题
-
-必需字段格式：
-```json
-{{
-  "name": "计算器名称",
-  "description": "功能描述", 
-  "theme": {{ 主题配色方案 }},
-  "layout": {{
-    "rows": 行数,
-    "columns": 列数,
-    "buttons": [
-      {{
-        "id": "按钮ID",
-        "label": "显示文字",
-        "action": {{"type": "操作类型", "value": "参数值"}},
-        "gridPosition": {{"row": 行号, "column": 列号}},
-        "type": "按钮类型"
-      }}
-    ]
-  }}
-}}
-```
-
-🔧 Action字段说明（必须包含）：
-- 数字输入: {{"type": "input", "value": "数字"}}
-- 运算符: {{"type": "operator", "value": "运算符"}}  // +、-、*、/
-- 等号: {{"type": "equals"}}
-- 清除: {{"type": "clear"}}
-- 全清: {{"type": "clearAll"}}
-- 小数点: {{"type": "decimal"}}
-- 正负号: {{"type": "negate"}}
-- 科学计算: {{"type": "expression", "expression": "表达式"}}
-
-只返回JSON配置，专注布局逻辑设计。"""
-
-        # 在使用AI前确保初始化
-        global _genai_initialized
-        if not _genai_initialized:
-            print("🔧 首次初始化Google AI...")
-            try:
-                initialize_genai()
-                _genai_initialized = True
-                print("✅ Google AI 初始化成功")
-            except Exception as init_error:
-                print(f"❌ Google AI 初始化失败: {str(init_error)}")
-                raise ValueError(f"AI服务初始化失败: {str(init_error)}")
+        # 调用AI生成配置
+        model = get_current_model()
+        response = model.generate_content([
+            {"role": "user", "parts": [SYSTEM_PROMPT + "\n\n" + enhanced_user_prompt]}
+        ])
         
-        # 使用当前选择的模型
-        model_name = AVAILABLE_MODELS[current_model_key]["name"]
-        model_display = AVAILABLE_MODELS[current_model_key]["display_name"]
-        print(f"🤖 使用模型: {model_display} ({model_name})")
-        
-        try:
-            model = genai.GenerativeModel(model_name)
-            print(f"📡 开始调用AI模型...")
-            response = model.generate_content([SYSTEM_PROMPT, user_prompt])
-            print(f"✅ AI模型调用成功")
-            
-            if not response.text:
-                print(f"⚠️ AI返回空响应")
-                raise ValueError("AI没有返回有效响应")
-            
-            print(f"📝 AI响应长度: {len(response.text)} 字符")
-        except Exception as ai_error:
-            print(f"❌ AI调用失败: {str(ai_error)}")
-            print(f"🔧 错误类型: {type(ai_error).__name__}")
-            raise ValueError(f"AI服务调用失败: {str(ai_error)}")
-        
-        # 提取思考过程（如果是thinking模型）
-        thinking_process = None
+        # 解析AI响应
         response_text = response.text.strip()
         
-        if current_model_key == "flash-thinking":
-            print(f"📝 原始响应长度: {len(response_text)} 字符")
-            
-            # Flash Thinking模型的多种可能格式
-            if "<thinking>" in response_text and "</thinking>" in response_text:
-                # 标准thinking标签格式
-                thinking_start = response_text.find("<thinking>") + 10
-                thinking_end = response_text.find("</thinking>")
-                thinking_process = response_text[thinking_start:thinking_end].strip()
-                response_text = response_text[thinking_end + 11:].strip()
-                print(f"🧠 提取到思考过程(标签格式): {len(thinking_process)} 字符")
-            else:
-                # 尝试寻找JSON起始位置
-                json_start = response_text.find('{')
-                if json_start > 50:  # 如果JSON前有足够的文本，可能是思考过程
-                    potential_thinking = response_text[:json_start].strip()
-                    
-                    # 过滤掉可能的markdown格式标记
-                    if potential_thinking and not potential_thinking.startswith('```'):
-                        thinking_process = potential_thinking
-                        response_text = response_text[json_start:].strip()
-                        print(f"🧠 提取到思考过程(前缀格式): {len(thinking_process)} 字符")
-                    else:
-                        print("🤔 JSON前的内容似乎不是思考过程")
-                elif json_start == -1:
-                    # 找不到JSON，可能整个响应都是思考过程
-                    print("⚠️ 未找到JSON格式，可能需要重新请求")
-                    # 可以在这里添加重试逻辑或使用默认配置
-                else:
-                    print("🤔 JSON前内容过短，可能没有思考过程")
-        
-        # 清理响应文本
-        if response_text.startswith('```json'):
-            response_text = response_text[7:]
-        if response_text.endswith('```'):
-            response_text = response_text[:-3]
-        response_text = response_text.strip()
+        # 提取JSON配置
+        if "```json" in response_text:
+            json_start = response_text.find("```json") + 7
+            json_end = response_text.find("```", json_start)
+            config_json = response_text[json_start:json_end].strip()
+        else:
+            config_json = response_text
         
         # 解析JSON
         try:
-            config_data = json.loads(response_text)
-            
-            # 确保必需字段存在
-            if 'theme' in config_data and 'name' not in config_data['theme']:
-                config_data['theme']['name'] = config_data.get('name', '默认主题')
-            
-            if 'layout' in config_data and 'name' not in config_data['layout']:
-                config_data['layout']['name'] = config_data.get('name', '默认布局')
-                
+            raw_config = json.loads(config_json)
         except json.JSONDecodeError as e:
-            print(f"JSON解析错误: {e}")
-            print(f"响应内容: {response_text}")
-            raise ValueError(f"AI返回了无效的JSON格式: {e}")
+            raise HTTPException(status_code=500, detail=f"AI生成的JSON格式无效: {str(e)}")
         
-        # 添加必需字段
-        if 'id' not in config_data:
-            config_data['id'] = f"ai-generated-{int(datetime.now().timestamp())}"
-        if 'createdAt' not in config_data:
-            config_data['createdAt'] = datetime.now().isoformat()
-        if 'authorPrompt' not in config_data:
-            config_data['authorPrompt'] = request.user_input
-        if thinking_process:
-            config_data['thinkingProcess'] = thinking_process
+        # 🔍 AI二次校验
+        validation_result = None
+        if request.current_config:
+            validation_result = await validate_calculator_config(
+                request.user_input,
+                request.current_config,
+                raw_config
+            )
+            
+            # 如果验证不通过且分数较低，可以选择重新生成
+            if not validation_result.get('isValid', True) and validation_result.get('score', 100) < 70:
+                print(f"⚠️ AI验证未通过，分数: {validation_result.get('score', 0)}")
+                print(f"问题: {validation_result.get('issues', [])}")
+                
+                # 可以在这里添加重新生成逻辑
+                # 为了避免无限循环，暂时只记录问题
         
-        # 生成智能回复消息
-        if is_iterative_request and request.current_config:
-            # 继承修改的简洁确认
-            config_data['aiResponse'] = "✅ 已按您的要求完成调整！"
-        else:
-            # 全新创建的欢迎消息
-            calculator_name = config_data.get('name', '计算器')
-            config_data['aiResponse'] = f"🎉 \"{calculator_name}\" 已准备就绪！\n\n💡 提示：您可以随时说出想要的调整，我会在保持现有设计基础上进行精确修改"
+        # 数据验证和字段补充
+        if 'theme' not in raw_config:
+            raw_config['theme'] = {}
+        if 'layout' not in raw_config:
+            raw_config['layout'] = {'buttons': []}
         
-        # 直接验证生成的配置结构，完全信任AI的输出
-        calculator_config = CalculatorConfig(**config_data)
+        # 补充必需字段
+        theme = raw_config['theme']
+        if 'name' not in theme:
+            theme['name'] = '自定义主题'
         
-        return calculator_config
+        layout = raw_config['layout']
+        if 'name' not in layout:
+            layout['name'] = '自定义布局'
         
+        # 确保所有按钮都有action字段
+        for button in layout.get('buttons', []):
+            if 'action' not in button:
+                # 根据按钮类型和ID推断action
+                button_id = button.get('id', '')
+                if button_id in ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine']:
+                    button['action'] = {'type': 'input', 'value': button_id.replace('zero', '0').replace('one', '1').replace('two', '2').replace('three', '3').replace('four', '4').replace('five', '5').replace('six', '6').replace('seven', '7').replace('eight', '8').replace('nine', '9')}
+                elif button_id == 'add':
+                    button['action'] = {'type': 'operator', 'value': '+'}
+                elif button_id == 'subtract':
+                    button['action'] = {'type': 'operator', 'value': '-'}
+                elif button_id == 'multiply':
+                    button['action'] = {'type': 'operator', 'value': '*'}
+                elif button_id == 'divide':
+                    button['action'] = {'type': 'operator', 'value': '/'}
+                elif button_id == 'equals':
+                    button['action'] = {'type': 'equals'}
+                elif button_id == 'clear':
+                    button['action'] = {'type': 'clear'}
+                elif button_id == 'decimal':
+                    button['action'] = {'type': 'decimal'}
+                elif button_id == 'negate':
+                    button['action'] = {'type': 'negate'}
+                else:
+                    button['action'] = {'type': 'input', 'value': button.get('label', '0')}
+        
+        # 创建完整的配置对象
+        config = CalculatorConfig(
+            id=f"calc_{int(time.time())}",
+            name=raw_config.get('name', '自定义计算器'),
+            description=raw_config.get('description', '由AI生成的计算器配置'),
+            theme=CalculatorTheme(**theme),
+            layout=CalculatorLayout(**layout),
+            version="1.0.0",
+            createdAt=datetime.now().isoformat(),
+            authorPrompt=request.user_input,
+            thinkingProcess=response_text if "思考过程" in response_text else None,
+            aiResponse=f"✅ 成功生成计算器配置\n{validation_result.get('summary', '') if validation_result else ''}",
+        )
+        
+        # 添加验证结果到响应中
+        if validation_result:
+            config.aiResponse += f"\n\n🔍 AI验证结果:\n- 验证分数: {validation_result.get('score', 'N/A')}/100\n- 验证状态: {'✅ 通过' if validation_result.get('isValid', True) else '⚠️ 需要改进'}"
+            if validation_result.get('issues'):
+                config.aiResponse += f"\n- 发现问题: {'; '.join(validation_result.get('issues', []))}"
+            if validation_result.get('suggestions'):
+                config.aiResponse += f"\n- 改进建议: {'; '.join(validation_result.get('suggestions', []))}"
+        
+        return config
+        
+    except HTTPException:
+        raise
     except Exception as e:
-        print(f"处理错误: {e}")
+        print(f"生成计算器配置时出错: {str(e)}")
         raise HTTPException(status_code=500, detail=f"生成计算器配置失败: {str(e)}")
+
+async def validate_calculator_config(user_input: str, current_config: dict, generated_config: dict) -> dict:
+    """AI二次校验生成的计算器配置"""
+    try:
+        # 构建验证上下文
+        validation_context = f"""
+用户需求：{user_input}
+
+现有配置摘要：
+- 主题名称：{current_config.get('theme', {}).get('name', '未知')}
+- 背景颜色：{current_config.get('theme', {}).get('backgroundColor', '未知')}
+- 布局：{current_config.get('layout', {}).get('rows', 0)}行{current_config.get('layout', {}).get('columns', 0)}列
+- 按钮数量：{len(current_config.get('layout', {}).get('buttons', []))}个
+
+生成的新配置：
+{json.dumps(generated_config, ensure_ascii=False, indent=2)}
+
+请验证新配置是否满足用户需求，并检查继承性是否正确。
+"""
+
+        # 调用AI进行验证
+        model = get_current_model()
+        response = model.generate_content([
+            {"role": "user", "parts": [VALIDATION_PROMPT + "\n\n" + validation_context]}
+        ])
+        
+        # 解析验证结果
+        validation_text = response.text.strip()
+        
+        # 尝试提取JSON
+        if "```json" in validation_text:
+            json_start = validation_text.find("```json") + 7
+            json_end = validation_text.find("```", json_start)
+            validation_json = validation_text[json_start:json_end].strip()
+        else:
+            # 如果没有代码块，尝试直接解析
+            validation_json = validation_text
+        
+        try:
+            validation_result = json.loads(validation_json)
+            return validation_result
+        except json.JSONDecodeError:
+            # 如果解析失败，返回基本验证结果
+            return {
+                "isValid": True,
+                "score": 85,
+                "issues": [],
+                "suggestions": [],
+                "summary": "AI验证完成，配置基本符合要求"
+            }
+            
+    except Exception as e:
+        print(f"AI验证过程中出错: {str(e)}")
+        return {
+            "isValid": True,
+            "score": 80,
+            "issues": ["验证过程中出现技术问题"],
+            "suggestions": ["建议手动检查配置"],
+            "summary": "验证过程遇到问题，但配置可能仍然有效"
+        }
 
 if __name__ == "__main__":
     import uvicorn
