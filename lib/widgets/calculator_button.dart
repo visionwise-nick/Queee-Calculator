@@ -81,10 +81,16 @@ class _CalculatorButtonWidgetState extends State<CalculatorButtonWidget>
     final gradient = _getButtonGradient(theme);
     final backgroundImage = widget.button.backgroundImage;
     
+    // 使用按钮独立属性或主题默认值
+    final borderRadius = widget.button.borderRadius ?? theme.buttonBorderRadius;
+    final elevation = widget.button.elevation ?? theme.buttonElevation ?? 2.0;
+    
     return Container(
       margin: widget.fixedSize != null ? EdgeInsets.zero : const EdgeInsets.all(2),
       child: Material(
         color: Colors.transparent,
+        elevation: elevation,
+        borderRadius: BorderRadius.circular(borderRadius),
         child: InkWell(
           onTapDown: (_) {
             setState(() => _isPressed = true);
@@ -99,12 +105,12 @@ class _CalculatorButtonWidgetState extends State<CalculatorButtonWidget>
             setState(() => _isPressed = false);
             _animationController.reverse();
           },
-          borderRadius: BorderRadius.circular(theme.buttonBorderRadius),
+          borderRadius: BorderRadius.circular(borderRadius),
           child: Container(
             decoration: BoxDecoration(
               color: gradient == null && backgroundImage == null ? buttonColor : null,
-              borderRadius: BorderRadius.circular(theme.buttonBorderRadius),
-              boxShadow: _buildBoxShadow(theme, buttonColor),
+              borderRadius: BorderRadius.circular(borderRadius),
+              boxShadow: _buildBoxShadow(theme, buttonColor, elevation),
               gradient: gradient != null ? _buildGradient(gradient) : (_isPressed
                   ? LinearGradient(
                       begin: Alignment.topLeft,
@@ -118,6 +124,10 @@ class _CalculatorButtonWidgetState extends State<CalculatorButtonWidget>
               image: backgroundImage != null ? DecorationImage(
                 image: NetworkImage(backgroundImage),
                 fit: BoxFit.cover,
+                onError: (exception, stackTrace) {
+                  // 如果图片加载失败，显示占位符或默认背景
+                  print('Failed to load background image: $backgroundImage');
+                },
               ) : null,
             ),
             child: Center(
@@ -139,7 +149,7 @@ class _CalculatorButtonWidgetState extends State<CalculatorButtonWidget>
   }
 
   /// 构建阴影效果
-  List<BoxShadow> _buildBoxShadow(CalculatorTheme theme, Color buttonColor) {
+  List<BoxShadow> _buildBoxShadow(CalculatorTheme theme, Color buttonColor, double elevation) {
     if (theme.hasGlowEffect) {
       return [
         BoxShadow(
@@ -151,7 +161,7 @@ class _CalculatorButtonWidgetState extends State<CalculatorButtonWidget>
     } else if (theme.buttonShadowColors != null) {
       return theme.buttonShadowColors!.map((color) => BoxShadow(
         color: _parseColor(color),
-        blurRadius: theme.buttonElevation ?? 4,
+        blurRadius: elevation,
         offset: const Offset(0, 2),
       )).toList();
     } else {
@@ -168,15 +178,15 @@ class _CalculatorButtonWidgetState extends State<CalculatorButtonWidget>
   Widget _buildButtonContent(Color textColor, CalculatorTheme theme) {
     return Consumer<CalculatorProvider>(
       builder: (context, provider, child) {
-        // 根据布局行数动态调整字体大小
+        // 使用按钮独立字体大小或根据布局动态调整
         final layout = provider.config.layout;
-        double adjustedFontSize = _getButtonFontSize(theme.fontSize, layout.rows);
+        double fontSize = widget.button.fontSize ?? _getButtonFontSize(theme.fontSize, layout.rows);
         
         // 显示文字
         return Text(
           widget.button.label,
           style: TextStyle(
-            fontSize: adjustedFontSize,
+            fontSize: fontSize,
             fontWeight: _getButtonFontWeight(),
             color: textColor,
             // fontFamily: 'monospace',

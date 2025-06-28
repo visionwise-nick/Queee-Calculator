@@ -76,6 +76,9 @@ class CalculatorButton(BaseModel):
     heightMultiplier: float = 1.0  # 高度倍数
     gradientColors: Optional[List[str]] = None  # 渐变色数组
     backgroundImage: Optional[str] = None  # 背景图片URL
+    fontSize: Optional[float] = None  # 按钮独立字体大小
+    borderRadius: Optional[float] = None  # 按钮独立圆角
+    elevation: Optional[float] = None  # 按钮独立阴影高度
 
 class CalculatorTheme(BaseModel):
     name: str
@@ -85,6 +88,9 @@ class CalculatorTheme(BaseModel):
     displayBackgroundColor: str = "#222222"
     displayBackgroundGradient: Optional[List[str]] = None  # 显示区渐变
     displayTextColor: str = "#FFFFFF"
+    displayWidth: Optional[float] = None  # 显示区宽度比例 (0.0-1.0)
+    displayHeight: Optional[float] = None  # 显示区高度比例 (0.0-1.0)
+    displayBorderRadius: Optional[float] = None  # 显示区圆角
     primaryButtonColor: str = "#333333"
     primaryButtonGradient: Optional[List[str]] = None  # 主按钮渐变
     primaryButtonTextColor: str = "#FFFFFF"
@@ -100,6 +106,8 @@ class CalculatorTheme(BaseModel):
     shadowColor: Optional[str] = None
     buttonElevation: Optional[float] = None  # 按钮阴影高度
     buttonShadowColors: Optional[List[str]] = None  # 多层阴影颜色
+    buttonSpacing: Optional[float] = None  # 按钮间距
+    adaptiveLayout: bool = True  # 是否启用自适应布局
 
 class CalculatorLayout(BaseModel):
     name: str
@@ -107,6 +115,9 @@ class CalculatorLayout(BaseModel):
     columns: int
     buttons: List[CalculatorButton]
     description: str = ""
+    minButtonSize: Optional[float] = None  # 最小按钮尺寸
+    maxButtonSize: Optional[float] = None  # 最大按钮尺寸
+    gridSpacing: Optional[float] = None  # 网格间距
 
 class CalculatorConfig(BaseModel):
     id: str
@@ -129,28 +140,38 @@ class CustomizationRequest(BaseModel):
 SYSTEM_PROMPT = """你是专业的计算器设计师。只需要设计布局逻辑，前端会自动适配显示。
 
 🎯 设计任务：根据用户需求设计计算器布局
-- 决定使用几行几列（如4行5列、6行4列等）
+- 决定使用几行几列（支持2-10行，2-8列，自动适配屏幕）
 - 安排每个位置放什么按钮
 - 选择合适的主题配色和视觉效果
+- 可以生成AI背景图片和按钮装饰
 
 🔧 布局规则：
 1. 【必保留17个基础按钮】数字0-9，运算符+−×÷，功能=、AC、±、.
 2. 【标准ID规范】基础按钮ID必须是：zero,one,two,three,four,five,six,seven,eight,nine,add,subtract,multiply,divide,equals,clear,negate,decimal
 3. 【位置从0开始】行列坐标都从0开始计数（第1行第1列 = row:0,column:0）
 4. 【添加新功能】可以增加专业按钮，用expression表达式实现
+5. 【自适应布局】前端会根据按钮数量自动调整尺寸，支持任意行列数
 
 🎨 新增视觉功能：
-- 【按钮尺寸倍数】widthMultiplier/heightMultiplier (0.5-2.0，默认1.0)
+- 【按钮尺寸倍数】widthMultiplier/heightMultiplier (0.5-3.0，默认1.0)
+- 【按钮独立属性】fontSize、borderRadius、elevation
 - 【渐变色】gradientColors: ["#起始色", "#结束色"]
-- 【背景图片】backgroundImage: "图片URL"
+- 【背景图片】backgroundImage: "AI生成图片描述"（将自动生成图片）
 - 【自定义颜色】customColor: "#颜色值"
 
 🎨 主题增强功能：
 - 【背景渐变】backgroundGradient: ["#色1", "#色2"]
+- 【显示区控制】displayWidth/displayHeight: 0.0-1.0 比例
 - 【显示区渐变】displayBackgroundGradient: ["#色1", "#色2"]
 - 【按钮组渐变】primaryButtonGradient/secondaryButtonGradient/operatorButtonGradient
 - 【多层阴影】buttonShadowColors: ["#阴影色1", "#阴影色2"]
-- 【阴影高度】buttonElevation: 数值
+- 【间距控制】buttonSpacing、gridSpacing: 数值
+- 【尺寸限制】minButtonSize/maxButtonSize: 数值
+
+🤖 AI图像生成：
+- 背景图片：backgroundImage: "描述想要的背景"
+- 按钮图片：backgroundImage: "描述按钮装饰"
+- 示例："科技感蓝色电路板背景"、"可爱粉色花朵装饰"、"金属质感按钮"
 
 🚀 功能表达式库：
 - 数学：平方"x*x" 开根"sqrt(x)" 立方"pow(x,3)" 倒数"1/x"
@@ -161,6 +182,13 @@ SYSTEM_PROMPT = """你是专业的计算器设计师。只需要设计布局逻�
 💡 设计示例：
 ```json
 {
+  "layout": {
+    "rows": 6,
+    "columns": 5,
+    "minButtonSize": 40,
+    "maxButtonSize": 80,
+    "gridSpacing": 4
+  },
   "buttons": [
     {
       "id": "equals",
@@ -169,40 +197,43 @@ SYSTEM_PROMPT = """你是专业的计算器设计师。只需要设计布局逻�
       "gridPosition": {"row": 4, "column": 3},
       "type": "operator",
       "heightMultiplier": 2.0,
-      "gradientColors": ["#FF6B35", "#F7931E"]
+      "gradientColors": ["#FF6B35", "#F7931E"],
+      "backgroundImage": "金色发光按钮效果"
     },
     {
       "id": "seven",
       "label": "7",
       "action": {"type": "input", "value": "7"},
       "gridPosition": {"row": 1, "column": 0},
-      "type": "primary"
-    },
-    {
-      "id": "add",
-      "label": "+",
-      "action": {"type": "operator", "value": "+"},
-      "gridPosition": {"row": 4, "column": 3},
-      "type": "operator"
-    },
-    {
-      "id": "sqrt",
-      "label": "√",
-      "action": {"type": "expression", "expression": "sqrt(x)"},
-      "gridPosition": {"row": 0, "column": 4},
-      "type": "special"
+      "type": "primary",
+      "fontSize": 20,
+      "borderRadius": 12
     }
   ],
   "theme": {
-    "backgroundGradient": ["#1a1a2e", "#16213e"],
+    "backgroundImage": "深蓝色星空背景",
+    "displayHeight": 0.25,
+    "displayBorderRadius": 15,
     "operatorButtonGradient": ["#ff6b6b", "#ee5a24"],
-    "hasGlowEffect": true
+    "buttonSpacing": 6,
+    "hasGlowEffect": true,
+    "adaptiveLayout": true
   }
 }
 ```
 
+🔧 Action字段说明（必须包含）：
+- 数字输入: {"type": "input", "value": "数字"}
+- 运算符: {"type": "operator", "value": "运算符"}  // +、-、*、/
+- 等号: {"type": "equals"}
+- 清除: {"type": "clear"}
+- 全清: {"type": "clearAll"}
+- 小数点: {"type": "decimal"}
+- 正负号: {"type": "negate"}
+- 科学计算: {"type": "expression", "expression": "表达式"}
+
 前端会自动处理：
-✓ 按钮大小适配 ✓ 显示区域调整 ✓ 间距计算 ✓ 字体缩放 ✓ 渐变渲染 ✓ 背景图片
+✓ 动态按钮数量适配 ✓ 屏幕尺寸自适应 ✓ 字体自动缩放 ✓ AI图片生成 ✓ 渐变渲染 ✓ 响应式布局
 
 只返回JSON配置，专注设计逻辑和视觉效果创新。"""
 

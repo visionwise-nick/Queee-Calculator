@@ -38,7 +38,7 @@ class CalculatorScreen extends StatelessWidget {
     final screenHeight = constraints.maxHeight;
     
     // 计算最优的显示区域高度
-    final displayHeight = _calculateOptimalDisplayHeight(layout, screenHeight);
+    final displayHeight = _calculateOptimalDisplayHeight(context, layout, screenHeight);
     final buttonAreaHeight = screenHeight - displayHeight - 80; // 预留标题栏空间
     
     return Column(
@@ -65,26 +65,34 @@ class CalculatorScreen extends StatelessWidget {
   }
 
   /// 计算最优显示屏高度
-  double _calculateOptimalDisplayHeight(CalculatorLayout layout, double screenHeight) {
+  double _calculateOptimalDisplayHeight(BuildContext context, CalculatorLayout layout, double screenHeight) {
+    final theme = layout.buttons.isNotEmpty ? 
+        Provider.of<CalculatorProvider>(context, listen: false).config.theme : null;
+    
+    // 如果主题指定了显示区高度比例，使用它
+    if (theme?.displayHeight != null) {
+      return screenHeight * theme!.displayHeight!;
+    }
+    
     // 基础显示高度
     double baseHeight = 80.0;
     
     // 根据布局复杂度调整
     final buttonCount = layout.buttons.length;
     final totalCells = layout.rows * layout.columns;
-    final density = buttonCount / totalCells;
+    final density = totalCells > 0 ? buttonCount / totalCells : 0.5;
     
     // 按钮越多，显示区域相对越小
-    if (density > 0.8) {
+    if (density > 0.8 || buttonCount > 25) {
       baseHeight = screenHeight * 0.15; // 高密度：15%
-    } else if (density > 0.6) {
+    } else if (density > 0.6 || buttonCount > 20) {
       baseHeight = screenHeight * 0.2;  // 中密度：20%
     } else {
       baseHeight = screenHeight * 0.25; // 低密度：25%
     }
     
     // 确保最小和最大值
-    return baseHeight.clamp(60.0, screenHeight * 0.3);
+    return baseHeight.clamp(60.0, screenHeight * 0.35);
   }
 
   /// 构建标题栏

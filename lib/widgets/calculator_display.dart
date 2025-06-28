@@ -14,7 +14,13 @@ class CalculatorDisplay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // 使用主题指定的显示区圆角或默认值
+    final borderRadius = theme.displayBorderRadius ?? theme.buttonBorderRadius;
+    
     return Container(
+      width: theme.displayWidth != null 
+          ? MediaQuery.of(context).size.width * theme.displayWidth!
+          : double.infinity,
       padding: const EdgeInsets.all(12),
       margin: const EdgeInsets.all(4),
       decoration: BoxDecoration(
@@ -24,7 +30,7 @@ class CalculatorDisplay extends StatelessWidget {
         gradient: theme.displayBackgroundGradient != null 
             ? _buildGradient(theme.displayBackgroundGradient!) 
             : null,
-        borderRadius: BorderRadius.circular(theme.buttonBorderRadius),
+        borderRadius: BorderRadius.circular(borderRadius),
         boxShadow: [
           if (theme.hasGlowEffect)
             BoxShadow(
@@ -40,6 +46,9 @@ class CalculatorDisplay extends StatelessWidget {
             Colors.black.withValues(alpha: 0.3),
             BlendMode.darken,
           ),
+          onError: (exception, stackTrace) {
+            print('Failed to load display background image: ${theme.backgroundImage}');
+          },
         ) : null,
       ),
       child: Column(

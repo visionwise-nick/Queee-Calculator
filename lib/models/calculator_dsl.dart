@@ -9,6 +9,9 @@ class CalculatorTheme {
   final String displayBackgroundColor;
   final List<String>? displayBackgroundGradient; // 显示区渐变
   final String displayTextColor;
+  final double? displayWidth;
+  final double? displayHeight;
+  final double? displayBorderRadius;
   final String primaryButtonColor;
   final List<String>? primaryButtonGradient; // 主按钮渐变
   final String primaryButtonTextColor;
@@ -24,6 +27,8 @@ class CalculatorTheme {
   final String? shadowColor;
   final double? buttonElevation; // 按钮阴影高度
   final List<String>? buttonShadowColors; // 多层阴影颜色
+  final double? buttonSpacing;
+  final bool adaptiveLayout;
 
   const CalculatorTheme({
     required this.name,
@@ -33,6 +38,9 @@ class CalculatorTheme {
     this.displayBackgroundColor = '#222222',
     this.displayBackgroundGradient,
     this.displayTextColor = '#FFFFFF',
+    this.displayWidth,
+    this.displayHeight,
+    this.displayBorderRadius,
     this.primaryButtonColor = '#333333',
     this.primaryButtonGradient,
     this.primaryButtonTextColor = '#FFFFFF',
@@ -48,32 +56,39 @@ class CalculatorTheme {
     this.shadowColor,
     this.buttonElevation,
     this.buttonShadowColors,
+    this.buttonSpacing,
+    this.adaptiveLayout = true,
   });
 
   factory CalculatorTheme.fromJson(Map<String, dynamic> json) {
     return CalculatorTheme(
-      name: json['name'] ?? 'Default',
-      backgroundColor: json['backgroundColor'] ?? '#000000',
-      backgroundGradient: json['backgroundGradient']?.cast<String>(),
-      backgroundImage: json['backgroundImage'],
-      displayBackgroundColor: json['displayBackgroundColor'] ?? '#222222',
-      displayBackgroundGradient: json['displayBackgroundGradient']?.cast<String>(),
-      displayTextColor: json['displayTextColor'] ?? '#FFFFFF',
-      primaryButtonColor: json['primaryButtonColor'] ?? '#333333',
-      primaryButtonGradient: json['primaryButtonGradient']?.cast<String>(),
-      primaryButtonTextColor: json['primaryButtonTextColor'] ?? '#FFFFFF',
-      secondaryButtonColor: json['secondaryButtonColor'] ?? '#555555',
-      secondaryButtonGradient: json['secondaryButtonGradient']?.cast<String>(),
-      secondaryButtonTextColor: json['secondaryButtonTextColor'] ?? '#FFFFFF',
-      operatorButtonColor: json['operatorButtonColor'] ?? '#FF9F0A',
-      operatorButtonGradient: json['operatorButtonGradient']?.cast<String>(),
-      operatorButtonTextColor: json['operatorButtonTextColor'] ?? '#FFFFFF',
-      fontSize: (json['fontSize'] ?? 24.0).toDouble(),
-      buttonBorderRadius: (json['buttonBorderRadius'] ?? 8.0).toDouble(),
-      hasGlowEffect: json['hasGlowEffect'] ?? false,
-      shadowColor: json['shadowColor'],
-      buttonElevation: json['buttonElevation']?.toDouble(),
-      buttonShadowColors: json['buttonShadowColors']?.cast<String>(),
+      name: json['name'] as String,
+      backgroundColor: json['backgroundColor'] as String? ?? '#000000',
+      backgroundGradient: (json['backgroundGradient'] as List<dynamic>?)?.cast<String>(),
+      backgroundImage: json['backgroundImage'] as String?,
+      displayBackgroundColor: json['displayBackgroundColor'] as String? ?? '#222222',
+      displayBackgroundGradient: (json['displayBackgroundGradient'] as List<dynamic>?)?.cast<String>(),
+      displayTextColor: json['displayTextColor'] as String? ?? '#FFFFFF',
+      displayWidth: (json['displayWidth'] as num?)?.toDouble(),
+      displayHeight: (json['displayHeight'] as num?)?.toDouble(),
+      displayBorderRadius: (json['displayBorderRadius'] as num?)?.toDouble(),
+      primaryButtonColor: json['primaryButtonColor'] as String? ?? '#333333',
+      primaryButtonGradient: (json['primaryButtonGradient'] as List<dynamic>?)?.cast<String>(),
+      primaryButtonTextColor: json['primaryButtonTextColor'] as String? ?? '#FFFFFF',
+      secondaryButtonColor: json['secondaryButtonColor'] as String? ?? '#555555',
+      secondaryButtonGradient: (json['secondaryButtonGradient'] as List<dynamic>?)?.cast<String>(),
+      secondaryButtonTextColor: json['secondaryButtonTextColor'] as String? ?? '#FFFFFF',
+      operatorButtonColor: json['operatorButtonColor'] as String? ?? '#FF9F0A',
+      operatorButtonGradient: (json['operatorButtonGradient'] as List<dynamic>?)?.cast<String>(),
+      operatorButtonTextColor: json['operatorButtonTextColor'] as String? ?? '#FFFFFF',
+      fontSize: (json['fontSize'] as num?)?.toDouble() ?? 24.0,
+      buttonBorderRadius: (json['buttonBorderRadius'] as num?)?.toDouble() ?? 8.0,
+      hasGlowEffect: json['hasGlowEffect'] as bool? ?? false,
+      shadowColor: json['shadowColor'] as String?,
+      buttonElevation: (json['buttonElevation'] as num?)?.toDouble(),
+      buttonShadowColors: (json['buttonShadowColors'] as List<dynamic>?)?.cast<String>(),
+      buttonSpacing: (json['buttonSpacing'] as num?)?.toDouble(),
+      adaptiveLayout: json['adaptiveLayout'] as bool? ?? true,
     );
   }
 
@@ -86,6 +101,9 @@ class CalculatorTheme {
       'displayBackgroundColor': displayBackgroundColor,
       'displayBackgroundGradient': displayBackgroundGradient,
       'displayTextColor': displayTextColor,
+      'displayWidth': displayWidth,
+      'displayHeight': displayHeight,
+      'displayBorderRadius': displayBorderRadius,
       'primaryButtonColor': primaryButtonColor,
       'primaryButtonGradient': primaryButtonGradient,
       'primaryButtonTextColor': primaryButtonTextColor,
@@ -101,6 +119,8 @@ class CalculatorTheme {
       'shadowColor': shadowColor,
       'buttonElevation': buttonElevation,
       'buttonShadowColors': buttonShadowColors,
+      'buttonSpacing': buttonSpacing,
+      'adaptiveLayout': adaptiveLayout,
     };
   }
 }
@@ -151,10 +171,13 @@ class CalculatorButton {
   final String type; // primary, secondary, operator, special
   final String? customColor;
   final bool isWide;
-  final double widthMultiplier; // 宽度倍数，默认1.0
-  final double heightMultiplier; // 高度倍数，默认1.0
-  final List<String>? gradientColors; // 渐变色数组
-  final String? backgroundImage; // 背景图片URL
+  final double widthMultiplier;
+  final double heightMultiplier;
+  final List<String>? gradientColors;
+  final String? backgroundImage;
+  final double? fontSize;
+  final double? borderRadius;
+  final double? elevation;
 
   const CalculatorButton({
     required this.id,
@@ -168,21 +191,27 @@ class CalculatorButton {
     this.heightMultiplier = 1.0,
     this.gradientColors,
     this.backgroundImage,
+    this.fontSize,
+    this.borderRadius,
+    this.elevation,
   });
 
   factory CalculatorButton.fromJson(Map<String, dynamic> json) {
     return CalculatorButton(
-      id: json['id'],
-      label: json['label'],
-      action: CalculatorAction.fromJson(json['action']),
-      gridPosition: GridPosition.fromJson(json['gridPosition']),
-      type: json['type'],
-      customColor: json['customColor'],
-      isWide: json['isWide'] ?? false,
-      widthMultiplier: (json['widthMultiplier'] ?? 1.0).toDouble(),
-      heightMultiplier: (json['heightMultiplier'] ?? 1.0).toDouble(),
-      gradientColors: json['gradientColors']?.cast<String>(),
-      backgroundImage: json['backgroundImage'],
+      id: json['id'] as String,
+      label: json['label'] as String,
+      action: CalculatorAction.fromJson(json['action'] as Map<String, dynamic>),
+      gridPosition: GridPosition.fromJson(json['gridPosition'] as Map<String, dynamic>),
+      type: json['type'] as String,
+      customColor: json['customColor'] as String?,
+      isWide: json['isWide'] as bool? ?? false,
+      widthMultiplier: (json['widthMultiplier'] as num?)?.toDouble() ?? 1.0,
+      heightMultiplier: (json['heightMultiplier'] as num?)?.toDouble() ?? 1.0,
+      gradientColors: (json['gradientColors'] as List<dynamic>?)?.cast<String>(),
+      backgroundImage: json['backgroundImage'] as String?,
+      fontSize: (json['fontSize'] as num?)?.toDouble(),
+      borderRadius: (json['borderRadius'] as num?)?.toDouble(),
+      elevation: (json['elevation'] as num?)?.toDouble(),
     );
   }
 
@@ -199,6 +228,9 @@ class CalculatorButton {
       'heightMultiplier': heightMultiplier,
       'gradientColors': gradientColors,
       'backgroundImage': backgroundImage,
+      'fontSize': fontSize,
+      'borderRadius': borderRadius,
+      'elevation': elevation,
     };
   }
 }
@@ -210,6 +242,9 @@ class CalculatorLayout {
   final int columns;
   final List<CalculatorButton> buttons;
   final String description;
+  final double? minButtonSize;
+  final double? maxButtonSize;
+  final double? gridSpacing;
 
   const CalculatorLayout({
     required this.name,
@@ -217,17 +252,23 @@ class CalculatorLayout {
     required this.columns,
     required this.buttons,
     this.description = '',
+    this.minButtonSize,
+    this.maxButtonSize,
+    this.gridSpacing,
   });
 
   factory CalculatorLayout.fromJson(Map<String, dynamic> json) {
     return CalculatorLayout(
-      name: json['name']?.toString() ?? '标准布局',
-      rows: (json['rows'] as num?)?.toInt() ?? 6,
-      columns: (json['columns'] as num?)?.toInt() ?? 4,
-      buttons: (json['buttons'] as List?)
-          ?.map((e) => CalculatorButton.fromJson(e))
-          .toList() ?? [],
-      description: json['description']?.toString() ?? '由AI生成的计算器布局',
+      name: json['name'] as String,
+      rows: json['rows'] as int,
+      columns: json['columns'] as int,
+      buttons: (json['buttons'] as List<dynamic>)
+          .map((button) => CalculatorButton.fromJson(button as Map<String, dynamic>))
+          .toList(),
+      description: json['description'] as String? ?? '',
+      minButtonSize: (json['minButtonSize'] as num?)?.toDouble(),
+      maxButtonSize: (json['maxButtonSize'] as num?)?.toDouble(),
+      gridSpacing: (json['gridSpacing'] as num?)?.toDouble(),
     );
   }
 
@@ -236,8 +277,11 @@ class CalculatorLayout {
       'name': name,
       'rows': rows,
       'columns': columns,
-      'buttons': buttons.map((e) => e.toJson()).toList(),
+      'buttons': buttons.map((button) => button.toJson()).toList(),
       'description': description,
+      'minButtonSize': minButtonSize,
+      'maxButtonSize': maxButtonSize,
+      'gridSpacing': gridSpacing,
     };
   }
 }

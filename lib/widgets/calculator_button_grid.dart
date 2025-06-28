@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/calculator_provider.dart';
 import '../models/calculator_dsl.dart';
 import 'calculator_button.dart';
+import 'dart:math' as math;
 
 class CalculatorButtonGrid extends StatelessWidget {
   const CalculatorButtonGrid({super.key});
@@ -12,14 +13,15 @@ class CalculatorButtonGrid extends StatelessWidget {
     return Consumer<CalculatorProvider>(
       builder: (context, provider, child) {
         final layout = provider.config.layout;
+        final theme = provider.config.theme;
         
         return LayoutBuilder(
           builder: (context, constraints) {
             return Container(
               width: constraints.maxWidth,
               height: constraints.maxHeight,
-              padding: EdgeInsets.all(_calculatePadding(constraints)),
-              child: _buildAdaptiveGrid(layout, provider, constraints),
+              padding: EdgeInsets.all(_calculatePadding(constraints, theme)),
+              child: _buildDynamicGrid(layout, provider, constraints, theme),
             );
           },
         );
@@ -28,28 +30,180 @@ class CalculatorButtonGrid extends StatelessWidget {
   }
 
   /// 计算网格内边距
-  double _calculatePadding(BoxConstraints constraints) {
-    // 根据屏幕尺寸动态计算padding
+  double _calculatePadding(BoxConstraints constraints, CalculatorTheme theme) {
+    if (theme.buttonSpacing != null) {
+      return theme.buttonSpacing! * 2;
+    }
+    
     final screenArea = constraints.maxWidth * constraints.maxHeight;
-    if (screenArea > 200000) return 12.0; // 大屏
-    if (screenArea > 100000) return 8.0;  // 中屏
-    return 4.0; // 小屏
+    if (screenArea > 300000) return 16.0; // 大屏
+    if (screenArea > 150000) return 12.0; // 中屏
+    return 8.0; // 小屏
   }
 
-  /// 构建自适应网格
-  Widget _buildAdaptiveGrid(CalculatorLayout layout, CalculatorProvider provider, BoxConstraints constraints) {
+  /// 构建动态自适应网格
+  Widget _buildDynamicGrid(CalculatorLayout layout, CalculatorProvider provider, BoxConstraints constraints, CalculatorTheme theme) {
     // 计算可用空间
-    final padding = _calculatePadding(constraints);
+    final padding = _calculatePadding(constraints, theme);
     final availableWidth = constraints.maxWidth - (padding * 2);
     final availableHeight = constraints.maxHeight - (padding * 2);
     
     // 计算最优按钮尺寸
-    final buttonSizing = _calculateOptimalButtonSize(
+    final buttonSizing = _calculateDynamicButtonSize(
       layout, 
       availableWidth, 
-      availableHeight
+      availableHeight,
+      theme
     );
     
+    // 如果启用自适应布局，使用新的动态布局
+    if (theme.adaptiveLayout) {
+      return _buildAdaptiveFlexGrid(layout, provider, buttonSizing, theme);
+    } else {
+      // 使用传统固定网格
+      return _buildFixedGrid(layout, provider, buttonSizing, theme);
+    }
+  }
+
+  /// 计算动态按钮尺寸
+  ButtonSizing _calculateDynamicButtonSize(CalculatorLayout layout, double availableWidth, double availableHeight, CalculatorTheme theme) {
+    // 计算按钮间距
+    final gap = layout.gridSpacing ?? theme.buttonSpacing ?? _calculateGap(availableWidth, availableHeight);
+    
+    // 计算基础按钮尺寸
+    final baseButtonWidth = (availableWidth - (gap * (layout.columns - 1))) / layout.columns;
+    final baseButtonHeight = (availableHeight - (gap * (layout.rows - 1))) / layout.rows;
+    
+    // 应用尺寸限制
+    final minSize = layout.minButtonSize ?? 25.0;
+    final maxSize = layout.maxButtonSize ?? 120.0;
+    
+    // 确保按钮比例合理
+    final optimalSize = math.min(baseButtonWidth, baseButtonHeight);
+    final finalSize = optimalSize.clamp(minSize, maxSize);
+    
+    return ButtonSizing(
+      baseButtonWidth: math.max(finalSize, baseButtonWidth.clamp(minSize, maxSize)),
+      baseButtonHeight: math.max(finalSize, baseButtonHeight.clamp(minSize, maxSize)),
+      gap: gap,
+      totalWidth: availableWidth,
+      totalHeight: availableHeight,
+    );
+  }
+
+  /// 计算按钮间距
+  double _calculateGap(double width, double height) {
+    final area = width * height;
+    if (area > 300000) return 8.0; // 大屏更大间距
+    if (area > 150000) return 6.0; // 中屏中等间距
+    return 4.0; // 小屏紧凑间距
+  }
+
+  /// 构建自适应弹性网格（新方法）
+  Widget _buildAdaptiveFlexGrid(CalculatorLayout layout, CalculatorProvider provider, ButtonSizing sizing, CalculatorTheme theme) {
+    // 按行分组按钮
+    Map<int, List<CalculatorButton>> buttonsByRow = {};
+    for (final button in layout.buttons) {
+      final row = button.gridPosition.row;
+      if (!buttonsByRow.containsKey(row)) {
+        buttonsByRow[row] = [];
+      }
+      buttonsByRow[row]!.add(button);
+    }
+
+    // 构建行列表
+    List<Widget> rows = [];
+    for (int rowIndex = 0; rowIndex < layout.rows; rowIndex++) {
+      final rowButtons = buttonsByRow[rowIndex] ?? [];
+      if (rowButtons.isNotEmpty) {
+        rows.add(_buildAdaptiveRow(rowButtons, layout, provider, sizing, theme, rowIndex));
+        
+        // 添加行间距（除了最后一行）
+        if (rowIndex < layout.rows - 1) {
+          rows.add(SizedBox(height: sizing.gap));
+        }
+      }
+    }
+
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: rows,
+    );
+  }
+
+  /// 构建自适应行
+  Widget _buildAdaptiveRow(List<CalculatorButton> rowButtons, CalculatorLayout layout, CalculatorProvider provider, ButtonSizing sizing, CalculatorTheme theme, int rowIndex) {
+    // 按列位置排序
+    rowButtons.sort((a, b) => a.gridPosition.column.compareTo(b.gridPosition.column));
+    
+    // 计算这一行的最大高度倍数
+    double maxHeightMultiplier = 1.0;
+    for (final button in rowButtons) {
+      if (button.heightMultiplier > maxHeightMultiplier) {
+        maxHeightMultiplier = button.heightMultiplier;
+      }
+    }
+    
+    final rowHeight = sizing.baseButtonHeight * maxHeightMultiplier;
+    
+    List<Widget> rowWidgets = [];
+    int currentColumn = 0;
+    
+    for (final button in rowButtons) {
+      // 添加空白填充（如果有跳跃的列）
+      while (currentColumn < button.gridPosition.column) {
+        rowWidgets.add(SizedBox(width: sizing.baseButtonWidth));
+        if (currentColumn < layout.columns - 1) {
+          rowWidgets.add(SizedBox(width: sizing.gap));
+        }
+        currentColumn++;
+      }
+      
+      // 计算按钮实际尺寸
+      final buttonWidth = sizing.baseButtonWidth * button.widthMultiplier;
+      final buttonHeight = sizing.baseButtonHeight * button.heightMultiplier;
+      
+      // 创建按钮
+      rowWidgets.add(
+        SizedBox(
+          width: buttonWidth,
+          height: buttonHeight,
+          child: CalculatorButtonWidget(
+            button: button,
+            onPressed: () => provider.executeAction(button.action),
+            fixedSize: Size(buttonWidth, buttonHeight),
+          ),
+        ),
+      );
+      
+      currentColumn++;
+      
+      // 添加列间距（除了最后一列）
+      if (currentColumn < layout.columns) {
+        rowWidgets.add(SizedBox(width: sizing.gap));
+      }
+    }
+    
+    // 填充剩余空间
+    while (currentColumn < layout.columns) {
+      rowWidgets.add(SizedBox(width: sizing.baseButtonWidth));
+      if (currentColumn < layout.columns - 1) {
+        rowWidgets.add(SizedBox(width: sizing.gap));
+      }
+      currentColumn++;
+    }
+
+    return SizedBox(
+      height: rowHeight,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: rowWidgets,
+      ),
+    );
+  }
+
+  /// 构建固定网格（传统方法）
+  Widget _buildFixedGrid(CalculatorLayout layout, CalculatorProvider provider, ButtonSizing sizing, CalculatorTheme theme) {
     // 创建网格
     List<List<Widget?>> grid = List.generate(
       layout.rows,
@@ -61,9 +215,8 @@ class CalculatorButtonGrid extends StatelessWidget {
       final position = button.gridPosition;
       
       if (position.row < layout.rows && position.column < layout.columns) {
-        // 计算这个按钮的实际尺寸
-        final buttonWidth = buttonSizing.baseButtonWidth * button.widthMultiplier;
-        final buttonHeight = buttonSizing.baseButtonHeight * button.heightMultiplier;
+        final buttonWidth = sizing.baseButtonWidth * button.widthMultiplier;
+        final buttonHeight = sizing.baseButtonHeight * button.heightMultiplier;
         
         final buttonWidget = CalculatorButtonWidget(
           button: button,
@@ -71,162 +224,49 @@ class CalculatorButtonGrid extends StatelessWidget {
           fixedSize: Size(buttonWidth, buttonHeight),
         );
         
-        // 处理跨列按钮
-        if (button.isWide && position.columnSpan != null) {
-          for (int i = 0; i < position.columnSpan!; i++) {
-            if (position.column + i < layout.columns) {
-              grid[position.row][position.column + i] = i == 0 ? buttonWidget : Container();
-            }
-          }
-        } else {
-          grid[position.row][position.column] = buttonWidget;
-        }
+        grid[position.row][position.column] = buttonWidget;
       }
     }
 
-    // 构建灵活的网格布局
-    return _buildFlexibleGrid(grid, layout, buttonSizing);
-  }
-
-  /// 计算最优按钮尺寸
-  ButtonSizing _calculateOptimalButtonSize(CalculatorLayout layout, double availableWidth, double availableHeight) {
-    // 计算按钮间距
-    final gap = _calculateGap(availableWidth, availableHeight);
-    
-    // 计算基础按钮尺寸
-    final baseButtonWidth = (availableWidth - (gap * (layout.columns - 1))) / layout.columns;
-    
-    // 跳过显示行（第0行）
-    final buttonRows = layout.rows - 1;
-    final baseButtonHeight = (availableHeight - (gap * (buttonRows - 1))) / buttonRows;
-    
-    // 确保按钮不会太小或太大
-    final minSize = 30.0;
-    final maxSize = 100.0;
-    
-    return ButtonSizing(
-      baseButtonWidth: baseButtonWidth.clamp(minSize, maxSize),
-      baseButtonHeight: baseButtonHeight.clamp(minSize, maxSize),
-      gap: gap,
-    );
-  }
-
-  /// 计算按钮间距
-  double _calculateGap(double width, double height) {
-    final area = width * height;
-    if (area > 200000) return 6.0; // 大屏更大间距
-    if (area > 100000) return 4.0; // 中屏中等间距
-    return 2.0; // 小屏紧凑间距
-  }
-
-  /// 构建灵活的网格
-  Widget _buildFlexibleGrid(List<List<Widget?>> grid, CalculatorLayout layout, ButtonSizing sizing) {
+    // 构建网格布局
     return Column(
       children: List.generate(layout.rows, (rowIndex) {
-        // 跳过显示区域行
-        if (rowIndex == 0) {
-          return const SizedBox.shrink();
-        }
-        
-        // 计算当前行的实际高度（考虑按钮高度倍数）
-        final rowHeight = _calculateRowHeight(layout, rowIndex, sizing);
-        
         return Container(
-          height: rowHeight,
+          height: sizing.baseButtonHeight,
           margin: EdgeInsets.only(
             bottom: rowIndex < layout.rows - 1 ? sizing.gap : 0,
           ),
           child: Row(
-            children: _buildRowWidgets(grid[rowIndex], layout, sizing, rowIndex),
+            children: List.generate(layout.columns, (colIndex) {
+              final widget = grid[rowIndex][colIndex];
+              return Container(
+                width: sizing.baseButtonWidth,
+                margin: EdgeInsets.only(
+                  right: colIndex < layout.columns - 1 ? sizing.gap : 0,
+                ),
+                child: widget ?? const SizedBox.shrink(),
+              );
+            }),
           ),
         );
       }),
     );
   }
-
-  /// 计算行高度（考虑按钮高度倍数）
-  double _calculateRowHeight(CalculatorLayout layout, int rowIndex, ButtonSizing sizing) {
-    double maxHeight = sizing.baseButtonHeight;
-    
-    // 查找这一行中高度倍数最大的按钮
-    for (final button in layout.buttons) {
-      if (button.gridPosition.row == rowIndex) {
-        final buttonHeight = sizing.baseButtonHeight * button.heightMultiplier;
-        if (buttonHeight > maxHeight) {
-          maxHeight = buttonHeight;
-        }
-      }
-    }
-    
-    return maxHeight;
-  }
-
-  /// 构建行内组件
-  List<Widget> _buildRowWidgets(List<Widget?> rowWidgets, CalculatorLayout layout, ButtonSizing sizing, int rowIndex) {
-    List<Widget> widgets = [];
-    
-    for (int colIndex = 0; colIndex < layout.columns; colIndex++) {
-      final widget = rowWidgets[colIndex];
-      final button = _findButtonAt(layout, rowIndex, colIndex);
-      
-      if (widget == null) {
-        // 空位置
-        widgets.add(SizedBox(width: sizing.baseButtonWidth));
-      } else if (widget is Container && widget.child == null) {
-        // 跨列按钮的占位符，跳过
-        continue;
-      } else {
-        // 计算实际按钮尺寸
-        double buttonWidth = sizing.baseButtonWidth;
-        double buttonHeight = sizing.baseButtonHeight;
-        
-        if (button != null) {
-          buttonWidth *= button.widthMultiplier;
-          buttonHeight *= button.heightMultiplier;
-          
-          // 检查是否是跨列按钮
-          if (button.isWide && button.gridPosition.columnSpan != null) {
-            buttonWidth = (sizing.baseButtonWidth * button.gridPosition.columnSpan! * button.widthMultiplier) + 
-                         (sizing.gap * (button.gridPosition.columnSpan! - 1));
-          }
-        }
-        
-        widgets.add(SizedBox(
-          width: buttonWidth, 
-          height: buttonHeight,
-          child: widget
-        ));
-      }
-      
-      // 添加列间距（除了最后一列）
-      if (colIndex < layout.columns - 1) {
-        widgets.add(SizedBox(width: sizing.gap));
-      }
-    }
-    
-    return widgets;
-  }
-
-  /// 查找指定位置的按钮
-  CalculatorButton? _findButtonAt(CalculatorLayout layout, int row, int col) {
-    for (final button in layout.buttons) {
-      if (button.gridPosition.row == row && button.gridPosition.column == col) {
-        return button;
-      }
-    }
-    return null;
-  }
 }
 
-/// 按钮尺寸配置
+/// 按钮尺寸配置（升级版）
 class ButtonSizing {
   final double baseButtonWidth;
   final double baseButtonHeight; 
   final double gap;
+  final double totalWidth;
+  final double totalHeight;
 
   const ButtonSizing({
     required this.baseButtonWidth,
     required this.baseButtonHeight,
     required this.gap,
+    required this.totalWidth,
+    required this.totalHeight,
   });
 } 
