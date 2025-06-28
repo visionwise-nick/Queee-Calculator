@@ -149,7 +149,7 @@ class CustomizationRequest(BaseModel):
     current_config: Optional[Dict[str, Any]] = Field(default=None, description="当前计算器配置")
 
 # 简化的AI系统提示 - 专注布局设计
-SYSTEM_PROMPT = """你是专业的计算器设计师。只需要设计布局逻辑，前端会自动适配显示。
+SYSTEM_PROMPT = """你是专业的计算器设计师。必须设计包含完整按钮的计算器布局。
 
 🎯 设计任务：根据用户需求设计计算器布局
 - 决定使用几行几列（支持2-10行，2-8列，自动适配屏幕）
@@ -198,45 +198,32 @@ SYSTEM_PROMPT = """你是专业的计算器设计师。只需要设计布局逻�
 - 金融：小费15%"x*0.15" 增值税"x*1.13" 折扣"x*0.8"
 - 转换：华氏度"x*9/5+32" 英寸"x*2.54"
 
-💡 设计示例：
+💡 必需的基础按钮示例：
 ```json
 {
   "layout": {
-    "rows": 6,
-    "columns": 5,
-    "minButtonSize": 40,
-    "maxButtonSize": 80,
-    "gridSpacing": 4
-  },
-  "buttons": [
-    {
-      "id": "equals",
-      "label": "=",
-      "action": {"type": "equals"},
-      "gridPosition": {"row": 4, "column": 3},
-      "type": "operator",
-      "heightMultiplier": 2.0,
-      "gradientColors": ["#FF6B35", "#F7931E"],
-      "backgroundImage": "金色发光按钮效果"
-    },
-    {
-      "id": "seven",
-      "label": "7",
-      "action": {"type": "input", "value": "7"},
-      "gridPosition": {"row": 1, "column": 0},
-      "type": "primary",
-      "fontSize": 20,
-      "borderRadius": 12
-    }
-  ],
-  "theme": {
-    "backgroundImage": "深蓝色星空背景",
-    "displayHeight": 0.25,
-    "displayBorderRadius": 15,
-    "operatorButtonGradient": ["#ff6b6b", "#ee5a24"],
-    "buttonSpacing": 6,
-    "hasGlowEffect": true,
-    "adaptiveLayout": true
+    "rows": 5,
+    "columns": 4,
+    "buttons": [
+      {"id": "clear", "label": "AC", "action": {"type": "clear"}, "gridPosition": {"row": 0, "column": 0}, "type": "secondary"},
+      {"id": "negate", "label": "±", "action": {"type": "negate"}, "gridPosition": {"row": 0, "column": 1}, "type": "secondary"},
+      {"id": "divide", "label": "÷", "action": {"type": "operator", "value": "/"}, "gridPosition": {"row": 0, "column": 3}, "type": "operator"},
+      {"id": "seven", "label": "7", "action": {"type": "input", "value": "7"}, "gridPosition": {"row": 1, "column": 0}, "type": "primary"},
+      {"id": "eight", "label": "8", "action": {"type": "input", "value": "8"}, "gridPosition": {"row": 1, "column": 1}, "type": "primary"},
+      {"id": "nine", "label": "9", "action": {"type": "input", "value": "9"}, "gridPosition": {"row": 1, "column": 2}, "type": "primary"},
+      {"id": "multiply", "label": "×", "action": {"type": "operator", "value": "*"}, "gridPosition": {"row": 1, "column": 3}, "type": "operator"},
+      {"id": "four", "label": "4", "action": {"type": "input", "value": "4"}, "gridPosition": {"row": 2, "column": 0}, "type": "primary"},
+      {"id": "five", "label": "5", "action": {"type": "input", "value": "5"}, "gridPosition": {"row": 2, "column": 1}, "type": "primary"},
+      {"id": "six", "label": "6", "action": {"type": "input", "value": "6"}, "gridPosition": {"row": 2, "column": 2}, "type": "primary"},
+      {"id": "subtract", "label": "−", "action": {"type": "operator", "value": "-"}, "gridPosition": {"row": 2, "column": 3}, "type": "operator"},
+      {"id": "one", "label": "1", "action": {"type": "input", "value": "1"}, "gridPosition": {"row": 3, "column": 0}, "type": "primary"},
+      {"id": "two", "label": "2", "action": {"type": "input", "value": "2"}, "gridPosition": {"row": 3, "column": 1}, "type": "primary"},
+      {"id": "three", "label": "3", "action": {"type": "input", "value": "3"}, "gridPosition": {"row": 3, "column": 2}, "type": "primary"},
+      {"id": "add", "label": "+", "action": {"type": "operator", "value": "+"}, "gridPosition": {"row": 3, "column": 3}, "type": "operator"},
+      {"id": "zero", "label": "0", "action": {"type": "input", "value": "0"}, "gridPosition": {"row": 4, "column": 0}, "type": "primary", "widthMultiplier": 2.0},
+      {"id": "decimal", "label": ".", "action": {"type": "decimal"}, "gridPosition": {"row": 4, "column": 2}, "type": "primary"},
+      {"id": "equals", "label": "=", "action": {"type": "equals"}, "gridPosition": {"row": 4, "column": 3}, "type": "operator"}
+    ]
   }
 }
 ```
@@ -251,47 +238,66 @@ SYSTEM_PROMPT = """你是专业的计算器设计师。只需要设计布局逻�
 - 正负号: {"type": "negate"}
 - 科学计算: {"type": "expression", "expression": "表达式"}
 
+⚠️ 重要：必须包含完整的buttons数组，不能为空！
+
 前端会自动处理：
 ✓ 动态按钮数量适配 ✓ 屏幕尺寸自适应 ✓ 字体自动缩放 ✓ AI图片生成 ✓ 渐变渲染 ✓ 响应式布局
 
 只返回JSON配置，专注设计逻辑和视觉效果创新。"""
 
-# AI二次校验系统提示
-VALIDATION_PROMPT = """你是计算器配置验证专家。请仔细检查生成的计算器配置是否完全满足用户需求。
+# AI二次校验和修复系统提示
+VALIDATION_PROMPT = """你是计算器配置修复专家。必须修复生成的配置中的所有问题并返回完整可用的JSON。
 
-📋 验证任务：
-1. 检查配置是否完全满足用户的具体要求
-2. 验证是否保持了应该继承的现有配置
-3. 确认没有擅自改变用户未要求修改的部分
-4. 检查配置的合理性和可用性
+🔧 修复任务：
+1. 【检查按钮完整性】确保包含17个基础按钮：数字0-9，运算符+−×÷，功能=、AC、±、.
+2. 【修复缺失按钮】如果buttons数组为空或缺少基础按钮，必须补充完整的按钮配置
+3. 【修复action字段】确保所有按钮都有正确的action字段
+4. 【保持继承性】只修改用户要求的部分，保持其他配置不变
+5. 【结构完整性】确保JSON结构完整，包含theme和layout两个主要部分
 
-🔍 验证标准：
-- ✅ 用户要求的功能是否都已实现
-- ✅ 用户要求的视觉效果是否正确应用
-- ✅ 现有配置的继承是否正确（颜色、布局、效果等）
-- ✅ 按钮配置是否完整（包含必需的action字段）
-- ✅ 主题配置是否合理
-- ✅ 布局是否适合移动设备
-
-🚫 常见问题检查：
-- 是否擅自改变了用户未要求修改的颜色
-- 是否丢失了原有的视觉效果
-- 是否改变了用户满意的布局结构
-- 是否缺少必需的基础按钮
-- 是否有不合理的按钮尺寸或位置
-
-📝 返回格式：
+🎯 必需的17个基础按钮（标准配置）：
 ```json
-{
-  "isValid": true/false,
-  "score": 0-100,
-  "issues": ["问题1", "问题2"],
-  "suggestions": ["建议1", "建议2"],
-  "summary": "验证总结"
-}
+[
+  {"id": "clear", "label": "AC", "action": {"type": "clear"}, "gridPosition": {"row": 0, "column": 0}, "type": "secondary"},
+  {"id": "negate", "label": "±", "action": {"type": "negate"}, "gridPosition": {"row": 0, "column": 1}, "type": "secondary"},
+  {"id": "divide", "label": "÷", "action": {"type": "operator", "value": "/"}, "gridPosition": {"row": 0, "column": 3}, "type": "operator"},
+  {"id": "seven", "label": "7", "action": {"type": "input", "value": "7"}, "gridPosition": {"row": 1, "column": 0}, "type": "primary"},
+  {"id": "eight", "label": "8", "action": {"type": "input", "value": "8"}, "gridPosition": {"row": 1, "column": 1}, "type": "primary"},
+  {"id": "nine", "label": "9", "action": {"type": "input", "value": "9"}, "gridPosition": {"row": 1, "column": 2}, "type": "primary"},
+  {"id": "multiply", "label": "×", "action": {"type": "operator", "value": "*"}, "gridPosition": {"row": 1, "column": 3}, "type": "operator"},
+  {"id": "four", "label": "4", "action": {"type": "input", "value": "4"}, "gridPosition": {"row": 2, "column": 0}, "type": "primary"},
+  {"id": "five", "label": "5", "action": {"type": "input", "value": "5"}, "gridPosition": {"row": 2, "column": 1}, "type": "primary"},
+  {"id": "six", "label": "6", "action": {"type": "input", "value": "6"}, "gridPosition": {"row": 2, "column": 2}, "type": "primary"},
+  {"id": "subtract", "label": "−", "action": {"type": "operator", "value": "-"}, "gridPosition": {"row": 2, "column": 3}, "type": "operator"},
+  {"id": "one", "label": "1", "action": {"type": "input", "value": "1"}, "gridPosition": {"row": 3, "column": 0}, "type": "primary"},
+  {"id": "two", "label": "2", "action": {"type": "input", "value": "2"}, "gridPosition": {"row": 3, "column": 1}, "type": "primary"},
+  {"id": "three", "label": "3", "action": {"type": "input", "value": "3"}, "gridPosition": {"row": 3, "column": 2}, "type": "primary"},
+  {"id": "add", "label": "+", "action": {"type": "operator", "value": "+"}, "gridPosition": {"row": 3, "column": 3}, "type": "operator"},
+  {"id": "zero", "label": "0", "action": {"type": "input", "value": "0"}, "gridPosition": {"row": 4, "column": 0}, "type": "primary", "widthMultiplier": 2.0},
+  {"id": "decimal", "label": ".", "action": {"type": "decimal"}, "gridPosition": {"row": 4, "column": 2}, "type": "primary"},
+  {"id": "equals", "label": "=", "action": {"type": "equals"}, "gridPosition": {"row": 4, "column": 3}, "type": "operator"}
+]
 ```
 
-请基于用户需求和现有配置，对生成的新配置进行严格验证。"""
+🔧 常见修复项：
+- 【空按钮数组】如果buttons为空，使用上述标准配置
+- 【缺失基础按钮】补充缺少的数字和运算符按钮
+- 【错误的action字段】修正按钮的action格式
+- 【位置冲突】调整按钮的gridPosition避免重叠
+- 【缺失必需字段】补充id、label、action、gridPosition、type字段
+- 【继承性错误】恢复用户未要求修改的原有配置
+
+🎯 修复标准：
+- 必须有17个基础按钮，buttons数组不能为空
+- 每个按钮必须有完整的字段：id、label、action、gridPosition、type
+- 布局必须合理（5行4列或其他合适布局）
+- 保持用户要求的视觉效果和主题
+- 确保JSON格式正确
+
+📝 返回格式：
+直接返回修正后的完整JSON配置，确保buttons数组包含所有必需按钮。
+
+请基于用户需求和现有配置，修复生成的配置并返回完整的JSON。"""
 
 @app.get("/health")
 async def health_check():
@@ -447,35 +453,21 @@ async def customize_calculator(request: CustomizationRequest) -> CalculatorConfi
             print(f"📄 原始响应: {response_text[:500]}")
             raise HTTPException(status_code=500, detail=f"AI生成的JSON格式无效: {str(e)}")
         
-        # 🔍 AI二次校验
-        validation_result = None
-        if request.current_config:
-            validation_result = await validate_calculator_config(
-                request.user_input,
-                request.current_config,
-                raw_config
-            )
-            
-            # 如果验证不通过且分数较低，可以选择重新生成
-            if not validation_result.get('isValid', True) and validation_result.get('score', 100) < 70:
-                print(f"⚠️ AI验证未通过，分数: {validation_result.get('score', 0)}")
-                print(f"问题: {validation_result.get('issues', [])}")
-                
-                # 可以在这里添加重新生成逻辑
-                # 为了避免无限循环，暂时只记录问题
+        # 🔍 AI二次校验和修复
+        fixed_config = await fix_calculator_config(request.user_input, request.current_config, raw_config)
         
-        # 数据验证和字段补充
-        if 'theme' not in raw_config:
-            raw_config['theme'] = {}
-        if 'layout' not in raw_config:
-            raw_config['layout'] = {'buttons': []}
+        # 基本数据验证和字段补充
+        if 'theme' not in fixed_config:
+            fixed_config['theme'] = {}
+        if 'layout' not in fixed_config:
+            fixed_config['layout'] = {'buttons': []}
         
         # 补充必需字段
-        theme = raw_config['theme']
+        theme = fixed_config['theme']
         if 'name' not in theme:
             theme['name'] = '自定义主题'
         
-        layout = raw_config['layout']
+        layout = fixed_config['layout']
         if 'name' not in layout:
             layout['name'] = '自定义布局'
         if 'buttons' not in layout:
@@ -487,7 +479,9 @@ async def customize_calculator(request: CustomizationRequest) -> CalculatorConfi
                 # 根据按钮类型和ID推断action
                 button_id = button.get('id', '')
                 if button_id in ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine']:
-                    button['action'] = {'type': 'input', 'value': button_id.replace('zero', '0').replace('one', '1').replace('two', '2').replace('three', '3').replace('four', '4').replace('five', '5').replace('six', '6').replace('seven', '7').replace('eight', '8').replace('nine', '9')}
+                    number_map = {'zero': '0', 'one': '1', 'two': '2', 'three': '3', 'four': '4', 
+                                  'five': '5', 'six': '6', 'seven': '7', 'eight': '8', 'nine': '9'}
+                    button['action'] = {'type': 'input', 'value': number_map.get(button_id, button_id)}
                 elif button_id == 'add':
                     button['action'] = {'type': 'operator', 'value': '+'}
                 elif button_id == 'subtract':
@@ -507,95 +501,90 @@ async def customize_calculator(request: CustomizationRequest) -> CalculatorConfi
                 else:
                     button['action'] = {'type': 'input', 'value': button.get('label', '0')}
         
+        print(f"🔍 修复后按钮数量: {len(layout.get('buttons', []))}")
+        
         # 创建完整的配置对象
         config = CalculatorConfig(
             id=f"calc_{int(time.time())}",
-            name=raw_config.get('name', '自定义计算器'),
-            description=raw_config.get('description', '由AI生成的计算器配置'),
+            name=fixed_config.get('name', '自定义计算器'),
+            description=fixed_config.get('description', '由AI修复的计算器配置'),
             theme=CalculatorTheme(**theme),
             layout=CalculatorLayout(**layout),
             version="1.0.0",
             createdAt=datetime.now().isoformat(),
             authorPrompt=request.user_input,
             thinkingProcess=response_text if "思考过程" in response_text else None,
-            aiResponse=f"✅ 成功生成计算器配置\n{validation_result.get('summary', '') if validation_result else ''}",
+            aiResponse=f"✅ 成功修复计算器配置",
         )
-        
-        # 添加验证结果到响应中
-        if validation_result:
-            config.aiResponse += f"\n\n🔍 AI验证结果:\n- 验证分数: {validation_result.get('score', 'N/A')}/100\n- 验证状态: {'✅ 通过' if validation_result.get('isValid', True) else '⚠️ 需要改进'}"
-            if validation_result.get('issues'):
-                config.aiResponse += f"\n- 发现问题: {'; '.join(validation_result.get('issues', []))}"
-            if validation_result.get('suggestions'):
-                config.aiResponse += f"\n- 改进建议: {'; '.join(validation_result.get('suggestions', []))}"
         
         return config
         
     except HTTPException:
         raise
     except Exception as e:
-        print(f"生成计算器配置时出错: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"生成计算器配置失败: {str(e)}")
+        print(f"修复计算器配置时出错: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"修复计算器配置失败: {str(e)}")
 
-async def validate_calculator_config(user_input: str, current_config: dict, generated_config: dict) -> dict:
-    """AI二次校验生成的计算器配置"""
+async def fix_calculator_config(user_input: str, current_config: dict, generated_config: dict) -> dict:
+    """AI二次校验和修复生成的计算器配置"""
     try:
-        # 构建验证上下文
-        validation_context = f"""
+        # 构建修复上下文
+        fix_context = f"""
 用户需求：{user_input}
 
-现有配置摘要：
-- 主题名称：{current_config.get('theme', {}).get('name', '未知')}
-- 背景颜色：{current_config.get('theme', {}).get('backgroundColor', '未知')}
-- 布局：{current_config.get('layout', {}).get('rows', 0)}行{current_config.get('layout', {}).get('columns', 0)}列
-- 按钮数量：{len(current_config.get('layout', {}).get('buttons', []))}个
+现有配置摘要（需要继承的部分）：
+{json.dumps(current_config, ensure_ascii=False, indent=2) if current_config else "无现有配置"}
 
-生成的新配置：
+生成的配置（需要修复）：
 {json.dumps(generated_config, ensure_ascii=False, indent=2)}
 
-请验证新配置是否满足用户需求，并检查继承性是否正确。
+请修复上述配置中的问题，确保：
+1. 满足用户需求
+2. 继承现有配置中用户未要求修改的部分
+3. 包含所有必需的基础按钮
+4. 所有按钮都有正确的action字段
+5. 布局结构合理
+
+直接返回修正后的完整JSON配置。
 """
 
-        # 调用AI进行验证
+        # 调用AI进行修复
         model = get_current_model()
         response = model.generate_content([
-            {"role": "user", "parts": [VALIDATION_PROMPT + "\n\n" + validation_context]}
+            {"role": "user", "parts": [VALIDATION_PROMPT + "\n\n" + fix_context]}
         ])
         
-        # 解析验证结果
-        validation_text = response.text.strip()
+        # 解析修复后的配置
+        fix_text = response.text.strip()
+        print(f"🔧 AI修复响应长度: {len(fix_text)} 字符")
         
-        # 尝试提取JSON
-        if "```json" in validation_text:
-            json_start = validation_text.find("```json") + 7
-            json_end = validation_text.find("```", json_start)
-            validation_json = validation_text[json_start:json_end].strip()
+        # 提取JSON
+        if "```json" in fix_text:
+            json_start = fix_text.find("```json") + 7
+            json_end = fix_text.find("```", json_start)
+            fixed_json = fix_text[json_start:json_end].strip()
         else:
-            # 如果没有代码块，尝试直接解析
-            validation_json = validation_text
+            # 尝试找到JSON对象的开始和结束
+            json_start = fix_text.find('{')
+            json_end = fix_text.rfind('}')
+            if json_start != -1 and json_end != -1:
+                fixed_json = fix_text[json_start:json_end+1]
+            else:
+                # 如果找不到JSON，返回原配置
+                print("⚠️ AI修复未返回有效JSON，使用原配置")
+                return generated_config
         
         try:
-            validation_result = json.loads(validation_json)
-            return validation_result
-        except json.JSONDecodeError:
-            # 如果解析失败，返回基本验证结果
-            return {
-                "isValid": True,
-                "score": 85,
-                "issues": [],
-                "suggestions": [],
-                "summary": "AI验证完成，配置基本符合要求"
-            }
+            fixed_config = json.loads(fixed_json)
+            print("✅ AI修复成功")
+            return fixed_config
+        except json.JSONDecodeError as e:
+            print(f"❌ AI修复的JSON格式无效: {str(e)}")
+            return generated_config
             
     except Exception as e:
-        print(f"AI验证过程中出错: {str(e)}")
-        return {
-            "isValid": True,
-            "score": 80,
-            "issues": ["验证过程中出现技术问题"],
-            "suggestions": ["建议手动检查配置"],
-            "summary": "验证过程遇到问题，但配置可能仍然有效"
-        }
+        print(f"AI修复过程中出错: {str(e)}")
+        return generated_config
 
 if __name__ == "__main__":
     import uvicorn
