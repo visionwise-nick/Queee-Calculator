@@ -165,10 +165,32 @@ SYSTEM_PROMPT = """你是专业的计算器设计师。只需要设计布局逻�
     {
       "id": "equals",
       "label": "=",
+      "action": {"type": "equals"},
       "gridPosition": {"row": 4, "column": 3},
       "type": "operator",
       "heightMultiplier": 2.0,
       "gradientColors": ["#FF6B35", "#F7931E"]
+    },
+    {
+      "id": "seven",
+      "label": "7",
+      "action": {"type": "input", "value": "7"},
+      "gridPosition": {"row": 1, "column": 0},
+      "type": "primary"
+    },
+    {
+      "id": "add",
+      "label": "+",
+      "action": {"type": "operator", "value": "+"},
+      "gridPosition": {"row": 4, "column": 3},
+      "type": "operator"
+    },
+    {
+      "id": "sqrt",
+      "label": "√",
+      "action": {"type": "expression", "expression": "sqrt(x)"},
+      "gridPosition": {"row": 0, "column": 4},
+      "type": "special"
     }
   ],
   "theme": {
@@ -368,7 +390,7 @@ async def customize_calculator(request: CustomizationRequest) -> CalculatorConfi
       {{
         "id": "按钮ID",
         "label": "显示文字",
-        "action": {{"type": "操作类型", "value/expression": "参数"}},
+        "action": {{"type": "操作类型", "value": "参数值"}},
         "gridPosition": {{"row": 行号, "column": 列号}},
         "type": "按钮类型"
       }}
@@ -376,6 +398,16 @@ async def customize_calculator(request: CustomizationRequest) -> CalculatorConfi
   }}
 }}
 ```
+
+🔧 Action字段说明（必须包含）：
+- 数字输入: {{"type": "input", "value": "数字"}}
+- 运算符: {{"type": "operator", "value": "运算符"}}  // +、-、*、/
+- 等号: {{"type": "equals"}}
+- 清除: {{"type": "clear"}}
+- 全清: {{"type": "clearAll"}}
+- 小数点: {{"type": "decimal"}}
+- 正负号: {{"type": "negate"}}
+- 科学计算: {{"type": "expression", "expression": "表达式"}}
 
 只返回JSON配置，专注布局逻辑设计。"""
 
