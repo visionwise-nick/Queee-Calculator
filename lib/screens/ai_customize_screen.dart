@@ -212,6 +212,100 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
     }
   }
 
+  /// 测试网络连接
+  Future<void> _testConnection() async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.network_check, color: Colors.blue),
+            SizedBox(width: 8),
+            Text('网络连接测试'),
+          ],
+        ),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(height: 16),
+            Text('正在测试AI服务连接...'),
+          ],
+        ),
+      ),
+    );
+
+    try {
+      final isConnected = await AIService.testConnection();
+      Navigator.of(context).pop(); // 关闭加载对话框
+      
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Row(
+            children: [
+              Icon(
+                isConnected ? Icons.check_circle : Icons.error,
+                color: isConnected ? Colors.green : Colors.red,
+              ),
+              const SizedBox(width: 8),
+              Text(isConnected ? '连接成功' : '连接失败'),
+            ],
+          ),
+          content: Text(
+            isConnected 
+                ? '✅ AI服务连接正常，可以正常使用AI定制功能。'
+                : '❌ 无法连接到AI服务。请检查网络连接或稍后重试。\n\n可能的原因：\n• 网络连接问题\n• 防火墙阻止\n• 服务暂时不可用',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('确定'),
+            ),
+            if (!isConnected)
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  _testConnection(); // 重新测试
+                },
+                child: const Text('重新测试'),
+              ),
+          ],
+        ),
+      );
+    } catch (e) {
+      Navigator.of(context).pop(); // 关闭加载对话框
+      
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Row(
+            children: [
+              Icon(Icons.error, color: Colors.red),
+              SizedBox(width: 8),
+              Text('测试失败'),
+            ],
+          ),
+          content: Text('测试过程中发生错误：\n$e'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('确定'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _testConnection(); // 重新测试
+              },
+              child: const Text('重新测试'),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+
   /// 重新加载会话以同步AIService记录的消息
   Future<void> _reloadSession() async {
     try {
@@ -993,7 +1087,18 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
                       ),
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 8),
+                  // 网络测试按钮
+                  IconButton(
+                    icon: const Icon(Icons.network_check, size: 20),
+                    onPressed: _testConnection,
+                    style: IconButton.styleFrom(
+                      foregroundColor: Colors.grey.shade600,
+                      padding: const EdgeInsets.all(12),
+                    ),
+                    tooltip: '测试网络连接',
+                  ),
+                  const SizedBox(width: 4),
                   AnimatedContainer(
                     duration: const Duration(milliseconds: 200),
                     height: 48,

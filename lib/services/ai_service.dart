@@ -162,18 +162,26 @@ class AIService {
   /// 测试 AI 服务连接
   static Future<bool> testConnection() async {
     try {
-      final url = Uri.parse('$_baseUrl/');
+      print('🔍 正在测试AI服务连接...');
+      final url = Uri.parse('$_baseUrl/health');
+      print('🌐 测试URL: $url');
+      
       final response = await http.get(url).timeout(const Duration(seconds: 10));
+      
+      print('📡 收到响应: ${response.statusCode}');
+      print('📝 响应内容: ${response.body}');
       
       if (response.statusCode == 200) {
         print('✅ AI 服务连接正常');
         return true;
       } else {
         print('❌ AI 服务连接失败: ${response.statusCode}');
+        print('❌ 错误详情: ${response.body}');
         return false;
-  }
+      }
     } catch (e) {
       print('❌ AI 服务连接测试失败: $e');
+      print('❌ 错误类型: ${e.runtimeType}');
       return false;
     }
   }
