@@ -81,16 +81,20 @@ class CalculatorButton(BaseModel):
     label: str
     action: CalculatorAction
     gridPosition: GridPosition
-    type: str  # primary, secondary, operator, special
+    type: str  # e.g., 'primary', 'secondary', 'operator'
+    widthMultiplier: Optional[float] = 1.0
+    heightMultiplier: Optional[float] = 1.0
+    
+    # Visual properties
+    backgroundColor: Optional[str] = None
+    textColor: Optional[str] = None
+    fontSize: Optional[float] = None
+    borderRadius: Optional[float] = None
+    elevation: Optional[float] = None
+    gradientColors: Optional[List[str]] = None
+    backgroundImage: Optional[str] = None
     customColor: Optional[str] = None
-    isWide: bool = False
-    widthMultiplier: float = 1.0  # 宽度倍数
-    heightMultiplier: float = 1.0  # 高度倍数
-    gradientColors: Optional[List[str]] = None  # 渐变色数组
-    backgroundImage: Optional[str] = None  # 背景图片URL
-    fontSize: Optional[float] = None  # 按钮独立字体大小
-    borderRadius: Optional[float] = None  # 按钮独立圆角
-    elevation: Optional[float] = None  # 按钮独立阴影高度
+    description: Optional[str] = Field(None, description="按钮功能的详细说明，用于长按提示")
 
 class CalculatorTheme(BaseModel):
     name: str
@@ -149,64 +153,47 @@ class CustomizationRequest(BaseModel):
     current_config: Optional[Dict[str, Any]] = Field(default=None, description="当前计算器配置")
 
 # 简化的AI系统提示 - 专注布局设计
-SYSTEM_PROMPT = """你是专业的计算器设计师。必须设计包含完整按钮的计算器布局。
+SYSTEM_PROMPT = """你是顶级的计算器设计AI。你的任务是根据用户需求，生成一份完整、精确、可直接使用的计算器JSON配置。
 
-🎯 设计任务：根据用户需求设计计算器布局
-- 决定使用几行几列（支持2-10行，2-8列，自动适配屏幕）
-- 安排每个位置放什么按钮
-- 选择合适的主题配色和视觉效果
-- 可以生成AI背景图片和按钮装饰
+⚠️ 核心设计准则 (必须严格遵守):
+1.  **【绝不为空】**: `buttons`数组绝对不能为空。对于任何请求，都必须生成一个包含基础功能的计算器。
+2.  **【Action完整性】**: 每个按钮都必须有`action`字段，且`action.type`必须是有效类型。无效或缺失将导致按钮失灵。
+3.  **【保留基础】**: 任何设计都必须包含17个基础按钮 (数字0-9, +−×÷, =, AC, ±, .)，除非用户明确要求删除。
 
-🔧 布局规则：
-1. 【必保留17个基础按钮】数字0-9，运算符+−×÷，功能=、AC、±、.
-2. 【标准ID规范】基础按钮ID必须是：zero,one,two,three,four,five,six,seven,eight,nine,add,subtract,multiply,divide,equals,clear,negate,decimal
-3. 【位置从0开始】行列坐标都从0开始计数（第1行第1列 = row:0,column:0）
-4. 【添加新功能】可以增加专业按钮，用expression表达式实现
-5. 【自适应布局】前端会根据按钮数量自动调整尺寸，支持任意行列数
+🎯 设计任务清单:
+- **布局**: 决定行列数 (2-10行, 2-8列)。
+- **按钮**: 安排每个按钮的位置、功能和样式。
+- **主题**: 设计配色、背景、视觉效果。
+- **功能描述**: 为复杂或不常见的按钮添加`description`字段，用于长按提示。
 
-🔄 继承性原则（重要）：
-- 【保持现有配色】除非用户明确要求改变颜色，否则保持当前主题的所有颜色设置
-- 【保持布局结构】除非用户要求重新布局，否则保持现有的行列数和按钮位置
-- 【保持视觉效果】保持现有的渐变、阴影、发光等视觉效果
-- 【只改变用户要求的部分】严格按照用户的具体要求进行修改，不要擅自改变其他部分
-- 【增量修改】基于现有配置进行增量修改，而不是重新设计
+🔧 布局与按钮规则:
+- **基础按钮ID**: 必须使用标准ID (zero, one, ..., add, subtract, ..., clear, negate, decimal)。
+- **坐标**: `gridPosition`的`row`和`column`从0开始。
+- **Action有效类型**: `type`必须是 'input', 'operator', 'equals', 'clear', 'clearAll', 'decimal', 'negate', 'expression' 之一。
+- **功能描述**: 为所有非数字和基础运算符的按钮添加`description`字段。例如: `{"id": "negate", "description": "切换正负号"}`。
 
-🎨 新增视觉功能：
-- 【按钮尺寸倍数】widthMultiplier/heightMultiplier (0.5-3.0，默认1.0)
-- 【按钮独立属性】fontSize、borderRadius、elevation
-- 【渐变色】gradientColors: ["#起始色", "#结束色"]
-- 【背景图片】backgroundImage: "AI生成图片描述"（将自动生成图片）
-- 【自定义颜色】customColor: "#颜色值"
+🔄 继承性原则 (重要):
+- 只修改用户明确要求的部分。
+- 保持现有的颜色、布局、视觉效果不变，除非用户要求更改。
+- 基于现有配置进行增量修改，而不是重新设计。
 
-🎨 主题增强功能：
-- 【背景渐变】backgroundGradient: ["#色1", "#色2"]
-- 【显示区控制】displayWidth/displayHeight: 0.0-1.0 比例
-- 【显示区渐变】displayBackgroundGradient: ["#色1", "#色2"]
-- 【按钮组渐变】primaryButtonGradient/secondaryButtonGradient/operatorButtonGradient
-- 【多层阴影】buttonShadowColors: ["#阴影色1", "#阴影色2"]
-- 【间距控制】buttonSpacing、gridSpacing: 数值
-- 【尺寸限制】minButtonSize/maxButtonSize: 数值
+🎨 视觉设计功能:
+- **尺寸**: `widthMultiplier`, `heightMultiplier` (0.5-3.0)。
+- **独立样式**: `fontSize`, `borderRadius`, `elevation`。
+- **渐变**: `gradientColors: ["#起始色", "#结束色"]`。
+- **背景图**: `backgroundImage: "AI生成图片描述"`。
+- **主题增强**: `backgroundGradient`, `displayHeight`, `buttonShadowColors`, `buttonSpacing`等。
+- **功能描述**: `description: "按钮功能中文说明"` (例如: "计算x的平方根")。
 
-🤖 AI图像生成：
-- 背景图片：backgroundImage: "描述想要的背景"
-- 按钮图片：backgroundImage: "描述按钮装饰"
-- 示例："科技感蓝色电路板背景"、"可爱粉色花朵装饰"、"金属质感按钮"
-
-🚀 功能表达式库：
-- 数学：平方"x*x" 开根"sqrt(x)" 立方"pow(x,3)" 倒数"1/x"
-- 科学：sin"sin(x)" cos"cos(x)" log"log(x)" exp"exp(x)"
-- 金融：小费15%"x*0.15" 增值税"x*1.13" 折扣"x*0.8"
-- 转换：华氏度"x*9/5+32" 英寸"x*2.54"
-
-💡 必需的基础按钮示例：
+💡 基础计算器设计模板 (如果用户没有具体要求，可基于此模板进行修改):
 ```json
 {
   "layout": {
-    "rows": 5,
-    "columns": 4,
+    "rows": 5, "columns": 4,
     "buttons": [
-      {"id": "clear", "label": "AC", "action": {"type": "clear"}, "gridPosition": {"row": 0, "column": 0}, "type": "secondary"},
-      {"id": "negate", "label": "±", "action": {"type": "negate"}, "gridPosition": {"row": 0, "column": 1}, "type": "secondary"},
+      {"id": "clear", "label": "AC", "action": {"type": "clear"}, "gridPosition": {"row": 0, "column": 0}, "type": "secondary", "description": "清除所有输入"},
+      {"id": "negate", "label": "±", "action": {"type": "negate"}, "gridPosition": {"row": 0, "column": 1}, "type": "secondary", "description": "切换正负号"},
+      {"id": "percent", "label": "%", "action": {"type": "expression", "expression": "x/100"}, "gridPosition": {"row": 0, "column": 2}, "type": "secondary", "description": "计算百分比"},
       {"id": "divide", "label": "÷", "action": {"type": "operator", "value": "/"}, "gridPosition": {"row": 0, "column": 3}, "type": "operator"},
       {"id": "seven", "label": "7", "action": {"type": "input", "value": "7"}, "gridPosition": {"row": 1, "column": 0}, "type": "primary"},
       {"id": "eight", "label": "8", "action": {"type": "input", "value": "8"}, "gridPosition": {"row": 1, "column": 1}, "type": "primary"},
@@ -220,46 +207,30 @@ SYSTEM_PROMPT = """你是专业的计算器设计师。必须设计包含完整�
       {"id": "two", "label": "2", "action": {"type": "input", "value": "2"}, "gridPosition": {"row": 3, "column": 1}, "type": "primary"},
       {"id": "three", "label": "3", "action": {"type": "input", "value": "3"}, "gridPosition": {"row": 3, "column": 2}, "type": "primary"},
       {"id": "add", "label": "+", "action": {"type": "operator", "value": "+"}, "gridPosition": {"row": 3, "column": 3}, "type": "operator"},
-      {"id": "zero", "label": "0", "action": {"type": "input", "value": "0"}, "gridPosition": {"row": 4, "column": 0}, "type": "primary", "widthMultiplier": 2.0},
-      {"id": "decimal", "label": ".", "action": {"type": "decimal"}, "gridPosition": {"row": 4, "column": 2}, "type": "primary"},
+      {"id": "zero", "label": "0", "action": {"type": "input", "value": "0"}, "gridPosition": {"row": 4, "column": 0, "columnSpan": 2}, "type": "primary"},
+      {"id": "decimal", "label": ".", "action": {"type": "decimal"}, "gridPosition": {"row": 4, "column": 2}, "type": "primary", "description": "输入小数点"},
       {"id": "equals", "label": "=", "action": {"type": "equals"}, "gridPosition": {"row": 4, "column": 3}, "type": "operator"}
     ]
   }
 }
 ```
 
-🔧 Action字段说明（必须包含）：
-- 数字输入: {"type": "input", "value": "数字"}
-- 运算符: {"type": "operator", "value": "运算符"}  // +、-、*、/
-- 等号: {"type": "equals"}
-- 清除: {"type": "clear"}
-- 全清: {"type": "clearAll"}
-- 小数点: {"type": "decimal"}
-- 正负号: {"type": "negate"}
-- 科学计算: {"type": "expression", "expression": "表达式"}
-
-⚠️ 重要：必须包含完整的buttons数组，不能为空！
-
-前端会自动处理：
-✓ 动态按钮数量适配 ✓ 屏幕尺寸自适应 ✓ 字体自动缩放 ✓ AI图片生成 ✓ 渐变渲染 ✓ 响应式布局
-
-只返回JSON配置，专注设计逻辑和视觉效果创新。"""
+只返回这份JSON配置，不要包含任何其他文字。"""
 
 # AI二次校验和修复系统提示
-VALIDATION_PROMPT = """你是计算器配置修复专家。必须修复生成的配置中的所有问题并返回完整可用的JSON。
+VALIDATION_PROMPT = """你是计算器配置修复机器人。你的唯一任务是修复传入的JSON配置，确保其100%可用。
 
-🔧 修复任务：
-1. 【检查按钮完整性】确保包含17个基础按钮：数字0-9，运算符+−×÷，功能=、AC、±、.
-2. 【修复缺失按钮】如果buttons数组为空或缺少基础按钮，必须补充完整的按钮配置
-3. 【修复action字段】确保所有按钮都有正确的action字段
-4. 【保持继承性】只修改用户要求的部分，保持其他配置不变
-5. 【结构完整性】确保JSON结构完整，包含theme和layout两个主要部分
+⚠️ 修复铁律 (必须严格执行):
+1.  **【修复空按钮】**: 如果`buttons`数组为空，或少于17个基础按钮，立即用下面的标准模板替换或补充。
+2.  **【修复Action】**: 检查每个按钮，如果`action`字段缺失或`action.type`无效，立即修复它。
+3.  **【补充描述】**: 为所有功能键 (非数字和基础运算符) 补充`description`字段，解释其功能。
+4.  **【遵守继承】**: 严格保持用户未要求修改的任何颜色、样式或布局。
 
-🎯 必需的17个基础按钮（标准配置）：
+🎯 必需的17个基础按钮 (标准配置模板):
 ```json
 [
-  {"id": "clear", "label": "AC", "action": {"type": "clear"}, "gridPosition": {"row": 0, "column": 0}, "type": "secondary"},
-  {"id": "negate", "label": "±", "action": {"type": "negate"}, "gridPosition": {"row": 0, "column": 1}, "type": "secondary"},
+  {"id": "clear", "label": "AC", "action": {"type": "clear"}, "gridPosition": {"row": 0, "column": 0}, "type": "secondary", "description": "清除所有输入"},
+  {"id": "negate", "label": "±", "action": {"type": "negate"}, "gridPosition": {"row": 0, "column": 1}, "type": "secondary", "description": "切换正负号"},
   {"id": "divide", "label": "÷", "action": {"type": "operator", "value": "/"}, "gridPosition": {"row": 0, "column": 3}, "type": "operator"},
   {"id": "seven", "label": "7", "action": {"type": "input", "value": "7"}, "gridPosition": {"row": 1, "column": 0}, "type": "primary"},
   {"id": "eight", "label": "8", "action": {"type": "input", "value": "8"}, "gridPosition": {"row": 1, "column": 1}, "type": "primary"},
@@ -274,30 +245,15 @@ VALIDATION_PROMPT = """你是计算器配置修复专家。必须修复生成的
   {"id": "three", "label": "3", "action": {"type": "input", "value": "3"}, "gridPosition": {"row": 3, "column": 2}, "type": "primary"},
   {"id": "add", "label": "+", "action": {"type": "operator", "value": "+"}, "gridPosition": {"row": 3, "column": 3}, "type": "operator"},
   {"id": "zero", "label": "0", "action": {"type": "input", "value": "0"}, "gridPosition": {"row": 4, "column": 0}, "type": "primary", "widthMultiplier": 2.0},
-  {"id": "decimal", "label": ".", "action": {"type": "decimal"}, "gridPosition": {"row": 4, "column": 2}, "type": "primary"},
+  {"id": "decimal", "label": ".", "action": {"type": "decimal"}, "gridPosition": {"row": 4, "column": 2}, "type": "primary", "description": "输入小数点"},
   {"id": "equals", "label": "=", "action": {"type": "equals"}, "gridPosition": {"row": 4, "column": 3}, "type": "operator"}
 ]
 ```
 
-🔧 常见修复项：
-- 【空按钮数组】如果buttons为空，使用上述标准配置
-- 【缺失基础按钮】补充缺少的数字和运算符按钮
-- 【错误的action字段】修正按钮的action格式
-- 【位置冲突】调整按钮的gridPosition避免重叠
-- 【缺失必需字段】补充id、label、action、gridPosition、type字段
-- 【继承性错误】恢复用户未要求修改的原有配置
+📝 返回格式:
+直接返回修复后的完整JSON配置，确保其100%可用。不要包含任何说明文字。
 
-🎯 修复标准：
-- 必须有17个基础按钮，buttons数组不能为空
-- 每个按钮必须有完整的字段：id、label、action、gridPosition、type
-- 布局必须合理（5行4列或其他合适布局）
-- 保持用户要求的视觉效果和主题
-- 确保JSON格式正确
-
-📝 返回格式：
-直接返回修正后的完整JSON配置，确保buttons数组包含所有必需按钮。
-
-请基于用户需求和现有配置，修复生成的配置并返回完整的JSON。"""
+请基于用户需求和现有配置，对生成的配置进行修复并返回最终的JSON。"""
 
 @app.get("/health")
 async def health_check():
@@ -498,7 +454,7 @@ async def customize_calculator(request: CustomizationRequest) -> CalculatorConfi
                     button['action'] = {'type': 'decimal'}
                 elif button_id == 'negate':
                     button['action'] = {'type': 'negate'}
-                else:
+        else:
                     button['action'] = {'type': 'input', 'value': button.get('label', '0')}
         
         print(f"🔍 修复后按钮数量: {len(layout.get('buttons', []))}")

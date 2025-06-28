@@ -65,8 +65,8 @@ class CalculatorProvider extends ChangeNotifier {
 
   // 获取按钮背景颜色
   Color getButtonBackgroundColor(CalculatorButton button) {
-    if (button.customColor != null) {
-      return _parseColor(button.customColor!);
+    if (button.backgroundColor != null) {
+      return _parseColor(button.backgroundColor!);
     }
 
     switch (button.type) {

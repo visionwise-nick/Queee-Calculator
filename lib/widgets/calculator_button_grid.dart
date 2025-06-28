@@ -183,8 +183,9 @@ class CalculatorButtonGrid extends StatelessWidget {
     // 计算这一行的最大高度倍数
     double maxHeightMultiplier = 1.0;
     for (final button in rowButtons) {
-      if (button.heightMultiplier > maxHeightMultiplier) {
-        maxHeightMultiplier = button.heightMultiplier;
+      final heightMultiplier = button.heightMultiplier ?? 1.0;
+      if (heightMultiplier > maxHeightMultiplier) {
+        maxHeightMultiplier = heightMultiplier;
       }
     }
     
@@ -209,11 +210,11 @@ class CalculatorButtonGrid extends StatelessWidget {
       
       // 计算按钮实际尺寸，确保不超出可用空间
       final buttonWidth = math.min(
-        sizing.baseButtonWidth * button.widthMultiplier,
+        sizing.baseButtonWidth * (button.widthMultiplier ?? 1.0),
         sizing.totalWidth / layout.columns * 0.95, // 限制最大宽度
       );
       final buttonHeight = math.min(
-        sizing.baseButtonHeight * button.heightMultiplier,
+        sizing.baseButtonHeight * (button.heightMultiplier ?? 1.0),
         rowHeight,
       );
       
@@ -228,6 +229,7 @@ class CalculatorButtonGrid extends StatelessWidget {
               minHeight: sizing.baseButtonHeight * 0.8, // 最小高度
             ),
             child: CalculatorButtonWidget(
+              key: ValueKey(button.id),
               button: button,
               onPressed: () => provider.executeAction(button.action),
               fixedSize: Size(buttonWidth, buttonHeight),
@@ -275,10 +277,11 @@ class CalculatorButtonGrid extends StatelessWidget {
       final position = button.gridPosition;
       
       if (position.row < layout.rows && position.column < layout.columns) {
-        final buttonWidth = sizing.baseButtonWidth * button.widthMultiplier;
-        final buttonHeight = sizing.baseButtonHeight * button.heightMultiplier;
+        final buttonWidth = sizing.baseButtonWidth * (button.widthMultiplier ?? 1.0);
+        final buttonHeight = sizing.baseButtonHeight * (button.heightMultiplier ?? 1.0);
         
         final buttonWidget = CalculatorButtonWidget(
+          key: ValueKey(button.id),
           button: button,
           onPressed: () => provider.executeAction(button.action),
           fixedSize: Size(buttonWidth, buttonHeight),
