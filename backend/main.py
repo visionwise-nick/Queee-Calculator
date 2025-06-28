@@ -19,18 +19,32 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Gemini AI 延迟初始化 - 避免启动时阻塞
+# 全局变量
+_genai_initialized = False
+current_model_key = "flash"
+
 def initialize_genai():
-    """延迟初始化Google AI，避免启动时阻塞"""
-    api_key = os.getenv('GEMINI_API_KEY')
+    """初始化Google AI"""
+    global _genai_initialized
+    if _genai_initialized:
+        return
+        
+    api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
-        raise ValueError("GEMINI_API_KEY environment variable is required")
+        raise ValueError("未找到 GEMINI_API_KEY 环境变量")
     
     genai.configure(api_key=api_key)
-    return True
+    _genai_initialized = True
+    print("✅ Google AI 初始化完成")
 
-# 初始化标志
-_genai_initialized = False
+def get_current_model():
+    """获取当前AI模型实例"""
+    global _genai_initialized
+    if not _genai_initialized:
+        initialize_genai()
+    
+    model_name = AVAILABLE_MODELS[current_model_key]["name"]
+    return genai.GenerativeModel(model_name)
 
 # 可用模型配置
 AVAILABLE_MODELS = {
@@ -50,9 +64,6 @@ AVAILABLE_MODELS = {
         "description": "思考推理模型，带有推理过程展示"
     }
 }
-
-# 当前使用的模型（默认为flash，速度快且效果好）
-current_model_key = "flash"
 
 # Pydantic模型 - 简化版
 class GridPosition(BaseModel):
@@ -408,6 +419,7 @@ async def customize_calculator(request: CustomizationRequest) -> CalculatorConfi
         
         # 解析AI响应
         response_text = response.text.strip()
+        print(f"📝 AI响应长度: {len(response_text)} 字符")
         
         # 提取JSON配置
         if "```json" in response_text:
@@ -415,12 +427,24 @@ async def customize_calculator(request: CustomizationRequest) -> CalculatorConfi
             json_end = response_text.find("```", json_start)
             config_json = response_text[json_start:json_end].strip()
         else:
-            config_json = response_text
+            # 尝试找到JSON对象的开始和结束
+            json_start = response_text.find('{')
+            json_end = response_text.rfind('}')
+            if json_start != -1 and json_end != -1:
+                config_json = response_text[json_start:json_end+1]
+            else:
+                config_json = response_text
+        
+        print(f"🔍 提取的JSON长度: {len(config_json)} 字符")
+        print(f"🔍 JSON前100字符: {config_json[:100]}")
         
         # 解析JSON
         try:
             raw_config = json.loads(config_json)
+            print(f"✅ JSON解析成功")
         except json.JSONDecodeError as e:
+            print(f"❌ JSON解析失败: {str(e)}")
+            print(f"📄 原始响应: {response_text[:500]}")
             raise HTTPException(status_code=500, detail=f"AI生成的JSON格式无效: {str(e)}")
         
         # 🔍 AI二次校验
@@ -454,6 +478,8 @@ async def customize_calculator(request: CustomizationRequest) -> CalculatorConfi
         layout = raw_config['layout']
         if 'name' not in layout:
             layout['name'] = '自定义布局'
+        if 'buttons' not in layout:
+            layout['buttons'] = []
         
         # 确保所有按钮都有action字段
         for button in layout.get('buttons', []):
