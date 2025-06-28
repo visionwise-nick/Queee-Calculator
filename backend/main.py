@@ -72,7 +72,7 @@ class GridPosition(BaseModel):
     columnSpan: Optional[int] = None
 
 class CalculatorAction(BaseModel):
-    type: str  # input, operator, equals, clear, clearAll, backspace, decimal, negate, expression
+    type: str  # input, operator, equals, clear, clearAll, backspace, decimal, negate, expression, multiParamFunction, parameterSeparator, functionExecute
     value: Optional[str] = None
     expression: Optional[str] = None  # 数学表达式，如 "x*x", "x*0.15", "sqrt(x)"
 
@@ -161,12 +161,14 @@ SYSTEM_PROMPT = """你是专业计算器设计师。必须返回完整的JSON配
 运算符：{"type": "operator", "value": "+|-|*|/"}
 等号：{"type": "equals"}
 清除：{"type": "clearAll"}
-数学函数：{"type": "expression", "expression": "函数名(x)"}
+单参数函数：{"type": "expression", "expression": "函数名(x)"}
+多参数函数：{"type": "multiParamFunction", "value": "函数名"}
+参数分隔符：{"type": "parameterSeparator"}
+函数执行：{"type": "functionExecute"}
 
 🚀 数学函数格式（严格使用）：
-- 三角函数：sin(x), cos(x), tan(x), sqrt(x)
-- 幂运算：x*x, 1/x, abs(x)
-- 特殊：random(), x!
+单参数：sin(x), cos(x), tan(x), sqrt(x), x*x, 1/x, abs(x), random(), x!
+多参数：pow, log, atan2, hypot, max, min, avg, sum, gcd, lcm, mod, round
 
 ❌ 禁止格式：Math.sin, Math.sqrt, parseInt等JavaScript语法
 ✅ 正确格式：sin(x), sqrt(x), x*x等Dart语法
@@ -179,12 +181,19 @@ SYSTEM_PROMPT = """你是专业计算器设计师。必须返回完整的JSON配
 📐 标准布局：
 - 基础计算器：4行4列，17个按钮
 - 科学计算器：6行5列，添加数学函数
-- 特殊计算器：根据需求调整行列数
+- 高级计算器：7行6列，包含多参数函数和分隔符
 
 🎨 视觉功能：
 - 渐变：gradientColors: ["#起始色", "#结束色"]
 - 背景图：backgroundImage: "描述文字"
 - 按钮尺寸：widthMultiplier (0.5-3.0)
+
+🔧 多参数函数用法：
+1. 点击多参数函数按钮（如pow）→ 开始函数输入模式
+2. 输入第二个参数
+3. 点击逗号按钮 → 分隔参数
+4. 继续输入更多参数（可选）
+5. 点击等号或执行按钮 → 计算结果
 
 必须返回包含theme和layout的完整JSON，确保layout有rows、columns、buttons字段。"""
 
@@ -477,7 +486,7 @@ async def customize_calculator(request: CustomizationRequest) -> CalculatorConfi
                         'expression': math_function_map[func_name]
                     }
                     print(f"🔧 修复按钮 {button.get('id')} 的action格式: {func_name} → {math_function_map[func_name]}")
-                else:
+        else:
                     # 如果没有映射，保持原有格式但改为expression类型
                     button['action'] = {
                         'type': 'expression',

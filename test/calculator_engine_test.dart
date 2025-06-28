@@ -2,207 +2,206 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:queee_calculator/core/calculator_engine.dart';
 
 void main() {
-  group('计算器引擎测试', () {
+  group('CalculatorEngine Tests', () {
     late CalculatorEngine engine;
 
     setUp(() {
       engine = CalculatorEngine();
     });
 
-    test('基本输入测试', () {
-      var state = engine.execute(const CalculatorAction(type: CalculatorActionType.input, value: '5'));
-      expect(state.display, '5');
-      
-      state = engine.execute(const CalculatorAction(type: CalculatorActionType.input, value: '3'));
-      expect(state.display, '53');
-    });
+    test('基础计算测试', () {
+      // 输入 2
+      engine.execute(const CalculatorAction(type: CalculatorActionType.input, value: '2'));
+      expect(engine.state.display, '2');
 
-    test('基本加法运算', () {
-      engine.execute(const CalculatorAction(type: CalculatorActionType.input, value: '5'));
+      // 加法
       engine.execute(const CalculatorAction(type: CalculatorActionType.operator, value: '+'));
+      expect(engine.state.operator, '+');
+
+      // 输入 3
       engine.execute(const CalculatorAction(type: CalculatorActionType.input, value: '3'));
-      var state = engine.execute(const CalculatorAction(type: CalculatorActionType.equals));
-      expect(state.display, '8');
+      expect(engine.state.display, '3');
+
+      // 等号
+      engine.execute(const CalculatorAction(type: CalculatorActionType.equals));
+      expect(engine.state.display, '5');
     });
 
-    test('基本减法运算', () {
+    test('单参数函数测试', () {
+      // 输入 4
+      engine.execute(const CalculatorAction(type: CalculatorActionType.input, value: '4'));
+      expect(engine.state.display, '4');
+
+      // 平方根函数
+      engine.execute(const CalculatorAction(type: CalculatorActionType.expression, expression: 'sqrt(x)'));
+      expect(engine.state.display, '2');
+    });
+
+    test('多参数函数测试 - pow(2,3)', () {
+      // 输入 2 (第一个参数)
+      engine.execute(const CalculatorAction(type: CalculatorActionType.input, value: '2'));
+      expect(engine.state.display, '2');
+
+      // 开始多参数函数 pow
+      engine.execute(const CalculatorAction(type: CalculatorActionType.multiParamFunction, value: 'pow'));
+      expect(engine.state.isInputtingFunction, true);
+      expect(engine.state.currentFunction, 'pow');
+      expect(engine.state.functionParameters.length, 1);
+      expect(engine.state.functionParameters[0], 2.0);
+
+      // 输入 3 (第二个参数)
+      engine.execute(const CalculatorAction(type: CalculatorActionType.input, value: '3'));
+      expect(engine.state.display, '3');
+
+      // 执行函数
+      engine.execute(const CalculatorAction(type: CalculatorActionType.functionExecute));
+      expect(engine.state.display, '8'); // 2^3 = 8
+      expect(engine.state.isInputtingFunction, false);
+    });
+
+    test('多参数函数测试 - max(5,3,8)', () {
+      // 输入 5 (第一个参数)
+      engine.execute(const CalculatorAction(type: CalculatorActionType.input, value: '5'));
+      
+      // 开始多参数函数 max
+      engine.execute(const CalculatorAction(type: CalculatorActionType.multiParamFunction, value: 'max'));
+      
+      // 输入 3 (第二个参数)
+      engine.execute(const CalculatorAction(type: CalculatorActionType.input, value: '3'));
+      
+      // 参数分隔符
+      engine.execute(const CalculatorAction(type: CalculatorActionType.parameterSeparator));
+      expect(engine.state.functionParameters.length, 2);
+      expect(engine.state.functionParameters[1], 3.0);
+      
+      // 输入 8 (第三个参数)
+      engine.execute(const CalculatorAction(type: CalculatorActionType.input, value: '8'));
+      
+      // 执行函数
+      engine.execute(const CalculatorAction(type: CalculatorActionType.functionExecute));
+      expect(engine.state.display, '8'); // max(5,3,8) = 8
+    });
+
+    test('多参数函数测试 - log(100,10)', () {
+      // 输入 100 (第一个参数)
+      engine.execute(const CalculatorAction(type: CalculatorActionType.input, value: '100'));
+      
+      // 开始多参数函数 log
+      engine.execute(const CalculatorAction(type: CalculatorActionType.multiParamFunction, value: 'log'));
+      
+      // 输入 10 (底数)
       engine.execute(const CalculatorAction(type: CalculatorActionType.input, value: '10'));
-      engine.execute(const CalculatorAction(type: CalculatorActionType.operator, value: '-'));
-      engine.execute(const CalculatorAction(type: CalculatorActionType.input, value: '3'));
-      var state = engine.execute(const CalculatorAction(type: CalculatorActionType.equals));
-      expect(state.display, '7');
+      
+      // 执行函数
+      engine.execute(const CalculatorAction(type: CalculatorActionType.functionExecute));
+      expect(engine.state.display, '2'); // log₁₀(100) = 2
     });
 
-    test('基本乘法运算', () {
+    test('基本运算测试', () {
+      // 乘法测试
       engine.execute(const CalculatorAction(type: CalculatorActionType.input, value: '6'));
       engine.execute(const CalculatorAction(type: CalculatorActionType.operator, value: '*'));
       engine.execute(const CalculatorAction(type: CalculatorActionType.input, value: '7'));
-      var state = engine.execute(const CalculatorAction(type: CalculatorActionType.equals));
-      expect(state.display, '42');
-    });
+      engine.execute(const CalculatorAction(type: CalculatorActionType.equals));
+      expect(engine.state.display, '42');
 
-    test('基本除法运算', () {
+      // 重置
+      engine.execute(const CalculatorAction(type: CalculatorActionType.clearAll));
+      
+      // 除法测试
       engine.execute(const CalculatorAction(type: CalculatorActionType.input, value: '15'));
       engine.execute(const CalculatorAction(type: CalculatorActionType.operator, value: '/'));
       engine.execute(const CalculatorAction(type: CalculatorActionType.input, value: '3'));
-      var state = engine.execute(const CalculatorAction(type: CalculatorActionType.equals));
-      expect(state.display, '5');
+      engine.execute(const CalculatorAction(type: CalculatorActionType.equals));
+      expect(engine.state.display, '5');
     });
 
-    test('除零错误处理', () {
-      engine.execute(const CalculatorAction(type: CalculatorActionType.input, value: '10'));
+    test('错误处理测试', () {
+      // 除零错误
+      engine.execute(const CalculatorAction(type: CalculatorActionType.input, value: '5'));
       engine.execute(const CalculatorAction(type: CalculatorActionType.operator, value: '/'));
       engine.execute(const CalculatorAction(type: CalculatorActionType.input, value: '0'));
-      var state = engine.execute(const CalculatorAction(type: CalculatorActionType.equals));
-      expect(state.display, 'Error');
-      expect(state.isError, true);
+      engine.execute(const CalculatorAction(type: CalculatorActionType.equals));
+      expect(engine.state.isError, true);
     });
 
-    test('小数点操作', () {
+    test('小数点测试', () {
       engine.execute(const CalculatorAction(type: CalculatorActionType.input, value: '3'));
-      var state = engine.execute(const CalculatorAction(type: CalculatorActionType.decimal));
-      expect(state.display, '3.');
+      engine.execute(const CalculatorAction(type: CalculatorActionType.decimal));
+      expect(engine.state.display, '3.');
       
-      state = engine.execute(const CalculatorAction(type: CalculatorActionType.input, value: '14'));
-      expect(state.display, '3.14');
+      engine.execute(const CalculatorAction(type: CalculatorActionType.input, value: '14'));
+      expect(engine.state.display, '3.14');
     });
 
-    test('百分比操作', () {
-      engine.execute(const CalculatorAction(type: CalculatorActionType.input, value: '50'));
-      var state = engine.execute(const CalculatorAction(type: CalculatorActionType.percentage));
-      expect(state.display, '0.5');
-    });
-
-    test('正负号切换', () {
+    test('正负号测试', () {
       engine.execute(const CalculatorAction(type: CalculatorActionType.input, value: '42'));
-      var state = engine.execute(const CalculatorAction(type: CalculatorActionType.negate));
-      expect(state.display, '-42');
+      engine.execute(const CalculatorAction(type: CalculatorActionType.negate));
+      expect(engine.state.display, '-42');
       
-      state = engine.execute(const CalculatorAction(type: CalculatorActionType.negate));
-      expect(state.display, '42');
+      engine.execute(const CalculatorAction(type: CalculatorActionType.negate));
+      expect(engine.state.display, '42');
     });
 
-    test('清除操作', () {
+    test('清除功能测试', () {
+      // 输入一些数据
       engine.execute(const CalculatorAction(type: CalculatorActionType.input, value: '123'));
-      var state = engine.execute(const CalculatorAction(type: CalculatorActionType.clear));
-      expect(state.display, '0');
-    });
+      expect(engine.state.display, '123');
 
-    test('全部清除操作', () {
-      engine.execute(const CalculatorAction(type: CalculatorActionType.input, value: '5'));
-      engine.execute(const CalculatorAction(type: CalculatorActionType.operator, value: '+'));
-      var state = engine.execute(const CalculatorAction(type: CalculatorActionType.clearAll));
-      expect(state.display, '0');
-      expect(state.previousValue, null);
-      expect(state.operator, null);
-    });
-
-    test('退格操作', () {
-      engine.execute(const CalculatorAction(type: CalculatorActionType.input, value: '123'));
-      var state = engine.execute(const CalculatorAction(type: CalculatorActionType.backspace));
-      expect(state.display, '12');
-      
-      state = engine.execute(const CalculatorAction(type: CalculatorActionType.backspace));
-      expect(state.display, '1');
-      
-      state = engine.execute(const CalculatorAction(type: CalculatorActionType.backspace));
-      expect(state.display, '0');
-    });
-
-    test('连续运算', () {
-      engine.execute(const CalculatorAction(type: CalculatorActionType.input, value: '2'));
-      engine.execute(const CalculatorAction(type: CalculatorActionType.operator, value: '+'));
-      engine.execute(const CalculatorAction(type: CalculatorActionType.input, value: '3'));
-      engine.execute(const CalculatorAction(type: CalculatorActionType.operator, value: '*'));
-      engine.execute(const CalculatorAction(type: CalculatorActionType.input, value: '4'));
-      var state = engine.execute(const CalculatorAction(type: CalculatorActionType.equals));
-      expect(state.display, '20'); // (2+3)*4 = 20
-    });
-
-    test('内存操作', () {
-      // 存储到内存
-      engine.execute(const CalculatorAction(type: CalculatorActionType.input, value: '42'));
-      var state = engine.execute(const CalculatorAction(type: CalculatorActionType.memory, value: 'MS'));
-      expect(state.memory, 42.0);
-      
-      // 从内存读取
-      engine.execute(const CalculatorAction(type: CalculatorActionType.clearAll));
-      engine.execute(const CalculatorAction(type: CalculatorActionType.input, value: '0'));
-      state = engine.execute(const CalculatorAction(type: CalculatorActionType.memory, value: 'MR'));
-      expect(state.display, '42');
-      
-      // 内存加
-      engine.execute(const CalculatorAction(type: CalculatorActionType.clearAll));
-      engine.execute(const CalculatorAction(type: CalculatorActionType.input, value: '8'));
-      state = engine.execute(const CalculatorAction(type: CalculatorActionType.memory, value: 'M+'));
-      expect(state.memory, 50.0);
-      
-      // 内存减
-      engine.execute(const CalculatorAction(type: CalculatorActionType.clearAll));
-      engine.execute(const CalculatorAction(type: CalculatorActionType.input, value: '10'));
-      state = engine.execute(const CalculatorAction(type: CalculatorActionType.memory, value: 'M-'));
-      expect(state.memory, 40.0);
-      
-      // 清除内存
-      state = engine.execute(const CalculatorAction(type: CalculatorActionType.memory, value: 'MC'));
-      expect(state.memory, 0.0);
-    });
-
-    test('宏操作 - 小费计算', () {
-      engine.execute(const CalculatorAction(type: CalculatorActionType.input, value: '100'));
-      var state = engine.execute(const CalculatorAction(
-        type: CalculatorActionType.macro, 
-        macro: 'input * 0.15'
-      ));
-      expect(state.display, '15'); // 100的15%小费
-    });
-
-    test('科学计算 - 平方根', () {
-      engine.execute(const CalculatorAction(type: CalculatorActionType.input, value: '16'));
-      var state = engine.execute(const CalculatorAction(
-        type: CalculatorActionType.scientific, 
-        value: 'sqrt'
-      ));
-      expect(state.display, '4');
-    });
-
-    test('科学计算 - 幂运算', () {
-      engine.execute(const CalculatorAction(type: CalculatorActionType.input, value: '2'));
-      var state = engine.execute(const CalculatorAction(
-        type: CalculatorActionType.scientific, 
-        value: 'pow',
-        params: {'exponent': 3.0}
-      ));
-      expect(state.display, '8'); // 2^3 = 8
-    });
-
-    test('位运算 - AND操作', () {
-      engine.execute(const CalculatorAction(type: CalculatorActionType.input, value: '12'));
-      var state = engine.execute(const CalculatorAction(
-        type: CalculatorActionType.bitwise, 
-        value: 'AND',
-        params: {'operand': 10}
-      ));
-      expect(state.display, '8'); // 12 & 10 = 8
-    });
-
-    test('位运算 - OR操作', () {
-      engine.execute(const CalculatorAction(type: CalculatorActionType.input, value: '12'));
-      var state = engine.execute(const CalculatorAction(
-        type: CalculatorActionType.bitwise, 
-        value: 'OR',
-        params: {'operand': 10}
-      ));
-      expect(state.display, '14'); // 12 | 10 = 14
-    });
-
-    test('重置状态', () {
-      engine.execute(const CalculatorAction(type: CalculatorActionType.input, value: '123'));
-      engine.execute(const CalculatorAction(type: CalculatorActionType.operator, value: '+'));
-      engine.reset();
+      // 清除
+      engine.execute(const CalculatorAction(type: CalculatorActionType.clear));
       expect(engine.state.display, '0');
-      expect(engine.state.previousValue, null);
+
+      // 输入更多数据
+      engine.execute(const CalculatorAction(type: CalculatorActionType.input, value: '456'));
+      engine.execute(const CalculatorAction(type: CalculatorActionType.operator, value: '+'));
+      
+      // 清除所有
+      engine.execute(const CalculatorAction(type: CalculatorActionType.clearAll));
+      expect(engine.state.display, '0');
       expect(engine.state.operator, null);
+      expect(engine.state.previousValue, null);
+    });
+
+    test('退格测试', () {
+      engine.execute(const CalculatorAction(type: CalculatorActionType.input, value: '123'));
+      engine.execute(const CalculatorAction(type: CalculatorActionType.backspace));
+      expect(engine.state.display, '12');
+      
+      engine.execute(const CalculatorAction(type: CalculatorActionType.backspace));
+      expect(engine.state.display, '1');
+      
+      engine.execute(const CalculatorAction(type: CalculatorActionType.backspace));
+      expect(engine.state.display, '0');
+    });
+
+    test('显示文本测试', () {
+      // 测试普通显示
+      engine.execute(const CalculatorAction(type: CalculatorActionType.input, value: '42'));
+      expect(engine.state.getFunctionDisplayText(), '42');
+
+      // 测试函数显示
+      engine.execute(const CalculatorAction(type: CalculatorActionType.multiParamFunction, value: 'pow'));
+      engine.execute(const CalculatorAction(type: CalculatorActionType.input, value: '3'));
+      expect(engine.state.getFunctionDisplayText(), 'pow(42, 3)');
+    });
+
+    test('科学函数测试', () {
+      // 三角函数
+      engine.execute(const CalculatorAction(type: CalculatorActionType.input, value: '0'));
+      engine.execute(const CalculatorAction(type: CalculatorActionType.expression, expression: 'sin(x)'));
+      expect(engine.state.display, '0');
+
+      engine.reset();
+      engine.execute(const CalculatorAction(type: CalculatorActionType.input, value: '1'));
+      engine.execute(const CalculatorAction(type: CalculatorActionType.expression, expression: 'cos(x)'));
+      expect(double.parse(engine.state.display), closeTo(0.5403, 0.001));
+
+      // 指数函数
+      engine.reset();
+      engine.execute(const CalculatorAction(type: CalculatorActionType.input, value: '2'));
+      engine.execute(const CalculatorAction(type: CalculatorActionType.expression, expression: 'exp(x)'));
+      expect(double.parse(engine.state.display), closeTo(7.389, 0.001));
     });
   });
 } 

@@ -60,15 +60,15 @@ class CalculatorDisplay extends StatelessWidget {
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             child: Text(
-              state.display,
+              state.isInputtingFunction ? state.getFunctionDisplayText() : state.display,
               style: TextStyle(
-                fontSize: 30,
+                fontSize: state.isInputtingFunction ? 24 : 30,
                 fontWeight: FontWeight.w300,
                 color: _parseColor(theme.displayTextColor),
                 fontFamily: 'monospace',
               ),
               textAlign: TextAlign.right,
-              maxLines: 1,
+              maxLines: state.isInputtingFunction ? 2 : 1,
               overflow: TextOverflow.ellipsis,
             ),
           ),
