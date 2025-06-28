@@ -6,6 +6,7 @@ import '../widgets/calculator_display.dart';
 import '../widgets/calculator_button_grid.dart';
 import '../widgets/calculation_history_dialog.dart';
 import 'ai_customize_screen.dart';
+import 'dart:math' as math;
 
 class CalculatorScreen extends StatelessWidget {
   const CalculatorScreen({super.key});
@@ -39,7 +40,13 @@ class CalculatorScreen extends StatelessWidget {
     
     // 计算最优的显示区域高度
     final displayHeight = _calculateOptimalDisplayHeight(context, layout, screenHeight);
-    final buttonAreaHeight = screenHeight - displayHeight - 80; // 预留标题栏空间
+    final titleBarHeight = 80.0;
+    final availableHeight = screenHeight - titleBarHeight;
+    
+    // 确保按钮区域有足够空间，至少占60%的可用高度
+    final minButtonAreaHeight = availableHeight * 0.6;
+    final adjustedDisplayHeight = math.min(displayHeight, availableHeight - minButtonAreaHeight);
+    final buttonAreaHeight = availableHeight - adjustedDisplayHeight;
     
     return Column(
       children: [
@@ -47,18 +54,21 @@ class CalculatorScreen extends StatelessWidget {
         _buildTitleBar(context, provider),
         
         // 计算器显示屏 - 动态高度
-        SizedBox(
-          height: displayHeight,
+        Container(
+          height: adjustedDisplayHeight,
           child: CalculatorDisplay(
             state: provider.state,
             theme: provider.config.theme,
           ),
         ),
         
-        // 按钮网格 - 剩余空间
-        SizedBox(
-          height: buttonAreaHeight,
-          child: CalculatorButtonGrid(),
+        // 按钮网格 - 剩余空间，使用Expanded确保不溢出
+        Expanded(
+          child: Container(
+            height: buttonAreaHeight,
+            padding: const EdgeInsets.all(8.0),
+            child: CalculatorButtonGrid(),
+          ),
         ),
       ],
     );
@@ -77,22 +87,22 @@ class CalculatorScreen extends StatelessWidget {
     // 基础显示高度
     double baseHeight = 80.0;
     
-    // 根据布局复杂度调整
+    // 根据布局复杂度调整，但限制最大高度
     final buttonCount = layout.buttons.length;
     final totalCells = layout.rows * layout.columns;
     final density = totalCells > 0 ? buttonCount / totalCells : 0.5;
     
-    // 按钮越多，显示区域相对越小
+    // 按钮越多，显示区域相对越小，但不能太小
     if (density > 0.8 || buttonCount > 25) {
-      baseHeight = screenHeight * 0.15; // 高密度：15%
+      baseHeight = screenHeight * 0.12; // 高密度：12%
     } else if (density > 0.6 || buttonCount > 20) {
-      baseHeight = screenHeight * 0.2;  // 中密度：20%
+      baseHeight = screenHeight * 0.15;  // 中密度：15%
     } else {
-      baseHeight = screenHeight * 0.25; // 低密度：25%
+      baseHeight = screenHeight * 0.2; // 低密度：20%
     }
     
-    // 确保最小和最大值
-    return baseHeight.clamp(60.0, screenHeight * 0.35);
+    // 确保最小和最大值，为按钮区域预留更多空间
+    return baseHeight.clamp(60.0, screenHeight * 0.25);
   }
 
   /// 构建标题栏
