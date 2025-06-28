@@ -81,20 +81,16 @@ class CalculatorButton(BaseModel):
     label: str
     action: CalculatorAction
     gridPosition: GridPosition
-    type: str  # e.g., 'primary', 'secondary', 'operator'
-    widthMultiplier: Optional[float] = 1.0
-    heightMultiplier: Optional[float] = 1.0
-    
-    # Visual properties
-    backgroundColor: Optional[str] = None
-    textColor: Optional[str] = None
-    fontSize: Optional[float] = None
-    borderRadius: Optional[float] = None
-    elevation: Optional[float] = None
-    gradientColors: Optional[List[str]] = None
-    backgroundImage: Optional[str] = None
+    type: str  # primary, secondary, operator, special
     customColor: Optional[str] = None
-    description: Optional[str] = Field(None, description="按钮功能的详细说明，用于长按提示")
+    isWide: bool = False
+    widthMultiplier: float = 1.0  # 宽度倍数
+    heightMultiplier: float = 1.0  # 高度倍数
+    gradientColors: Optional[List[str]] = None  # 渐变色数组
+    backgroundImage: Optional[str] = None  # 背景图片URL
+    fontSize: Optional[float] = None  # 按钮独立字体大小
+    borderRadius: Optional[float] = None  # 按钮独立圆角
+    elevation: Optional[float] = None  # 按钮独立阴影高度
 
 class CalculatorTheme(BaseModel):
     name: str
@@ -152,85 +148,42 @@ class CustomizationRequest(BaseModel):
     conversation_history: Optional[List[Dict[str, str]]] = Field(default=[], description="对话历史")
     current_config: Optional[Dict[str, Any]] = Field(default=None, description="当前计算器配置")
 
-# 简化的AI系统提示 - 专注布局设计
-SYSTEM_PROMPT = """你是顶级的计算器设计AI。你的任务是根据用户需求，生成一份完整、精确、可直接使用的计算器JSON配置。
+# 优化的AI系统提示 - 强制完整性
+SYSTEM_PROMPT = """你是专业计算器设计师。每次必须返回包含完整按钮配置的JSON。
 
-⚠️ 核心设计准则 (必须严格遵守):
-1.  **【绝不为空】**: `buttons`数组绝对不能为空。对于任何请求，都必须生成一个包含基础功能的计算器。
-2.  **【Action完整性】**: 每个按钮都必须有`action`字段，且`action.type`必须是有效类型。无效或缺失将导致按钮失灵。
-3.  **【保留基础】**: 任何设计都必须包含17个基础按钮 (数字0-9, +−×÷, =, AC, ±, .)，除非用户明确要求删除。
+⚠️ 绝对要求：
+1. 【强制包含17个基础按钮】必须包含：数字0-9(10个) + 运算符+−×÷(4个) + 功能=、AC、±(3个) = 共17个按钮
+2. 【buttons数组不能为空】layout.buttons必须是包含至少17个按钮对象的数组，绝不能是[]
+3. 【每个按钮必须完整】每个按钮必须有：id、label、action、gridPosition、type这5个字段
+4. 【action字段必须有效】每个按钮的action必须包含正确的type和对应的value/expression
 
-🎯 设计任务清单:
-- **布局**: 决定行列数 (2-10行, 2-8列)。
-- **按钮**: 安排每个按钮的位置、功能和样式。
-- **主题**: 设计配色、背景、视觉效果。
-- **功能描述**: 为复杂或不常见的按钮添加`description`字段，用于长按提示。
+🎯 设计流程（按顺序执行）：
+第1步：确定布局尺寸（rows和columns，推荐5行4列）
+第2步：放置17个基础按钮到网格位置
+第3步：根据用户需求添加额外功能按钮
+第4步：设计主题配色和视觉效果
+第5步：检查buttons数组确保不为空
 
-🔧 布局与按钮规则:
-- **基础按钮ID**: 必须使用标准ID (zero, one, ..., add, subtract, ..., clear, negate, decimal)。
-- **坐标**: `gridPosition`的`row`和`column`从0开始。
-- **Action有效类型**: `type`必须是 'input', 'operator', 'equals', 'clear', 'clearAll', 'decimal', 'negate', 'expression' 之一。
-- **功能描述**: 为所有非数字和基础运算符的按钮添加`description`字段。例如: `{"id": "negate", "description": "切换正负号"}`。
+🔧 强制性按钮清单（必须全部包含）：
+```
+数字按钮（10个）：
+- zero(0), one(1), two(2), three(3), four(4), five(5), six(6), seven(7), eight(8), nine(9)
 
-🔄 继承性原则 (重要):
-- 只修改用户明确要求的部分。
-- 保持现有的颜色、布局、视觉效果不变，除非用户要求更改。
-- 基于现有配置进行增量修改，而不是重新设计。
+运算符按钮（4个）：
+- add(+), subtract(−), multiply(×), divide(÷)
 
-🎨 视觉设计功能:
-- **尺寸**: `widthMultiplier`, `heightMultiplier` (0.5-3.0)。
-- **独立样式**: `fontSize`, `borderRadius`, `elevation`。
-- **渐变**: `gradientColors: ["#起始色", "#结束色"]`。
-- **背景图**: `backgroundImage: "AI生成图片描述"`。
-- **主题增强**: `backgroundGradient`, `displayHeight`, `buttonShadowColors`, `buttonSpacing`等。
-- **功能描述**: `description: "按钮功能中文说明"` (例如: "计算x的平方根")。
+功能按钮（3个）：
+- equals(=), clear(AC), negate(±)
 
-💡 基础计算器设计模板 (如果用户没有具体要求，可基于此模板进行修改):
-```json
-{
-  "layout": {
-    "rows": 5, "columns": 4,
-    "buttons": [
-      {"id": "clear", "label": "AC", "action": {"type": "clear"}, "gridPosition": {"row": 0, "column": 0}, "type": "secondary", "description": "清除所有输入"},
-      {"id": "negate", "label": "±", "action": {"type": "negate"}, "gridPosition": {"row": 0, "column": 1}, "type": "secondary", "description": "切换正负号"},
-      {"id": "percent", "label": "%", "action": {"type": "expression", "expression": "x/100"}, "gridPosition": {"row": 0, "column": 2}, "type": "secondary", "description": "计算百分比"},
-      {"id": "divide", "label": "÷", "action": {"type": "operator", "value": "/"}, "gridPosition": {"row": 0, "column": 3}, "type": "operator"},
-      {"id": "seven", "label": "7", "action": {"type": "input", "value": "7"}, "gridPosition": {"row": 1, "column": 0}, "type": "primary"},
-      {"id": "eight", "label": "8", "action": {"type": "input", "value": "8"}, "gridPosition": {"row": 1, "column": 1}, "type": "primary"},
-      {"id": "nine", "label": "9", "action": {"type": "input", "value": "9"}, "gridPosition": {"row": 1, "column": 2}, "type": "primary"},
-      {"id": "multiply", "label": "×", "action": {"type": "operator", "value": "*"}, "gridPosition": {"row": 1, "column": 3}, "type": "operator"},
-      {"id": "four", "label": "4", "action": {"type": "input", "value": "4"}, "gridPosition": {"row": 2, "column": 0}, "type": "primary"},
-      {"id": "five", "label": "5", "action": {"type": "input", "value": "5"}, "gridPosition": {"row": 2, "column": 1}, "type": "primary"},
-      {"id": "six", "label": "6", "action": {"type": "input", "value": "6"}, "gridPosition": {"row": 2, "column": 2}, "type": "primary"},
-      {"id": "subtract", "label": "−", "action": {"type": "operator", "value": "-"}, "gridPosition": {"row": 2, "column": 3}, "type": "operator"},
-      {"id": "one", "label": "1", "action": {"type": "input", "value": "1"}, "gridPosition": {"row": 3, "column": 0}, "type": "primary"},
-      {"id": "two", "label": "2", "action": {"type": "input", "value": "2"}, "gridPosition": {"row": 3, "column": 1}, "type": "primary"},
-      {"id": "three", "label": "3", "action": {"type": "input", "value": "3"}, "gridPosition": {"row": 3, "column": 2}, "type": "primary"},
-      {"id": "add", "label": "+", "action": {"type": "operator", "value": "+"}, "gridPosition": {"row": 3, "column": 3}, "type": "operator"},
-      {"id": "zero", "label": "0", "action": {"type": "input", "value": "0"}, "gridPosition": {"row": 4, "column": 0, "columnSpan": 2}, "type": "primary"},
-      {"id": "decimal", "label": ".", "action": {"type": "decimal"}, "gridPosition": {"row": 4, "column": 2}, "type": "primary", "description": "输入小数点"},
-      {"id": "equals", "label": "=", "action": {"type": "equals"}, "gridPosition": {"row": 4, "column": 3}, "type": "operator"}
-    ]
-  }
-}
+可选基础按钮：
+- decimal(.) - 小数点
 ```
 
-只返回这份JSON配置，不要包含任何其他文字。"""
-
-# AI二次校验和修复系统提示
-VALIDATION_PROMPT = """你是计算器配置修复机器人。你的唯一任务是修复传入的JSON配置，确保其100%可用。
-
-⚠️ 修复铁律 (必须严格执行):
-1.  **【修复空按钮】**: 如果`buttons`数组为空，或少于17个基础按钮，立即用下面的标准模板替换或补充。
-2.  **【修复Action】**: 检查每个按钮，如果`action`字段缺失或`action.type`无效，立即修复它。
-3.  **【补充描述】**: 为所有功能键 (非数字和基础运算符) 补充`description`字段，解释其功能。
-4.  **【遵守继承】**: 严格保持用户未要求修改的任何颜色、样式或布局。
-
-🎯 必需的17个基础按钮 (标准配置模板):
+🔧 标准按钮配置模板（直接复制使用）：
 ```json
 [
-  {"id": "clear", "label": "AC", "action": {"type": "clear"}, "gridPosition": {"row": 0, "column": 0}, "type": "secondary", "description": "清除所有输入"},
-  {"id": "negate", "label": "±", "action": {"type": "negate"}, "gridPosition": {"row": 0, "column": 1}, "type": "secondary", "description": "切换正负号"},
+  {"id": "clear", "label": "AC", "action": {"type": "clearAll"}, "gridPosition": {"row": 0, "column": 0}, "type": "secondary"},
+  {"id": "negate", "label": "±", "action": {"type": "negate"}, "gridPosition": {"row": 0, "column": 1}, "type": "secondary"},
   {"id": "divide", "label": "÷", "action": {"type": "operator", "value": "/"}, "gridPosition": {"row": 0, "column": 3}, "type": "operator"},
   {"id": "seven", "label": "7", "action": {"type": "input", "value": "7"}, "gridPosition": {"row": 1, "column": 0}, "type": "primary"},
   {"id": "eight", "label": "8", "action": {"type": "input", "value": "8"}, "gridPosition": {"row": 1, "column": 1}, "type": "primary"},
@@ -245,15 +198,103 @@ VALIDATION_PROMPT = """你是计算器配置修复机器人。你的唯一任务
   {"id": "three", "label": "3", "action": {"type": "input", "value": "3"}, "gridPosition": {"row": 3, "column": 2}, "type": "primary"},
   {"id": "add", "label": "+", "action": {"type": "operator", "value": "+"}, "gridPosition": {"row": 3, "column": 3}, "type": "operator"},
   {"id": "zero", "label": "0", "action": {"type": "input", "value": "0"}, "gridPosition": {"row": 4, "column": 0}, "type": "primary", "widthMultiplier": 2.0},
-  {"id": "decimal", "label": ".", "action": {"type": "decimal"}, "gridPosition": {"row": 4, "column": 2}, "type": "primary", "description": "输入小数点"},
+  {"id": "decimal", "label": ".", "action": {"type": "decimal"}, "gridPosition": {"row": 4, "column": 2}, "type": "primary"},
   {"id": "equals", "label": "=", "action": {"type": "equals"}, "gridPosition": {"row": 4, "column": 3}, "type": "operator"}
 ]
 ```
 
-📝 返回格式:
-直接返回修复后的完整JSON配置，确保其100%可用。不要包含任何说明文字。
+🔄 继承性原则（现有配置时）：
+- 【严格保持】用户未提及的所有配色、效果、布局保持不变
+- 【精确修改】只修改用户明确要求的具体部分
+- 【按钮保留】保持现有的所有按钮，除非用户要求删除
+- 【位置稳定】保持现有按钮位置，除非用户要求重新布局
 
-请基于用户需求和现有配置，对生成的配置进行修复并返回最终的JSON。"""
+🎨 视觉增强功能：
+- 按钮倍数：widthMultiplier/heightMultiplier (0.5-3.0)
+- 独立属性：fontSize、borderRadius、elevation
+- 渐变效果：gradientColors: ["#起始色", "#结束色"]
+- AI图片：backgroundImage: "描述文字"（自动生成图片）
+- 自定义色：customColor: "#颜色值"
+
+🎨 主题控制：
+- 背景：backgroundColor、backgroundGradient、backgroundImage
+- 显示区：displayWidth/Height、displayBackgroundGradient、displayBorderRadius
+- 按钮组：primaryButtonGradient、operatorButtonGradient等
+- 阴影：buttonShadowColors、buttonElevation
+- 间距：buttonSpacing、gridSpacing、minButtonSize、maxButtonSize
+
+🚀 高级功能表达式：
+- 数学：平方"x*x"、开根"sqrt(x)"、立方"pow(x,3)"、倒数"1/x"
+- 科学：sin"sin(x)"、cos"cos(x)"、log"log(x)"、exp"exp(x)"
+- 金融：小费"x*0.15"、税费"x*1.13"、折扣"x*0.8"
+- 转换：华氏度"x*9/5+32"、英寸"x*2.54"
+
+📋 返回格式检查清单：
+✅ layout.buttons数组包含至少17个按钮对象
+✅ 每个按钮都有完整的id、label、action、gridPosition、type字段
+✅ 所有action字段都有正确的type值
+✅ 数字按钮的action.value是对应的数字字符串
+✅ 运算符按钮的action.value是正确的运算符
+✅ 特殊按钮的action.type正确（clear、equals、negate、decimal）
+
+⚠️ 最终检查：返回JSON前必须确认buttons数组不为空且包含完整按钮！
+
+前端会自动处理：动态适配、图片生成、渐变渲染、响应式布局。
+只返回JSON配置，确保buttons数组完整。"""
+
+# AI二次校验和修复系统提示
+VALIDATION_PROMPT = """你是计算器配置修复专家。必须修复生成的配置中的所有问题并返回完整可用的JSON。
+
+🔧 修复任务：
+1. 【检查按钮完整性】确保包含17个基础按钮：数字0-9，运算符+−×÷，功能=、AC、±、.
+2. 【修复缺失按钮】如果buttons数组为空或缺少基础按钮，必须补充完整的按钮配置
+3. 【修复action字段】确保所有按钮都有正确的action字段
+4. 【保持继承性】只修改用户要求的部分，保持其他配置不变
+5. 【结构完整性】确保JSON结构完整，包含theme和layout两个主要部分
+
+🎯 必需的17个基础按钮（标准配置）：
+```json
+[
+  {"id": "clear", "label": "AC", "action": {"type": "clearAll"}, "gridPosition": {"row": 0, "column": 0}, "type": "secondary"},
+  {"id": "negate", "label": "±", "action": {"type": "negate"}, "gridPosition": {"row": 0, "column": 1}, "type": "secondary"},
+  {"id": "divide", "label": "÷", "action": {"type": "operator", "value": "/"}, "gridPosition": {"row": 0, "column": 3}, "type": "operator"},
+  {"id": "seven", "label": "7", "action": {"type": "input", "value": "7"}, "gridPosition": {"row": 1, "column": 0}, "type": "primary"},
+  {"id": "eight", "label": "8", "action": {"type": "input", "value": "8"}, "gridPosition": {"row": 1, "column": 1}, "type": "primary"},
+  {"id": "nine", "label": "9", "action": {"type": "input", "value": "9"}, "gridPosition": {"row": 1, "column": 2}, "type": "primary"},
+  {"id": "multiply", "label": "×", "action": {"type": "operator", "value": "*"}, "gridPosition": {"row": 1, "column": 3}, "type": "operator"},
+  {"id": "four", "label": "4", "action": {"type": "input", "value": "4"}, "gridPosition": {"row": 2, "column": 0}, "type": "primary"},
+  {"id": "five", "label": "5", "action": {"type": "input", "value": "5"}, "gridPosition": {"row": 2, "column": 1}, "type": "primary"},
+  {"id": "six", "label": "6", "action": {"type": "input", "value": "6"}, "gridPosition": {"row": 2, "column": 2}, "type": "primary"},
+  {"id": "subtract", "label": "−", "action": {"type": "operator", "value": "-"}, "gridPosition": {"row": 2, "column": 3}, "type": "operator"},
+  {"id": "one", "label": "1", "action": {"type": "input", "value": "1"}, "gridPosition": {"row": 3, "column": 0}, "type": "primary"},
+  {"id": "two", "label": "2", "action": {"type": "input", "value": "2"}, "gridPosition": {"row": 3, "column": 1}, "type": "primary"},
+  {"id": "three", "label": "3", "action": {"type": "input", "value": "3"}, "gridPosition": {"row": 3, "column": 2}, "type": "primary"},
+  {"id": "add", "label": "+", "action": {"type": "operator", "value": "+"}, "gridPosition": {"row": 3, "column": 3}, "type": "operator"},
+  {"id": "zero", "label": "0", "action": {"type": "input", "value": "0"}, "gridPosition": {"row": 4, "column": 0}, "type": "primary", "widthMultiplier": 2.0},
+  {"id": "decimal", "label": ".", "action": {"type": "decimal"}, "gridPosition": {"row": 4, "column": 2}, "type": "primary"},
+  {"id": "equals", "label": "=", "action": {"type": "equals"}, "gridPosition": {"row": 4, "column": 3}, "type": "operator"}
+]
+```
+
+🔧 常见修复项：
+- 【空按钮数组】如果buttons为空，使用上述标准配置
+- 【缺失基础按钮】补充缺少的数字和运算符按钮
+- 【错误的action字段】修正按钮的action格式
+- 【位置冲突】调整按钮的gridPosition避免重叠
+- 【缺失必需字段】补充id、label、action、gridPosition、type字段
+- 【继承性错误】恢复用户未要求修改的原有配置
+
+🎯 修复标准：
+- 必须有17个基础按钮，buttons数组不能为空
+- 每个按钮必须有完整的字段：id、label、action、gridPosition、type
+- 布局必须合理（5行4列或其他合适布局）
+- 保持用户要求的视觉效果和主题
+- 确保JSON格式正确
+
+📝 返回格式：
+直接返回修正后的完整JSON配置，确保buttons数组包含所有必需按钮。
+
+请基于用户需求和现有配置，修复生成的配置并返回完整的JSON。"""
 
 @app.get("/health")
 async def health_check():
@@ -449,12 +490,12 @@ async def customize_calculator(request: CustomizationRequest) -> CalculatorConfi
                 elif button_id == 'equals':
                     button['action'] = {'type': 'equals'}
                 elif button_id == 'clear':
-                    button['action'] = {'type': 'clear'}
+                    button['action'] = {'type': 'clearAll'}
                 elif button_id == 'decimal':
                     button['action'] = {'type': 'decimal'}
                 elif button_id == 'negate':
                     button['action'] = {'type': 'negate'}
-        else:
+                else:
                     button['action'] = {'type': 'input', 'value': button.get('label', '0')}
         
         print(f"🔍 修复后按钮数量: {len(layout.get('buttons', []))}")

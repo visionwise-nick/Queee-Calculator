@@ -168,55 +168,50 @@ class CalculatorButton {
   final String label;
   final CalculatorAction action;
   final GridPosition gridPosition;
-  final String type;
-  final double? widthMultiplier;
-  final double? heightMultiplier;
-  final String? backgroundColor;
-  final String? textColor;
+  final String type; // primary, secondary, operator, special
+  final String? customColor;
+  final bool isWide;
+  final double widthMultiplier;
+  final double heightMultiplier;
+  final List<String>? gradientColors;
+  final String? backgroundImage;
   final double? fontSize;
   final double? borderRadius;
   final double? elevation;
-  final List<String>? gradientColors;
-  final String? backgroundImage;
-  final String? description;
 
-  CalculatorButton({
+  const CalculatorButton({
     required this.id,
     required this.label,
     required this.action,
     required this.gridPosition,
     required this.type,
-    this.widthMultiplier,
-    this.heightMultiplier,
-    this.backgroundColor,
-    this.textColor,
+    this.customColor,
+    this.isWide = false,
+    this.widthMultiplier = 1.0,
+    this.heightMultiplier = 1.0,
+    this.gradientColors,
+    this.backgroundImage,
     this.fontSize,
     this.borderRadius,
     this.elevation,
-    this.gradientColors,
-    this.backgroundImage,
-    this.description,
   });
 
   factory CalculatorButton.fromJson(Map<String, dynamic> json) {
     return CalculatorButton(
-      id: json['id'],
-      label: json['label'],
-      action: CalculatorAction.fromJson(json['action']),
-      gridPosition: GridPosition.fromJson(json['gridPosition']),
-      type: json['type'],
-      widthMultiplier: (json['widthMultiplier'] as num?)?.toDouble(),
-      heightMultiplier: (json['heightMultiplier'] as num?)?.toDouble(),
-      backgroundColor: json['backgroundColor'],
-      textColor: json['textColor'],
+      id: json['id'] as String,
+      label: json['label'] as String,
+      action: CalculatorAction.fromJson(json['action'] as Map<String, dynamic>),
+      gridPosition: GridPosition.fromJson(json['gridPosition'] as Map<String, dynamic>),
+      type: json['type'] as String,
+      customColor: json['customColor'] as String?,
+      isWide: json['isWide'] as bool? ?? false,
+      widthMultiplier: (json['widthMultiplier'] as num?)?.toDouble() ?? 1.0,
+      heightMultiplier: (json['heightMultiplier'] as num?)?.toDouble() ?? 1.0,
+      gradientColors: (json['gradientColors'] as List<dynamic>?)?.cast<String>(),
+      backgroundImage: json['backgroundImage'] as String?,
       fontSize: (json['fontSize'] as num?)?.toDouble(),
       borderRadius: (json['borderRadius'] as num?)?.toDouble(),
       elevation: (json['elevation'] as num?)?.toDouble(),
-      gradientColors: json['gradientColors'] != null
-          ? List<String>.from(json['gradientColors'])
-          : null,
-      backgroundImage: json['backgroundImage'],
-      description: json['description'],
     );
   }
 
@@ -227,16 +222,15 @@ class CalculatorButton {
       'action': action.toJson(),
       'gridPosition': gridPosition.toJson(),
       'type': type,
+      'customColor': customColor,
+      'isWide': isWide,
       'widthMultiplier': widthMultiplier,
       'heightMultiplier': heightMultiplier,
-      'backgroundColor': backgroundColor,
-      'textColor': textColor,
+      'gradientColors': gradientColors,
+      'backgroundImage': backgroundImage,
       'fontSize': fontSize,
       'borderRadius': borderRadius,
       'elevation': elevation,
-      'gradientColors': gradientColors,
-      'backgroundImage': backgroundImage,
-      'description': description,
     };
   }
 }
@@ -497,7 +491,7 @@ class CalculatorConfig {
             action: const CalculatorAction(type: CalculatorActionType.input, value: '0'),
             gridPosition: const GridPosition(row: 5, column: 0, columnSpan: 2),
             type: 'primary',
-            widthMultiplier: 2.0,
+            isWide: true,
           ),
           CalculatorButton(
             id: 'decimal',
