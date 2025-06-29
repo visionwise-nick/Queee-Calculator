@@ -30,10 +30,21 @@ class CalculatorAction {
   });
 
   factory CalculatorAction.fromJson(Map<String, dynamic> json) {
+    final actionType = _parseActionType(json['type']?.toString());
+    String? expression = json['expression']?.toString();
+    
+    // 为特殊类型自动设置表达式
+    if (expression == null) {
+      final typeString = json['type']?.toString().toLowerCase();
+      if (typeString == 'percentage' || typeString == 'percent') {
+        expression = 'x*0.01';
+      }
+    }
+    
     return CalculatorAction(
-      type: _parseActionType(json['type']?.toString()),
+      type: actionType,
       value: json['value']?.toString(),
-      expression: json['expression']?.toString(),
+      expression: expression,
     );
   }
 
@@ -68,6 +79,17 @@ class CalculatorAction {
         return CalculatorActionType.parameterSeparator;
       case 'functionexecute':
         return CalculatorActionType.functionExecute;
+      // 处理特殊的类型别名
+      case 'percentage':
+      case 'percent':
+        // 百分比按钮应该是表达式类型，表达式为 x*0.01
+        return CalculatorActionType.expression;
+      case 'memory':
+      case 'memoryrecall':
+      case 'memoryclear':
+      case 'memorystore':
+        // 内存相关功能暂时当作表达式处理
+        return CalculatorActionType.expression;
       default:
         print('⚠️ 未知的action类型: $typeString，使用默认input类型');
         return CalculatorActionType.input;
