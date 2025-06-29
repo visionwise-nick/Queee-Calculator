@@ -495,10 +495,14 @@ async def customize_calculator(request: CustomizationRequest) -> CalculatorConfi
                 button['gridPosition'] = {'row': row, 'column': col}
         
         # 确保所有按钮都有action字段
+        print(f"🔍 开始修复按钮action，当前按钮数量: {len(layout.get('buttons', []))}")
         for button in layout.get('buttons', []):
+            button_id = button.get('id', '')
+            current_action = button.get('action', {})
+            print(f"🔍 按钮 {button_id} 当前action: {current_action}")
+            
             if 'action' not in button:
                 # 根据按钮类型和ID推断action
-                button_id = button.get('id', '')
                 if button_id in ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine']:
                     number_map = {'zero': '0', 'one': '1', 'two': '2', 'three': '3', 'four': '4', 
                                   'five': '5', 'six': '6', 'seven': '7', 'eight': '8', 'nine': '9'}
@@ -519,9 +523,12 @@ async def customize_calculator(request: CustomizationRequest) -> CalculatorConfi
                     button['action'] = {'type': 'decimal'}
                 elif button_id == 'negate':
                     button['action'] = {'type': 'negate'}
-            else:
+                else:
                     # 如果没有匹配的ID，根据标签推断
                     button['action'] = {'type': 'input', 'value': button.get('label', '0')}
+                print(f"✅ 为按钮 {button_id} 添加了action: {button['action']}")
+            else:
+                print(f"⚠️ 按钮 {button_id} 已有action，跳过自动添加")
         
         # 🔧 修复所有按钮中的错误表达式格式
         for button in layout.get('buttons', []):
