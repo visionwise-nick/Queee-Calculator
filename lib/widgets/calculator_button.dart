@@ -125,7 +125,11 @@ class _CalculatorButtonWidgetState extends State<CalculatorButtonWidget>
                     )
                   : null),
               image: backgroundImage != null ? DecorationImage(
-                image: NetworkImage(backgroundImage),
+                image: backgroundImage.startsWith('data:')
+                    ? MemoryImage(
+                        Uri.parse(backgroundImage).data!.contentAsBytes(),
+                      )
+                    : NetworkImage(backgroundImage) as ImageProvider,
                 fit: BoxFit.cover,
                 onError: (exception, stackTrace) {
                   // 如果图片加载失败，显示占位符或默认背景

@@ -196,7 +196,11 @@ class CalculatorScreen extends StatelessWidget {
           ? _buildGradient(theme.backgroundGradient!) 
           : null,
       image: theme.backgroundImage != null ? DecorationImage(
-        image: NetworkImage(theme.backgroundImage!),
+        image: theme.backgroundImage!.startsWith('data:')
+            ? MemoryImage(
+                Uri.parse(theme.backgroundImage!).data!.contentAsBytes(),
+              )
+            : NetworkImage(theme.backgroundImage!) as ImageProvider,
         fit: BoxFit.cover,
         colorFilter: ColorFilter.mode(
           Colors.black.withValues(alpha: 0.3),

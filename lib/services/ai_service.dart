@@ -1,5 +1,7 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 import '../models/calculator_dsl.dart';
 import 'conversation_service.dart';
 import 'dart:async';
@@ -198,5 +200,72 @@ class AIService {
       '给我一个温暖的橙色主题计算器',
       '我需要一个适合夜晚使用的暗色计算器',
     ];
+  }
+
+  /// 上传图片到服务器
+  static Future<Map<String, dynamic>> uploadImage(File imageFile) async {
+    try {
+      final uri = Uri.parse('$_baseUrl/upload-image');
+      final request = http.MultipartRequest('POST', uri);
+      
+      // 添加图片文件
+      final multipartFile = await http.MultipartFile.fromPath(
+        'file',
+        imageFile.path,
+        contentType: MediaType('image', 'jpeg'),
+      );
+      request.files.add(multipartFile);
+      
+      // 发送请求
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+      
+      if (response.statusCode == 200) {
+        final responseData = json.decode(response.body);
+        print('✅ 图片上传成功: ${responseData['image_id']}');
+        return responseData;
+      } else {
+        print('❌ 图片上传失败: ${response.statusCode}');
+        print('响应内容: ${response.body}');
+        throw Exception('图片上传失败: ${response.body}');
+      }
+    } catch (e) {
+      print('❌ 图片上传异常: $e');
+      throw Exception('图片上传失败: $e');
+    }
+  }
+  
+  /// 使用AI生成背景图片
+  static Future<Map<String, dynamic>> generateBackground({
+    required String prompt,
+    String style = 'modern',
+    String size = '1024x1024',
+  }) async {
+    try {
+      final uri = Uri.parse('$_baseUrl/generate-background');
+      final request = http.MultipartRequest('POST', uri);
+      
+      // 添加表单数据
+      request.fields['prompt'] = prompt;
+      request.fields['style'] = style;
+      request.fields['size'] = size;
+      
+      // 发送请求
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+      
+      if (response.statusCode == 200) {
+        final responseData = json.decode(response.body);
+        print('✅ AI背景生成成功');
+        return responseData;
+      } else {
+        print('❌ AI背景生成失败: ${response.statusCode}');
+        print('响应内容: ${response.body}');
+        throw Exception('AI背景生成失败: ${response.body}');
+      }
+    } catch (e) {
+      print('❌ AI背景生成异常: $e');
+      throw Exception('AI背景生成失败: $e');
+    }
   }
 } 
