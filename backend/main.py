@@ -148,52 +148,85 @@ class CustomizationRequest(BaseModel):
     conversation_history: Optional[List[Dict[str, str]]] = Field(default=[], description="对话历史")
     current_config: Optional[Dict[str, Any]] = Field(default=None, description="当前计算器配置")
 
-# 优化的AI系统提示 - 简化但完整
+# 优化的AI系统提示 - 修复按键功能问题
 SYSTEM_PROMPT = """你是专业计算器设计师。必须返回完整的JSON配置，严格按照技术规范。
 
 🔧 必须包含的字段：
-- layout.rows: 行数 (4-8)
-- layout.columns: 列数 (4-6) 
-- layout.buttons: 按钮数组（至少17个基础按钮）
+- layout.rows: 行数 (4-6，避免过多按钮)
+- layout.columns: 列数 (4-5) 
+- layout.buttons: 按钮数组（18-30个按钮，避免过多）
 
-🔧 ACTION字段规范：
-数字：{"type": "input", "value": "数字"}
+🔧 ACTION字段规范（严格遵守）：
+数字：{"type": "input", "value": "0-9"}
+小数点：{"type": "decimal"}
 运算符：{"type": "operator", "value": "+|-|*|/"}
 等号：{"type": "equals"}
 清除：{"type": "clearAll"}
+退格：{"type": "backspace"}
+正负号：{"type": "negate"}
 单参数函数：{"type": "expression", "expression": "函数名(x)"}
 多参数函数：{"type": "multiParamFunction", "value": "函数名"}
 参数分隔符：{"type": "parameterSeparator"}
 函数执行：{"type": "functionExecute"}
 
 🚀 数学函数格式（严格使用）：
-单参数：sin(x), cos(x), tan(x), sqrt(x), x*x, 1/x, abs(x), random(), x!
-多参数：pow, log, atan2, hypot, max, min, avg, sum, gcd, lcm, mod, round
+✅ 正确的单参数函数：
+- sin(x), cos(x), tan(x) - 三角函数
+- sqrt(x), x*x, 1/x - 幂运算
+- abs(x), factorial(x) - 其他函数
+- random() - 随机数（不需要x参数）
+- x*0.15, x*0.18, x*0.20 - 百分比计算
 
-❌ 禁止格式：Math.sin, Math.sqrt, parseInt等JavaScript语法
-✅ 正确格式：sin(x), sqrt(x), x*x等Dart语法
+✅ 正确的多参数函数（必须包含配套按钮）：
+- pow - 幂运算 pow(x,y)
+- log - 对数 log(x,base)
+- max, min - 最值 max(x,y,z...)
+- 汇率转换, 复利计算, 贷款计算, 投资回报 - 金融函数
+
+❌ 禁止的错误格式：
+- Math.sin, Math.sqrt, Math.random - JavaScript语法
+- parseInt, toString - JavaScript方法
+- -x - 错误的负号表达式（应该用negate类型）
+- 不完整的多参数函数（缺少逗号或执行按钮）
+
+🔧 多参数函数完整配置要求：
+如果包含多参数函数，必须同时包含：
+1. 多参数函数按钮：{"type": "multiParamFunction", "value": "pow"}, "label": "x^y"
+2. 参数分隔符按钮：{"type": "parameterSeparator"}, "label": "," 
+3. 函数执行按钮：{"type": "functionExecute"}, "label": "执行"
+
+🏷️ 按钮标签规范：
+- 多参数函数按钮使用清晰的数学符号：
+  * pow → "x^y" 或 "幂运算"
+  * log → "log(x,b)" 或 "对数"
+  * 汇率转换 → "汇率" 或 "💱"
+  * 复利计算 → "复利" 或 "📈"
+  * 贷款计算 → "贷款" 或 "🏠"
+- 参数分隔符统一使用 ","
+- 函数执行按钮使用 "执行" 或 "EXE"
+
+📐 推荐布局：
+- 基础计算器：5行4列，20个按钮
+- 科学计算器：6行5列，25-30个按钮
+- 避免7行以上的布局（按钮太多，用户体验差）
+
+🎯 按钮优先级：
+1. 基础按钮（数字0-9，运算符+－×÷，等号，清除）- 必须
+2. 常用函数（√x，x²，+/-）- 推荐
+3. 三角函数（sin，cos，tan）- 科学计算器
+4. 多参数函数（pow，log，max等）- 高级功能
+
+⚠️ 严格限制原则：
+- 只修改用户明确要求的功能或外观
+- 不得添加用户未要求的新功能
+- 不得更改用户未提及的颜色、布局、按钮
+- 如果用户只要求改颜色，就只改颜色
+- 如果用户只要求添加某个功能，就只添加该功能
+- 禁止"创新"或"改进"用户未要求的部分
 
 🔄 继承性原则：
-- 如果有current_config，只修改用户明确要求的部分
-- 保持未提及的颜色、效果、布局不变
-- 在现有按钮基础上增加新功能
-
-📐 标准布局：
-- 基础计算器：4行4列，17个按钮
-- 科学计算器：6行5列，添加数学函数
-- 高级计算器：7行6列，包含多参数函数和分隔符
-
-🎨 视觉功能：
-- 渐变：gradientColors: ["#起始色", "#结束色"]
-- 背景图：backgroundImage: "描述文字"
-- 按钮尺寸：widthMultiplier (0.5-3.0)
-
-🔧 多参数函数用法：
-1. 点击多参数函数按钮（如pow）→ 开始函数输入模式
-2. 输入第二个参数
-3. 点击逗号按钮 → 分隔参数
-4. 继续输入更多参数（可选）
-5. 点击等号或执行按钮 → 计算结果
+- 如果有current_config，严格保持所有未提及的配置不变
+- 只在用户明确要求的基础上进行最小化修改
 
 必须返回包含theme和layout的完整JSON，确保layout有rows、columns、buttons字段。"""
 
@@ -329,14 +362,15 @@ async def customize_calculator(request: CustomizationRequest) -> CalculatorConfi
 🎯 【用户当前需求】
 {request.user_input}
 
-⚠️ 【重要提醒】
-1. 如果有现有配置，请严格继承所有未被用户要求修改的属性
-2. 只修改用户明确要求改变的部分
-3. 保持现有的视觉风格和配色方案
-4. 确保所有按钮都包含完整的action字段
-5. 生成的配置必须在移动设备上正常显示
+🚨 【严格执行要求】
+1. 只修改用户明确要求的功能或外观
+2. 禁止添加用户未要求的新功能
+3. 禁止更改用户未提及的颜色、布局、按钮
+4. 如果用户只要求改颜色，就只改颜色
+5. 如果用户只要求添加某个功能，就只添加该功能
+6. 严格保持所有未提及的配置不变
 
-请生成符合要求的计算器配置JSON。
+请严格按照用户需求生成配置JSON，不得超出要求范围。
 """
 
         # 调用AI生成配置
@@ -388,6 +422,47 @@ async def customize_calculator(request: CustomizationRequest) -> CalculatorConfi
         theme = fixed_config['theme']
         if 'name' not in theme:
             theme['name'] = '自定义主题'
+        
+        # 🔧 修复渐变色格式问题
+        def fix_gradient_format(gradient_value):
+            """将CSS格式的渐变色转换为字符串数组"""
+            if isinstance(gradient_value, str):
+                # 解析CSS linear-gradient格式
+                if 'linear-gradient' in gradient_value:
+                    # 提取颜色值
+                    import re
+                    colors = re.findall(r'#[0-9a-fA-F]{6}|#[0-9a-fA-F]{3}', gradient_value)
+                    if len(colors) >= 2:
+                        return colors[:2]  # 只取前两个颜色
+                # 如果是逗号分隔的颜色
+                elif ',' in gradient_value:
+                    colors = [color.strip() for color in gradient_value.split(',')]
+                    return colors[:2] if len(colors) >= 2 else None
+                # 单个颜色值，不是渐变
+                else:
+                    return None
+            elif isinstance(gradient_value, list):
+                return gradient_value  # 已经是正确格式
+            else:
+                return None
+        
+        # 修复主题中的所有渐变色字段
+        gradient_fields = [
+            'backgroundGradient', 'displayBackgroundGradient', 
+            'primaryButtonGradient', 'secondaryButtonGradient', 
+            'operatorButtonGradient', 'buttonShadowColors'
+        ]
+        
+        for field in gradient_fields:
+            if field in theme and theme[field] is not None:
+                fixed_gradient = fix_gradient_format(theme[field])
+                if fixed_gradient:
+                    theme[field] = fixed_gradient
+                    print(f"🔧 修复渐变色字段 {field}: {theme[field]}")
+                else:
+                    # 如果无法修复，删除该字段
+                    del theme[field]
+                    print(f"⚠️ 删除无效的渐变色字段 {field}")
         
         layout = fixed_config['layout']
         if 'name' not in layout:
@@ -444,8 +519,60 @@ async def customize_calculator(request: CustomizationRequest) -> CalculatorConfi
                     button['action'] = {'type': 'decimal'}
                 elif button_id == 'negate':
                     button['action'] = {'type': 'negate'}
-                else:
+            else:
                     button['action'] = {'type': 'input', 'value': button.get('label', '0')}
+        
+        # 🔧 修复所有按钮中的错误表达式格式
+        for button in layout.get('buttons', []):
+            action = button.get('action', {})
+            if action.get('type') == 'expression' and action.get('expression'):
+                # 修复常见的错误表达式格式
+                expression = action['expression']
+                expression_fixes = {
+                    'Math.random()': 'random()',
+                    'Math.abs(x)': 'abs(x)',
+                    'Math.sin(x)': 'sin(x)',
+                    'Math.cos(x)': 'cos(x)',
+                    'Math.tan(x)': 'tan(x)',
+                    'Math.sqrt(x)': 'sqrt(x)',
+                    'Math.log(x)': 'log(x)',
+                    'Math.exp(x)': 'exp(x)',
+                    'Math.pow(x,2)': 'x*x',
+                    'Math.pow(x,3)': 'pow(x,3)',
+                    'parseInt(x)': 'x',
+                    '-x': 'negate_placeholder',  # 特殊处理
+                    'x!': 'factorial(x)',
+                }
+                
+                if expression in expression_fixes:
+                    if expression_fixes[expression] == 'negate_placeholder':
+                        # 将错误的-x表达式改为正确的negate类型
+                        button['action'] = {'type': 'negate'}
+                        print(f"🔧 修复按钮 {button.get('id')} 的错误表达式: {expression} → negate类型")
+                    else:
+                        button['action']['expression'] = expression_fixes[expression]
+                        print(f"🔧 修复按钮 {button.get('id')} 的错误表达式: {expression} → {expression_fixes[expression]}")
+            
+            # 修复错误的input类型
+            if action.get('type') == 'input' and action.get('value') in ['(', ')']:
+                # 括号按钮应该是特殊类型，暂时保持input类型但确保功能正确
+                print(f"⚠️ 发现括号按钮 {button.get('id')}，保持input类型")
+            
+            # 检查多参数函数是否配套
+            if action.get('type') == 'multiParamFunction':
+                func_name = action.get('value', '')
+                print(f"🔧 发现多参数函数按钮: {func_name}")
+                # 这里可以添加检查是否有对应的分隔符和执行按钮的逻辑
+            
+            # 🔧 修复按钮中的渐变色格式
+            if 'gradientColors' in button and button['gradientColors'] is not None:
+                fixed_gradient = fix_gradient_format(button['gradientColors'])
+                if fixed_gradient:
+                    button['gradientColors'] = fixed_gradient
+                    print(f"🔧 修复按钮 {button.get('id')} 的渐变色: {button['gradientColors']}")
+                else:
+                    del button['gradientColors']
+                    print(f"⚠️ 删除按钮 {button.get('id')} 的无效渐变色")
             
             # 🔧 修复错误的数学函数action格式
             action = button.get('action', {})
@@ -453,7 +580,7 @@ async def customize_calculator(request: CustomizationRequest) -> CalculatorConfi
             
             # 如果发现错误的function、scientific、math类型，自动修复为expression格式
             if action_type in ['function', 'scientific', 'math']:
-                # 数学函数映射表
+                # 数学函数映射表 - 修复错误格式
                 math_function_map = {
                     'sin': 'sin(x)',
                     'cos': 'cos(x)',
@@ -470,11 +597,18 @@ async def customize_calculator(request: CustomizationRequest) -> CalculatorConfi
                     'cbrt': 'cbrt(x)',
                     'pow2': 'x*x',
                     'pow3': 'pow(x,3)',
-                    'factorial': 'x!',
+                    'factorial': 'factorial(x)',
                     'inverse': '1/x',
                     'abs': 'abs(x)',
                     'random': 'random()',
                     'percent': 'x*0.01',
+                    # 修复常见的错误格式
+                    'Math.sin': 'sin(x)',
+                    'Math.cos': 'cos(x)',
+                    'Math.sqrt': 'sqrt(x)',
+                    'Math.random': 'random()',
+                    'Math.abs': 'abs(x)',
+                    'x!': 'factorial(x)',
                 }
                 
                 # 获取函数名
@@ -486,7 +620,7 @@ async def customize_calculator(request: CustomizationRequest) -> CalculatorConfi
                         'expression': math_function_map[func_name]
                     }
                     print(f"🔧 修复按钮 {button.get('id')} 的action格式: {func_name} → {math_function_map[func_name]}")
-        else:
+                else:
                     # 如果没有映射，保持原有格式但改为expression类型
                     button['action'] = {
                         'type': 'expression',
@@ -574,7 +708,7 @@ async def fix_calculator_config(user_input: str, current_config: dict, generated
         except json.JSONDecodeError as e:
             print(f"❌ AI修复的JSON格式无效: {str(e)}")
             return generated_config
-            
+        
     except Exception as e:
         print(f"AI修复过程中出错: {str(e)}")
         return generated_config

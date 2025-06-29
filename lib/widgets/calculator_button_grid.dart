@@ -32,13 +32,13 @@ class CalculatorButtonGrid extends StatelessWidget {
   /// 计算网格内边距
   double _calculatePadding(BoxConstraints constraints, CalculatorTheme theme) {
     if (theme.buttonSpacing != null) {
-      return theme.buttonSpacing! * 2;
+      return theme.buttonSpacing! * 1.5; // 减少边距倍数
     }
     
     final screenArea = constraints.maxWidth * constraints.maxHeight;
-    if (screenArea > 300000) return 16.0; // 大屏
-    if (screenArea > 150000) return 12.0; // 中屏
-    return 8.0; // 小屏
+    if (screenArea > 300000) return 8.0; // 大屏减少边距
+    if (screenArea > 150000) return 6.0; // 中屏减少边距
+    return 4.0; // 小屏减少边距
   }
 
   /// 构建动态自适应网格
@@ -113,8 +113,8 @@ class CalculatorButtonGrid extends StatelessWidget {
   /// 计算按钮间距
   double _calculateGap(double width, double height) {
     final area = width * height;
-    if (area > 300000) return 6.0; // 减小间距
-    if (area > 150000) return 4.0; 
+    if (area > 300000) return 4.0; // 进一步减小间距
+    if (area > 150000) return 3.0; 
     return 2.0; // 小屏使用更紧凑间距
   }
 
@@ -148,29 +148,34 @@ class CalculatorButtonGrid extends StatelessWidget {
       }
     }
 
-    // 使用SingleChildScrollView防止溢出，并改用紧凑布局
+    // 使用安全的布局，防止溢出
     return LayoutBuilder(
       builder: (context, constraints) {
         final totalHeight = rows.length > 0 
             ? (sizing.baseButtonHeight * rows.length) + (sizing.gap * (rows.length - 1))
             : sizing.baseButtonHeight;
             
-        if (totalHeight > constraints.maxHeight) {
-          // 如果内容超出高度，使用滚动视图
-          return SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: rows,
-            ),
-          );
-        } else {
-          // 如果内容适合，使用普通布局
-          return Column(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.start,
-            children: rows,
-          );
-        }
+        // 总是使用Flexible包装，确保不会溢出
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.start,
+          children: [
+            if (totalHeight > constraints.maxHeight) ...[
+              // 如果内容超出高度，使用滚动视图并限制高度
+              Flexible(
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: rows,
+                  ),
+                ),
+              ),
+            ] else ...[
+              // 如果内容适合，使用普通布局但仍然用Flexible包装
+              ...rows.map((row) => Flexible(child: row)),
+            ],
+          ],
+        );
       },
     );
   }

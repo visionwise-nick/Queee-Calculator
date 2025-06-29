@@ -47,6 +47,13 @@ class CalculatorProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  // 完全重置计算器状态（包括清除所有数据）
+  void resetCalculatorState() {
+    _engine.reset();
+    _engine.clearHistory(); // 清除计算历史
+    notifyListeners();
+  }
+
   // 获取按钮文字颜色
   Color getButtonTextColor(CalculatorButton button) {
     switch (button.type) {

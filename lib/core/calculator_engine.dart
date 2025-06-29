@@ -284,7 +284,19 @@ class CalculatorEngine {
   }
 
   CalculatorState _handleClear() {
-    _state = _state.copyWith(display: '0');
+    // 如果正在输入多参数函数，清除函数状态
+    if (_state.isInputtingFunction) {
+      _state = _state.copyWith(
+        display: '0',
+        waitingForOperand: false,
+        clearFunction: true,
+        functionParameters: [],
+        currentParameterIndex: 0,
+        isInputtingFunction: false,
+      );
+    } else {
+      _state = _state.copyWith(display: '0');
+    }
     return _state;
   }
 
@@ -295,6 +307,10 @@ class CalculatorEngine {
       isError: false,
       clearPreviousValue: true,
       clearOperator: true,
+      clearFunction: true,
+      functionParameters: [],
+      currentParameterIndex: 0,
+      isInputtingFunction: false,
     );
     return _state;
   }
@@ -820,6 +836,59 @@ class CalculatorEngine {
         }
         throw Exception('round函数需要1或2个参数');
       
+      // 金融和货币转换函数
+      case '汇率转换':
+      case 'currency':
+      case 'exchange':
+      case 'exchangerate': // AI生成的英文名称
+        if (params.length != 2) throw Exception('汇率转换函数需要2个参数：金额和汇率');
+        return params[0] * params[1]; // 金额 × 汇率
+      
+      case '复利计算':
+      case 'compound':
+      case 'compoundinterest': // AI生成的英文名称
+        if (params.length == 3) {
+          // 本金、年利率、年数
+          double principal = params[0];
+          double rate = params[1] / 100; // 转换为小数
+          double years = params[2];
+          return principal * math.pow(1 + rate, years);
+        }
+        throw Exception('复利计算需要3个参数：本金、年利率(%)、年数');
+      
+      case '贷款计算':
+      case 'loan':
+      case 'loanpayment': // AI生成的英文名称
+        if (params.length == 3) {
+          // 贷款金额、年利率、年数
+          double principal = params[0];
+          double annualRate = params[1] / 100; // 转换为小数
+          double years = params[2];
+          double monthlyRate = annualRate / 12;
+          double months = years * 12;
+          
+          if (monthlyRate == 0) {
+            return principal / months; // 无利息情况
+          }
+          
+          // 等额本息月供计算公式
+          return principal * (monthlyRate * math.pow(1 + monthlyRate, months)) / 
+                 (math.pow(1 + monthlyRate, months) - 1);
+        }
+        throw Exception('贷款计算需要3个参数：贷款金额、年利率(%)、年数');
+      
+      case '投资回报':
+      case 'roi':
+      case 'investmentreturn': // AI生成的英文名称
+        if (params.length == 2) {
+          // 投资收益、投资成本
+          double profit = params[0];
+          double cost = params[1];
+          if (cost == 0) throw Exception('投资成本不能为0');
+          return (profit / cost) * 100; // 返回百分比
+        }
+        throw Exception('投资回报率需要2个参数：投资收益、投资成本');
+      
       default:
         throw Exception('未知的多参数函数：$functionName');
     }
@@ -875,6 +944,29 @@ class CalculatorEngine {
         } else {
           return '精确四舍五入 round(${params[0]}, ${params[1].toInt()}位小数)';
         }
+      
+      // 金融函数描述
+      case '汇率转换':
+      case 'currency':
+      case 'exchange':
+      case 'exchangerate':
+        return '汇率转换 ${params[0]} × ${params[1]}';
+      
+      case '复利计算':
+      case 'compound':
+      case 'compoundinterest':
+        return '复利计算 本金${params[0]}，年利率${params[1]}%，${params[2]}年';
+      
+      case '贷款计算':
+      case 'loan':
+      case 'loanpayment':
+        return '贷款月供 本金${params[0]}，年利率${params[1]}%，${params[2]}年';
+      
+      case '投资回报':
+      case 'roi':
+      case 'investmentreturn':
+        return '投资回报率 收益${params[0]}，成本${params[1]}';
+      
       default:
         return '多参数函数 $functionName(${params.join(', ')})';
     }

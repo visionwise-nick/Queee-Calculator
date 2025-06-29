@@ -5,6 +5,7 @@ import '../models/calculator_dsl.dart';
 import '../widgets/calculator_display.dart';
 import '../widgets/calculator_button_grid.dart';
 import '../widgets/calculation_history_dialog.dart';
+import '../widgets/multi_param_function_help_dialog.dart';
 import 'ai_customize_screen.dart';
 import 'dart:math' as math;
 
@@ -40,7 +41,7 @@ class CalculatorScreen extends StatelessWidget {
     
     // 计算最优的显示区域高度
     final displayHeight = _calculateOptimalDisplayHeight(context, layout, screenHeight);
-    final titleBarHeight = 80.0;
+    final titleBarHeight = 60.0; // 更新为新的标题栏高度
     final availableHeight = screenHeight - titleBarHeight;
     
     // 确保按钮区域有足够空间，至少占60%的可用高度
@@ -66,7 +67,7 @@ class CalculatorScreen extends StatelessWidget {
         Expanded(
           child: Container(
             height: buttonAreaHeight,
-            padding: const EdgeInsets.all(8.0),
+            padding: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 2.0), // 减少边距
             child: CalculatorButtonGrid(),
           ),
         ),
@@ -102,52 +103,38 @@ class CalculatorScreen extends StatelessWidget {
     }
     
     // 确保最小和最大值，为按钮区域预留更多空间
-    return baseHeight.clamp(60.0, screenHeight * 0.25);
+    // 桌面端需要更多的显示空间
+    final minHeight = MediaQuery.of(context).size.width > 600 ? 80.0 : 60.0;
+    return baseHeight.clamp(minHeight, screenHeight * 0.25);
   }
 
   /// 构建标题栏
   Widget _buildTitleBar(BuildContext context, CalculatorProvider provider) {
     return Container(
-      height: 80,
-      padding: const EdgeInsets.all(16),
+      height: 60, // 减少标题栏高度
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            'Queee Calculator',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: provider.getDisplayTextColor(),
+          Expanded(
+            child: Text(
+              'Queee Calculator',
+              style: TextStyle(
+                fontSize: 18, // 稍微减小字体
+                fontWeight: FontWeight.bold,
+                color: provider.getDisplayTextColor(),
+              ),
             ),
           ),
+          // 按钮组 - 使用更紧凑的布局
           Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
               // 运算历史按钮
-              IconButton(
-                icon: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFFFF6B35), Color(0xFFF7931E)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.orange.withOpacity(0.3),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: const Icon(
-                    Icons.history,
-                    color: Colors.white,
-                    size: 20,
-                  ),
-                ),
+              _buildCompactIconButton(
+                icon: Icons.history,
+                colors: [Color(0xFFFF6B35), Color(0xFFF7931E)],
+                shadowColor: Colors.orange,
                 onPressed: () {
                   showDialog(
                     context: context,
@@ -160,32 +147,28 @@ class CalculatorScreen extends StatelessWidget {
                 },
                 tooltip: '运算历史',
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 4),
+              // 多参数函数帮助按钮
+              _buildCompactIconButton(
+                icon: Icons.help_outline,
+                colors: [Color(0xFF10B981), Color(0xFF059669)],
+                shadowColor: Colors.green,
+                onPressed: () {
+                  showDialog(
+                    context: context,
+                    barrierDismissible: true,
+                    barrierColor: Colors.black.withValues(alpha: 0.7),
+                    builder: (context) => const MultiParamFunctionHelpDialog(),
+                  );
+                },
+                tooltip: '多参数函数帮助',
+              ),
+              const SizedBox(width: 4),
               // AI助手按钮
-              IconButton(
-                icon: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.purple.withOpacity(0.3),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: const Icon(
-                    Icons.chat_bubble_outline,
-                    color: Colors.white,
-                    size: 20,
-                  ),
-                ),
+              _buildCompactIconButton(
+                icon: Icons.chat_bubble_outline,
+                colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+                shadowColor: Colors.purple,
                 onPressed: () {
                   Navigator.push(
                     context,
@@ -243,6 +226,49 @@ class CalculatorScreen extends StatelessWidget {
     } else {
       return Colors.grey;
     }
+  }
+
+  /// 构建紧凑的图标按钮
+  Widget _buildCompactIconButton({
+    required IconData icon,
+    required List<Color> colors,
+    required Color shadowColor,
+    required VoidCallback onPressed,
+    required String tooltip,
+  }) {
+    return SizedBox(
+      width: 36,
+      height: 36,
+      child: IconButton(
+        onPressed: onPressed,
+        tooltip: tooltip,
+        padding: EdgeInsets.zero,
+        icon: Container(
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: colors,
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(8),
+            boxShadow: [
+              BoxShadow(
+                color: shadowColor.withOpacity(0.3),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Icon(
+            icon,
+            color: Colors.white,
+            size: 16,
+          ),
+        ),
+      ),
+    );
   }
 }
 

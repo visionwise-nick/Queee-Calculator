@@ -514,6 +514,9 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
               final defaultConfig = CalculatorConfig.createDefault();
               await provider.applyConfig(defaultConfig);
               
+              // 完全重置计算器状态，包括清除所有计算数据
+              provider.resetCalculatorState();
+              
               // 删除当前对话会话
               if (_currentSession != null) {
                 await ConversationService.deleteSession(_currentSession!.id);
@@ -523,13 +526,15 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
               await _loadCurrentSession();
               
               // 显示重置成功提示
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: const Text('✅ 已重置为默认计算器，开始新的设计对话！'),
-                  backgroundColor: Colors.green.shade600,
-                  duration: const Duration(seconds: 2),
-                ),
-              );
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: const Text('✅ 已重置为默认计算器，开始新的设计对话！'),
+                    backgroundColor: Colors.green.shade600,
+                    duration: const Duration(seconds: 2),
+                  ),
+                );
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.orange,
