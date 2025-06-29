@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/calculator_provider.dart';
 import '../models/calculator_dsl.dart';
+import 'dart:convert';
 
 class CalculatorButtonWidget extends StatefulWidget {
   final CalculatorButton button;
@@ -235,13 +236,40 @@ class _CalculatorButtonWidgetState extends State<CalculatorButtonWidget>
   /// 构建背景图像
   DecorationImage? _buildBackgroundImage(String? backgroundImage) {
     if (backgroundImage != null) {
-      return DecorationImage(
-        image: NetworkImage(backgroundImage),
-        fit: BoxFit.cover,
-        onError: (exception, stackTrace) {
-          print('Failed to load background image: $backgroundImage');
-        },
-      );
+      // 过滤掉明显无效的URL格式
+      if (backgroundImage.startsWith('url(') && backgroundImage.endsWith(')')) {
+        // 这是CSS样式的url()格式，不是有效的图片URL
+        print('跳过无效的CSS格式按钮背景图片: $backgroundImage');
+        return null;
+      }
+
+      if (backgroundImage.startsWith('data:image/')) {
+        // 处理base64格式
+        try {
+          final base64Data = backgroundImage.split(',').last;
+          final bytes = base64Decode(base64Data);
+          return DecorationImage(
+            image: MemoryImage(bytes),
+            fit: BoxFit.cover,
+          );
+        } catch (e) {
+          print('Failed to decode base64 button background image: $e');
+          return null;
+        }
+      } else if (Uri.tryParse(backgroundImage)?.isAbsolute == true) {
+        // 处理有效的URL格式
+        return DecorationImage(
+          image: NetworkImage(backgroundImage),
+          fit: BoxFit.cover,
+          onError: (exception, stackTrace) {
+            print('Failed to load button background image: $backgroundImage');
+          },
+        );
+      } else {
+        // 跳过无效格式
+        print('跳过无效格式的按钮背景图片: $backgroundImage');
+        return null;
+      }
     }
     
     // 检查是否有背景图案

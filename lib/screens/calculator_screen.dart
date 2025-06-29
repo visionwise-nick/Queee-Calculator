@@ -7,10 +7,16 @@ import '../widgets/calculator_button_grid.dart';
 import '../widgets/calculation_history_dialog.dart';
 import '../widgets/multi_param_function_help_dialog.dart';
 import 'ai_customize_screen.dart';
+import 'app_background_screen.dart';
 import 'dart:math' as math;
+import 'dart:convert';
+import 'dart:typed_data';
 
 class CalculatorScreen extends StatelessWidget {
   const CalculatorScreen({super.key});
+  
+  // 添加背景图缓存，避免重复解码造成闪烁
+  static final Map<String, MemoryImage> _backgroundImageCache = <String, MemoryImage>{};
 
   @override
   Widget build(BuildContext context) {
@@ -20,7 +26,7 @@ class CalculatorScreen extends StatelessWidget {
         
         return Scaffold(
           body: Container(
-            decoration: _buildBackgroundDecoration(theme),
+            decoration: _buildBackgroundDecoration(provider.config),
             child: SafeArea(
               child: LayoutBuilder(
                 builder: (context, constraints) {
@@ -179,6 +185,27 @@ class CalculatorScreen extends StatelessWidget {
                 },
                 tooltip: 'AI 助手',
               ),
+              const SizedBox(width: 4),
+              // APP背景设置按钮
+              _buildCompactIconButton(
+                icon: Icons.wallpaper,
+                colors: [Color(0xFFEC4899), Color(0xFFF43F5E)],
+                shadowColor: Colors.pink,
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => AppBackgroundScreen(
+                        currentConfig: provider.config,
+                        onConfigUpdated: (newConfig) {
+                          provider.applyConfig(newConfig);
+                        },
+                      ),
+                    ),
+                  );
+                },
+                tooltip: 'APP背景',
+              ),
             ],
           ),
         ],
@@ -187,7 +214,27 @@ class CalculatorScreen extends StatelessWidget {
   }
 
   /// 构建背景装饰
-  BoxDecoration _buildBackgroundDecoration(CalculatorTheme theme) {
+  BoxDecoration _buildBackgroundDecoration(CalculatorConfig config) {
+    final theme = config.theme;
+    final appBackground = config.appBackground;
+    
+    // 优先使用APP背景配置
+    if (appBackground?.backgroundImageUrl != null) {
+      return BoxDecoration(
+        image: DecorationImage(
+          image: _getCachedBackgroundImage(appBackground!.backgroundImageUrl!),
+          fit: BoxFit.cover,
+          colorFilter: appBackground.backgroundOpacity != null && appBackground.backgroundOpacity! < 1.0
+              ? ColorFilter.mode(
+                  Colors.black.withValues(alpha: 1.0 - appBackground.backgroundOpacity!),
+                  BlendMode.darken,
+                )
+              : null,
+        ),
+      );
+    }
+    
+    // 回退到主题背景
     return BoxDecoration(
       color: theme.backgroundGradient == null && theme.backgroundImage == null 
           ? _parseColor(theme.backgroundColor) 
@@ -195,15 +242,72 @@ class CalculatorScreen extends StatelessWidget {
       gradient: theme.backgroundGradient != null 
           ? _buildGradient(theme.backgroundGradient!) 
           : null,
-      image: theme.backgroundImage != null ? DecorationImage(
-        image: NetworkImage(theme.backgroundImage!),
+      image: _buildThemeBackgroundImage(theme.backgroundImage),
+    );
+  }
+
+  /// 构建主题背景图像
+  DecorationImage? _buildThemeBackgroundImage(String? backgroundImage) {
+    if (backgroundImage == null) {
+      return null;
+    }
+
+    // 过滤掉明显无效的URL格式
+    if (backgroundImage.startsWith('url(') && backgroundImage.endsWith(')')) {
+      // 这是CSS样式的url()格式，不是有效的图片URL
+      print('跳过无效的CSS格式主题背景图片: $backgroundImage');
+      return null;
+    }
+
+    if (backgroundImage.startsWith('data:image/')) {
+      // 处理base64格式
+      try {
+        final base64Data = backgroundImage.split(',').last;
+        final bytes = base64Decode(base64Data);
+        return DecorationImage(
+          image: MemoryImage(bytes),
+          fit: BoxFit.cover,
+          colorFilter: ColorFilter.mode(
+            Colors.black.withValues(alpha: 0.3),
+            BlendMode.darken,
+          ),
+        );
+      } catch (e) {
+        print('Failed to decode base64 theme background image: $e');
+        return null;
+      }
+    } else if (Uri.tryParse(backgroundImage)?.isAbsolute == true) {
+      // 处理有效的URL格式
+      return DecorationImage(
+        image: NetworkImage(backgroundImage),
         fit: BoxFit.cover,
         colorFilter: ColorFilter.mode(
           Colors.black.withValues(alpha: 0.3),
           BlendMode.darken,
         ),
-      ) : null,
-    );
+      );
+    } else {
+      // 跳过无效格式
+      print('跳过无效格式的主题背景图片: $backgroundImage');
+      return null;
+    }
+  }
+
+  /// 获取缓存的背景图片，避免重复解码造成闪烁
+  MemoryImage _getCachedBackgroundImage(String base64String) {
+    if (!_backgroundImageCache.containsKey(base64String)) {
+      final bytes = _base64ToBytes(base64String);
+      _backgroundImageCache[base64String] = MemoryImage(bytes);
+    }
+    return _backgroundImageCache[base64String]!;
+  }
+
+  /// 将base64字符串转换为字节数组
+  Uint8List _base64ToBytes(String base64String) {
+    if (base64String.startsWith('data:')) {
+      base64String = base64String.split(',')[1];
+    }
+    return base64Decode(base64String);
   }
 
   /// 构建渐变色

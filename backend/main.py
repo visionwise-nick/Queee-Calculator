@@ -59,7 +59,7 @@ AVAILABLE_MODELS = {
         "description": "最强推理模型，复杂任务专用，响应时间较长"
     },
     "flash": {
-        "name": "gemini-2.0-flash-exp", 
+        "name": "gemini-2.0-flash", 
         "display_name": "Gemini 2.0 Flash",
         "description": "快速响应模型，均衡性能，推荐日常使用"
     },
@@ -67,6 +67,11 @@ AVAILABLE_MODELS = {
         "name": "gemini-2.0-flash-thinking-exp",
         "display_name": "Gemini 2.0 Flash Thinking", 
         "description": "思考推理模型，带有推理过程展示"
+    },
+    "flash-image": {
+        "name": "gemini-2.0-flash-preview-image-generation",
+        "display_name": "Gemini 2.0 Flash Image Generation",
+        "description": "图像生成专用模型，支持文本和图像输出"
     }
 }
 
@@ -755,62 +760,103 @@ class ImageGenerationRequest(BaseModel):
     size: Optional[str] = Field(default="1024x1024", description="图像尺寸")
     quality: Optional[str] = Field(default="standard", description="图像质量")
 
+class AppBackgroundRequest(BaseModel):
+    prompt: str = Field(..., description="背景图生成提示词")
+    style: Optional[str] = Field(default="modern", description="背景风格")
+    size: Optional[str] = Field(default="1080x1920", description="背景图尺寸，适配手机屏幕")
+    quality: Optional[str] = Field(default="high", description="图像质量")
+    theme: Optional[str] = Field(default="calculator", description="主题类型：calculator, abstract, nature, tech等")
+
 @app.post("/generate-image")
 async def generate_image(request: ImageGenerationRequest):
-    """使用Google Imagen生成图像"""
+    """使用Gemini 2.0 Flash原生图像生成功能"""
     try:
-        # 构建生成图像的提示词
+        # 构建优化的图像生成提示词
         enhanced_prompt = f"""
+        Generate a high-quality image for calculator theme:
         {request.prompt}
         
         Style: {request.style}
-        High quality, detailed, professional
+        Requirements:
+        - High resolution and professional quality
+        - Suitable for calculator app background or button design
+        - Clean, modern aesthetic
+        - Good contrast for readability
         """
         
-        # 使用Gemini模型生成图像描述并优化提示词
-        model = get_current_model()
+        print(f"🎨 开始生成图像，提示词: {enhanced_prompt}")
         
-        # 先让AI优化提示词
-        optimization_prompt = f"""
-        请将以下提示词优化为适合AI图像生成的英文提示词，要求：
-        1. 使用专业的图像生成术语
-        2. 包含风格、质量、细节等描述
-        3. 适合作为计算器按钮或背景图案
-        4. 返回优化后的英文提示词
+        # 使用Gemini 2.0 Flash图像生成模型
+        image_model = genai.GenerativeModel("gemini-2.0-flash-preview-image-generation")
         
-        原始提示词：{request.prompt}
-        风格：{request.style}
-        """
-        
-        response = model.generate_content([
-            {"role": "user", "parts": [optimization_prompt]}
-        ])
-        
-        optimized_prompt = response.text.strip()
-        print(f"🎨 优化后的提示词: {optimized_prompt}")
-        
-        # 模拟图像生成（实际应用中需要接入真实的图像生成API）
-        # 这里返回一个占位符URL，实际部署时需要替换为真实的图像生成服务
-        image_url = f"https://via.placeholder.com/{request.size.replace('x', 'x')}/FF6B6B/FFFFFF?text=AI+Generated+Image"
-        
-        return {
-            "success": True,
-            "image_url": image_url,
-            "original_prompt": request.prompt,
-            "optimized_prompt": optimized_prompt,
-            "style": request.style,
-            "size": request.size,
-            "quality": request.quality,
-            "message": "图像生成成功（演示模式）"
+        # 生成图像 - 使用正确的配置
+        generation_config = {
+            "response_modalities": ["TEXT", "IMAGE"]
         }
+        
+        response = image_model.generate_content(
+            contents=[enhanced_prompt],
+            generation_config=generation_config
+        )
+        
+        # 检查响应中是否包含图像
+        if hasattr(response, 'parts') and response.parts:
+            for part in response.parts:
+                if hasattr(part, 'inline_data') and part.inline_data:
+                    # 获取生成的图像数据
+                    image_data = part.inline_data.data
+                    mime_type = part.inline_data.mime_type
+                    
+                    # 检查数据是否已经是base64格式
+                    if isinstance(image_data, bytes):
+                        # 如果是bytes，需要转换为base64
+                        import base64
+                        image_base64_data = base64.b64encode(image_data).decode('utf-8')
+                    else:
+                        # 如果已经是字符串，直接使用
+                        image_base64_data = str(image_data)
+                    
+                    # 将图像数据转换为base64 URL
+                    image_base64 = f"data:{mime_type};base64,{image_base64_data}"
+                    
+                    print(f"✅ 图像生成成功，MIME类型: {mime_type}")
+                    
+                    return {
+                        "success": True,
+                        "image_url": image_base64,
+                        "image_data": image_base64_data,
+                        "mime_type": mime_type,
+                        "original_prompt": request.prompt,
+                        "enhanced_prompt": enhanced_prompt,
+                        "style": request.style,
+                        "size": request.size,
+                        "quality": request.quality,
+                        "message": "图像生成成功"
+                    }
+        
+        # 如果没有图像数据，检查文本响应
+        if response.text:
+            print(f"🤖 AI响应: {response.text}")
+            
+        # 如果没有生成图像，返回错误
+        raise HTTPException(status_code=500, detail="未能生成图像，请检查提示词或稍后重试")
         
     except Exception as e:
         print(f"图像生成失败: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"图像生成失败: {str(e)}")
+        # 返回占位符图像作为备用方案
+        placeholder_url = f"https://via.placeholder.com/{request.size.replace('x', 'x')}/4A90E2/FFFFFF?text=AI+Image+Error"
+        
+        return {
+            "success": False,
+            "image_url": placeholder_url,
+            "original_prompt": request.prompt,
+            "error": str(e),
+            "message": f"图像生成失败，使用占位符: {str(e)}"
+        }
 
 @app.post("/generate-pattern")
 async def generate_pattern(request: ImageGenerationRequest):
-    """生成按钮背景图案"""
+    """使用Gemini 2.0 Flash生成按钮背景图案"""
     try:
         # 针对按钮图案的特殊处理
         pattern_prompt = f"""
@@ -818,54 +864,232 @@ async def generate_pattern(request: ImageGenerationRequest):
         {request.prompt}
         
         Requirements:
-        - Seamless and tileable
-        - Suitable for button background
-        - Not too busy or distracting
+        - Seamless and tileable pattern
+        - Suitable for button background use
+        - Subtle and not distracting from text
         - Style: {request.style}
-        - High contrast and readability
+        - High contrast for text readability
+        - Professional and clean design
+        - 256x256 pixels optimal size
         """
         
-        # 使用AI优化图案提示词
-        model = get_current_model()
+        print(f"🎨 开始生成图案，提示词: {pattern_prompt}")
         
-        optimization_prompt = f"""
-        请将以下提示词优化为适合生成按钮背景图案的英文提示词：
+        # 使用Gemini 2.0 Flash图像生成模型
+        image_model = genai.GenerativeModel("gemini-2.0-flash-preview-image-generation")
         
-        原始需求：{request.prompt}
-        风格：{request.style}
-        
-        要求：
-        1. 图案应该是无缝平铺的
-        2. 适合作为计算器按钮背景
-        3. 不能太花哨，要保证文字可读性
-        4. 包含专业的图案设计术语
-        
-        返回优化后的英文提示词。
-        """
-        
-        response = model.generate_content([
-            {"role": "user", "parts": [optimization_prompt]}
-        ])
-        
-        optimized_prompt = response.text.strip()
-        print(f"🎨 优化后的图案提示词: {optimized_prompt}")
-        
-        # 模拟图案生成
-        pattern_url = f"https://via.placeholder.com/256x256/4A90E2/FFFFFF?text=Pattern"
-        
-        return {
-            "success": True,
-            "pattern_url": pattern_url,
-            "original_prompt": request.prompt,
-            "optimized_prompt": optimized_prompt,
-            "style": request.style,
-            "is_seamless": True,
-            "message": "图案生成成功（演示模式）"
+        # 生成图案 - 使用正确的配置
+        generation_config = {
+            "response_modalities": ["TEXT", "IMAGE"]
         }
+        
+        response = image_model.generate_content(
+            contents=[pattern_prompt],
+            generation_config=generation_config
+        )
+        
+        # 检查响应中是否包含图像
+        if hasattr(response, 'parts') and response.parts:
+            for part in response.parts:
+                if hasattr(part, 'inline_data') and part.inline_data:
+                    # 获取生成的图像数据
+                    image_data = part.inline_data.data
+                    mime_type = part.inline_data.mime_type
+                    
+                    # 检查数据是否已经是base64格式
+                    if isinstance(image_data, bytes):
+                        # 如果是bytes，需要转换为base64
+                        import base64
+                        pattern_base64_data = base64.b64encode(image_data).decode('utf-8')
+                    else:
+                        # 如果已经是字符串，直接使用
+                        pattern_base64_data = str(image_data)
+                    
+                    # 将图像数据转换为base64 URL
+                    pattern_base64 = f"data:{mime_type};base64,{pattern_base64_data}"
+                    
+                    print(f"✅ 图案生成成功，MIME类型: {mime_type}")
+                    
+                    return {
+                        "success": True,
+                        "pattern_url": pattern_base64,
+                        "image_data": pattern_base64_data,
+                        "mime_type": mime_type,
+                        "original_prompt": request.prompt,
+                        "enhanced_prompt": pattern_prompt,
+                        "style": request.style,
+                        "is_seamless": True,
+                        "message": "图案生成成功"
+                    }
+        
+        # 如果没有图像数据，检查文本响应
+        if response.text:
+            print(f"🤖 AI响应: {response.text}")
+            
+        # 如果没有生成图案，返回错误
+        raise HTTPException(status_code=500, detail="未能生成图案，请检查提示词或稍后重试")
         
     except Exception as e:
         print(f"图案生成失败: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"图案生成失败: {str(e)}")
+        # 返回占位符图案作为备用方案
+        placeholder_url = f"https://via.placeholder.com/256x256/4A90E2/FFFFFF?text=Pattern+Error"
+        
+        return {
+            "success": False,
+            "pattern_url": placeholder_url,
+            "original_prompt": request.prompt,
+            "error": str(e),
+            "message": f"图案生成失败，使用占位符: {str(e)}"
+        }
+
+@app.post("/generate-app-background")
+async def generate_app_background(request: AppBackgroundRequest):
+    """生成APP整体背景图"""
+    try:
+        # 构建专门的APP背景图生成提示词
+        background_prompt = f"""
+        Generate a beautiful background image for a calculator mobile app:
+        {request.prompt}
+        
+        Requirements:
+        - Mobile app background (portrait orientation {request.size})
+        - Style: {request.style} with {request.theme} theme
+        - Subtle and elegant, won't interfere with UI elements
+        - Good contrast for calculator buttons and display
+        - Professional and modern aesthetic
+        - High quality and resolution
+        - Colors should complement calculator interface
+        - Avoid too busy patterns that distract from functionality
+        
+        Theme context: {request.theme}
+        Quality: {request.quality}
+        """
+        
+        print(f"🎨 开始生成APP背景图，提示词: {background_prompt}")
+        
+        # 使用Gemini 2.0 Flash图像生成模型
+        image_model = genai.GenerativeModel("gemini-2.0-flash-preview-image-generation")
+        
+        # 生成背景图 - 使用正确的配置
+        generation_config = {
+            "response_modalities": ["TEXT", "IMAGE"]
+        }
+        
+        response = image_model.generate_content(
+            contents=[background_prompt],
+            generation_config=generation_config
+        )
+        
+        # 检查响应中是否包含图像
+        if hasattr(response, 'parts') and response.parts:
+            for part in response.parts:
+                if hasattr(part, 'inline_data') and part.inline_data:
+                    # 获取生成的图像数据
+                    image_data = part.inline_data.data
+                    mime_type = part.inline_data.mime_type
+                    
+                    # 检查数据是否已经是base64格式
+                    if isinstance(image_data, bytes):
+                        # 如果是bytes，需要转换为base64
+                        import base64
+                        background_base64_data = base64.b64encode(image_data).decode('utf-8')
+                    else:
+                        # 如果已经是字符串，直接使用
+                        background_base64_data = str(image_data)
+                    
+                    # 将图像数据转换为base64 URL
+                    background_base64 = f"data:{mime_type};base64,{background_base64_data}"
+                    
+                    print(f"✅ APP背景图生成成功，MIME类型: {mime_type}")
+                    
+                    return {
+                        "success": True,
+                        "background_url": background_base64,
+                        "image_data": background_base64_data,
+                        "mime_type": mime_type,
+                        "original_prompt": request.prompt,
+                        "enhanced_prompt": background_prompt,
+                        "style": request.style,
+                        "theme": request.theme,
+                        "size": request.size,
+                        "quality": request.quality,
+                        "message": "APP背景图生成成功",
+                        "usage_tips": "此背景图已优化用于计算器应用，确保UI元素的可读性"
+                    }
+        
+        # 如果没有图像数据，检查文本响应
+        if response.text:
+            print(f"🤖 AI响应: {response.text}")
+            
+        # 如果没有生成背景图，返回错误
+        raise HTTPException(status_code=500, detail="未能生成APP背景图，请检查提示词或稍后重试")
+        
+    except Exception as e:
+        print(f"APP背景图生成失败: {str(e)}")
+        # 返回占位符背景图作为备用方案
+        placeholder_url = f"https://via.placeholder.com/{request.size.replace('x', 'x')}/1E1E1E/FFFFFF?text=Background+Error"
+        
+        return {
+            "success": False,
+            "background_url": placeholder_url,
+            "original_prompt": request.prompt,
+            "error": str(e),
+            "message": f"APP背景图生成失败，使用占位符: {str(e)}"
+        }
+
+@app.get("/background-presets")
+async def get_background_presets():
+    """获取预设的背景图模板"""
+    return {
+        "success": True,
+        "presets": [
+            {
+                "id": "modern_gradient",
+                "name": "现代渐变",
+                "description": "简洁的渐变背景，适合现代风格",
+                "prompt": "modern gradient background with subtle geometric patterns",
+                "style": "modern",
+                "theme": "calculator",
+                "preview_url": "https://via.placeholder.com/300x500/4A90E2/FFFFFF?text=Modern+Gradient"
+            },
+            {
+                "id": "tech_circuit",
+                "name": "科技电路",
+                "description": "科技感电路板背景，适合数字风格",
+                "prompt": "futuristic circuit board pattern with neon accents",
+                "style": "cyberpunk",
+                "theme": "tech",
+                "preview_url": "https://via.placeholder.com/300x500/0F0F23/00FF88?text=Tech+Circuit"
+            },
+            {
+                "id": "minimal_abstract",
+                "name": "极简抽象",
+                "description": "简约抽象几何图形背景",
+                "prompt": "minimal abstract geometric shapes with soft colors",
+                "style": "minimal",
+                "theme": "abstract",
+                "preview_url": "https://via.placeholder.com/300x500/F5F5F5/333333?text=Minimal+Abstract"
+            },
+            {
+                "id": "nature_calm",
+                "name": "自然宁静",
+                "description": "自然风景背景，营造宁静氛围",
+                "prompt": "calm nature landscape with soft lighting",
+                "style": "realistic",
+                "theme": "nature",
+                "preview_url": "https://via.placeholder.com/300x500/87CEEB/FFFFFF?text=Nature+Calm"
+            },
+            {
+                "id": "dark_professional",
+                "name": "专业深色",
+                "description": "专业的深色背景，适合商务使用",
+                "prompt": "professional dark background with subtle texture",
+                "style": "professional",
+                "theme": "calculator",
+                "preview_url": "https://via.placeholder.com/300x500/1A1A1A/FFFFFF?text=Dark+Professional"
+            }
+        ]
+    }
 
 if __name__ == "__main__":
     import uvicorn

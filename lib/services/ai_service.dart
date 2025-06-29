@@ -313,4 +313,77 @@ class AIService {
       throw Exception('网络请求失败: $e');
     }
   }
+
+  /// AI生成APP背景图
+  static Future<Map<String, dynamic>> generateAppBackground({
+    required String prompt,
+    String style = 'modern',
+    String size = '1080x1920',
+    String quality = 'high',
+    String theme = 'calculator',
+  }) async {
+    try {
+      print('🎨 正在生成APP背景图...');
+      print('提示词: $prompt');
+      print('风格: $style');
+      
+      final response = await http.post(
+        Uri.parse('$_baseUrl/generate-app-background'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'prompt': prompt,
+          'style': style,
+          'size': size,
+          'quality': quality,
+          'theme': theme,
+        }),
+      ).timeout(const Duration(seconds: 60));
+
+      print('📡 收到响应: ${response.statusCode}');
+      
+      if (response.statusCode == 200) {
+        final result = json.decode(response.body);
+        print('✅ APP背景图生成成功');
+        return result;
+      } else {
+        print('❌ APP背景图生成失败: ${response.statusCode}');
+        print('错误详情: ${response.body}');
+        throw Exception('APP背景图生成失败: ${response.body}');
+      }
+    } catch (e) {
+      print('❌ APP背景图生成请求失败: $e');
+      throw Exception('网络请求失败: $e');
+    }
+  }
+
+  /// 获取APP背景图预设风格
+  static Future<Map<String, dynamic>> getBackgroundPresets() async {
+    try {
+      final response = await http.get(Uri.parse('$_baseUrl/background-presets'));
+      
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        throw Exception('获取背景预设失败: ${response.body}');
+      }
+    } catch (e) {
+      throw Exception('网络请求失败: $e');
+    }
+  }
+
+  /// 获取APP背景图生成示例提示词
+  static List<String> getBackgroundSamplePrompts() {
+    return [
+      '优雅的现代几何背景，适合计算器应用',
+      '深色科技风背景，带有微妙的数字图案',
+      '温暖的渐变背景，从橙色到红色',
+      '极简主义的纯色背景，带有细微纹理',
+      '未来主义的霓虹背景，蓝色和紫色调',
+      '专业的商务风格背景，深蓝色调',
+      '自然风格的背景，绿色渐变',
+      '复古风格的背景，暖色调',
+      '抽象艺术背景，多彩几何图案',
+      '夜空主题背景，深色带星点',
+    ];
+  }
 } 

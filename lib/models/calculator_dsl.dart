@@ -1,5 +1,82 @@
 import '../core/calculator_engine.dart';
 
+/// APP背景图配置
+class AppBackgroundConfig {
+  final String? backgroundImageUrl;
+  final String? backgroundType; // 'color', 'gradient', 'image', 'pattern'
+  final String? backgroundColor;
+  final List<String>? backgroundGradient;
+  final String? backgroundPattern;
+  final double? backgroundOpacity;
+  final String? backgroundBlendMode; // multiply, overlay, screen, etc.
+  final bool? parallaxEffect;
+  final double? parallaxIntensity;
+  
+  const AppBackgroundConfig({
+    this.backgroundImageUrl,
+    this.backgroundType = 'color',
+    this.backgroundColor = '#000000',
+    this.backgroundGradient,
+    this.backgroundPattern,
+    this.backgroundOpacity = 1.0,
+    this.backgroundBlendMode,
+    this.parallaxEffect = false,
+    this.parallaxIntensity = 0.1,
+  });
+
+  factory AppBackgroundConfig.fromJson(Map<String, dynamic> json) {
+    return AppBackgroundConfig(
+      backgroundImageUrl: json['backgroundImageUrl'] as String?,
+      backgroundType: json['backgroundType'] as String? ?? 'color',
+      backgroundColor: json['backgroundColor'] as String? ?? '#000000',
+      backgroundGradient: (json['backgroundGradient'] as List<dynamic>?)?.cast<String>(),
+      backgroundPattern: json['backgroundPattern'] as String?,
+      backgroundOpacity: (json['backgroundOpacity'] as num?)?.toDouble() ?? 1.0,
+      backgroundBlendMode: json['backgroundBlendMode'] as String?,
+      parallaxEffect: json['parallaxEffect'] as bool? ?? false,
+      parallaxIntensity: (json['parallaxIntensity'] as num?)?.toDouble() ?? 0.1,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'backgroundImageUrl': backgroundImageUrl,
+      'backgroundType': backgroundType,
+      'backgroundColor': backgroundColor,
+      'backgroundGradient': backgroundGradient,
+      'backgroundPattern': backgroundPattern,
+      'backgroundOpacity': backgroundOpacity,
+      'backgroundBlendMode': backgroundBlendMode,
+      'parallaxEffect': parallaxEffect,
+      'parallaxIntensity': parallaxIntensity,
+    };
+  }
+
+  AppBackgroundConfig copyWith({
+    String? backgroundImageUrl,
+    String? backgroundType,
+    String? backgroundColor,
+    List<String>? backgroundGradient,
+    String? backgroundPattern,
+    double? backgroundOpacity,
+    String? backgroundBlendMode,
+    bool? parallaxEffect,
+    double? parallaxIntensity,
+  }) {
+    return AppBackgroundConfig(
+      backgroundImageUrl: backgroundImageUrl ?? this.backgroundImageUrl,
+      backgroundType: backgroundType ?? this.backgroundType,
+      backgroundColor: backgroundColor ?? this.backgroundColor,
+      backgroundGradient: backgroundGradient ?? this.backgroundGradient,
+      backgroundPattern: backgroundPattern ?? this.backgroundPattern,
+      backgroundOpacity: backgroundOpacity ?? this.backgroundOpacity,
+      backgroundBlendMode: backgroundBlendMode ?? this.backgroundBlendMode,
+      parallaxEffect: parallaxEffect ?? this.parallaxEffect,
+      parallaxIntensity: parallaxIntensity ?? this.parallaxIntensity,
+    );
+  }
+}
+
 /// 计算器主题配置 - 简化版
 class CalculatorTheme {
   final String name;
@@ -375,6 +452,7 @@ class CalculatorConfig {
   final String description;
   final CalculatorTheme theme;
   final CalculatorLayout layout;
+  final AppBackgroundConfig? appBackground; // 新增：APP背景配置
   final String version;
   final DateTime createdAt;
   final String? authorPrompt;
@@ -387,6 +465,7 @@ class CalculatorConfig {
     required this.description,
     required this.theme,
     required this.layout,
+    this.appBackground,
     this.version = '1.0.0',
     required this.createdAt,
     this.authorPrompt,
@@ -401,6 +480,9 @@ class CalculatorConfig {
       description: json['description']?.toString() ?? '',
       theme: CalculatorTheme.fromJson(json['theme'] ?? {}),
       layout: CalculatorLayout.fromJson(json['layout'] ?? {}),
+      appBackground: json['appBackground'] != null 
+          ? AppBackgroundConfig.fromJson(json['appBackground'])
+          : null,
       version: json['version']?.toString() ?? '1.0.0',
       createdAt: json['createdAt'] != null 
           ? DateTime.tryParse(json['createdAt'].toString()) ?? DateTime.now()
@@ -418,6 +500,7 @@ class CalculatorConfig {
       'description': description,
       'theme': theme.toJson(),
       'layout': layout.toJson(),
+      if (appBackground != null) 'appBackground': appBackground!.toJson(),
       'version': version,
       'createdAt': createdAt.toIso8601String(),
       if (authorPrompt != null) 'authorPrompt': authorPrompt,
