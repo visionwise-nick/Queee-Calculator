@@ -85,8 +85,19 @@ class _CalculatorButtonWidgetState extends State<CalculatorButtonWidget>
     final borderRadius = widget.button.borderRadius ?? theme.buttonBorderRadius;
     final elevation = widget.button.elevation ?? theme.buttonElevation ?? 2.0;
     
-    return Container(
+    // 新增：支持独立的背景色和文字颜色
+    final finalButtonColor = widget.button.backgroundColor != null 
+        ? _parseColor(widget.button.backgroundColor!) 
+        : buttonColor;
+    final finalTextColor = widget.button.textColor != null 
+        ? _parseColor(widget.button.textColor!) 
+        : textColor;
+    
+    // 构建主容器
+    Widget buttonWidget = Container(
       margin: widget.fixedSize != null ? EdgeInsets.zero : const EdgeInsets.all(2),
+      width: widget.button.width,
+      height: widget.button.height,
       child: Material(
         color: Colors.transparent,
         elevation: elevation,
@@ -110,49 +121,92 @@ class _CalculatorButtonWidgetState extends State<CalculatorButtonWidget>
           },
           borderRadius: BorderRadius.circular(borderRadius),
           child: Container(
-            decoration: BoxDecoration(
-              color: gradient == null && backgroundImage == null ? buttonColor : null,
-              borderRadius: BorderRadius.circular(borderRadius),
-              boxShadow: _buildBoxShadow(theme, buttonColor, elevation),
-              gradient: gradient != null ? _buildGradient(gradient) : (_isPressed
-                  ? LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        buttonColor.withValues(alpha: 0.8),
-                        buttonColor,
-                      ],
-                    )
-                  : null),
-              image: backgroundImage != null ? DecorationImage(
-                image: NetworkImage(backgroundImage),
-                fit: BoxFit.cover,
-                onError: (exception, stackTrace) {
-                  // 如果图片加载失败，显示占位符或默认背景
-                  print('Failed to load background image: $backgroundImage');
-                },
-              ) : null,
-            ),
+            decoration: _buildButtonDecoration(finalButtonColor, theme, gradient, backgroundImage, borderRadius, elevation),
             child: Center(
-              child: _buildButtonContent(textColor, theme),
+              child: _buildButtonContent(finalTextColor, theme),
             ),
           ),
         ),
       ),
     );
+
+    // 应用变换效果
+    if (widget.button.rotation != null || widget.button.scale != null) {
+      buttonWidget = Transform(
+        alignment: Alignment.center,
+        transform: Matrix4.identity()
+          ..rotateZ((widget.button.rotation ?? 0) * 3.14159 / 180)
+          ..scale(widget.button.scale ?? 1.0),
+        child: buttonWidget,
+      );
+    }
+
+    // 应用透明度
+    if (widget.button.opacity != null) {
+      buttonWidget = Opacity(
+        opacity: widget.button.opacity!.clamp(0.0, 1.0),
+        child: buttonWidget,
+      );
+    }
+
+    // 应用动画效果
+    if (widget.button.animation != null) {
+      buttonWidget = _buildAnimatedButton(buttonWidget);
+    }
+
+    return buttonWidget;
   }
 
-  /// 构建渐变色
-  LinearGradient _buildGradient(List<String> gradientColors) {
-    return LinearGradient(
-      begin: Alignment.topLeft,
-      end: Alignment.bottomRight,
-      colors: gradientColors.map((color) => _parseColor(color)).toList(),
+  /// 构建按钮装饰
+  BoxDecoration _buildButtonDecoration(
+    Color buttonColor, 
+    CalculatorTheme theme, 
+    List<String>? gradient, 
+    String? backgroundImage, 
+    double borderRadius, 
+    double elevation
+  ) {
+    return BoxDecoration(
+      color: gradient == null && backgroundImage == null ? buttonColor : null,
+      borderRadius: BorderRadius.circular(borderRadius),
+      border: widget.button.borderColor != null && widget.button.borderWidth != null
+          ? Border.all(
+              color: _parseColor(widget.button.borderColor!),
+              width: widget.button.borderWidth!,
+            )
+          : null,
+      boxShadow: _buildEnhancedBoxShadow(theme, buttonColor, elevation),
+      gradient: gradient != null ? _buildGradient(gradient) : (_isPressed
+          ? LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                buttonColor.withValues(alpha: 0.8),
+                buttonColor,
+              ],
+            )
+          : null),
+      image: _buildBackgroundImage(backgroundImage),
     );
   }
 
-  /// 构建阴影效果
-  List<BoxShadow> _buildBoxShadow(CalculatorTheme theme, Color buttonColor, double elevation) {
+  /// 构建增强的阴影效果
+  List<BoxShadow> _buildEnhancedBoxShadow(CalculatorTheme theme, Color buttonColor, double elevation) {
+    // 优先使用按钮独立的阴影设置
+    if (widget.button.shadowColor != null && widget.button.shadowRadius != null) {
+      return [
+        BoxShadow(
+          color: _parseColor(widget.button.shadowColor!),
+          offset: Offset(
+            widget.button.shadowOffset?['x'] ?? 0,
+            widget.button.shadowOffset?['y'] ?? 2,
+          ),
+          blurRadius: widget.button.shadowRadius!,
+        ),
+      ];
+    }
+    
+    // 使用原有的阴影逻辑
     if (theme.hasGlowEffect) {
       return [
         BoxShadow(
@@ -175,6 +229,75 @@ class _CalculatorButtonWidgetState extends State<CalculatorButtonWidget>
           offset: const Offset(0, 2),
         ),
       ];
+    }
+  }
+
+  /// 构建背景图像
+  DecorationImage? _buildBackgroundImage(String? backgroundImage) {
+    if (backgroundImage != null) {
+      return DecorationImage(
+        image: NetworkImage(backgroundImage),
+        fit: BoxFit.cover,
+        onError: (exception, stackTrace) {
+          print('Failed to load background image: $backgroundImage');
+        },
+      );
+    }
+    
+    // 检查是否有背景图案
+    if (widget.button.backgroundPattern != null) {
+      return DecorationImage(
+        image: _generatePatternImage(widget.button.backgroundPattern!),
+        fit: BoxFit.cover,
+        opacity: widget.button.patternOpacity ?? 0.3,
+      );
+    }
+    
+    return null;
+  }
+
+  /// 生成图案图像
+  ImageProvider _generatePatternImage(String pattern) {
+    // 根据图案类型生成相应的图案URL
+    final patternColor = widget.button.patternColor ?? 'CCCCCC';
+    final backgroundColor = 'FFFFFF';
+    
+    switch (pattern.toLowerCase()) {
+      case 'dots':
+        return NetworkImage('https://via.placeholder.com/100x100/$patternColor/$backgroundColor?text=•••');
+      case 'stripes':
+        return NetworkImage('https://via.placeholder.com/100x100/$patternColor/$backgroundColor?text=|||');
+      case 'grid':
+        return NetworkImage('https://via.placeholder.com/100x100/$patternColor/$backgroundColor?text=###');
+      case 'waves':
+        return NetworkImage('https://via.placeholder.com/100x100/$patternColor/$backgroundColor?text=~~~');
+      default:
+        return NetworkImage('https://via.placeholder.com/100x100/$patternColor/$backgroundColor?text=Pattern');
+    }
+  }
+
+  /// 构建动画按钮
+  Widget _buildAnimatedButton(Widget child) {
+    if (widget.button.animation == null) return child;
+    
+    switch (widget.button.animation!.toLowerCase()) {
+      case 'bounce':
+        return _BounceAnimation(
+          duration: Duration(milliseconds: ((widget.button.animationDuration ?? 1.0) * 1000).round()),
+          child: child,
+        );
+      case 'pulse':
+        return _PulseAnimation(
+          duration: Duration(milliseconds: ((widget.button.animationDuration ?? 2.0) * 1000).round()),
+          child: child,
+        );
+      case 'glow':
+        return _GlowAnimation(
+          duration: Duration(milliseconds: ((widget.button.animationDuration ?? 1.5) * 1000).round()),
+          child: child,
+        );
+      default:
+        return child;
     }
   }
 
@@ -310,6 +433,15 @@ class _CalculatorButtonWidgetState extends State<CalculatorButtonWidget>
       // 返回默认颜色
       return Colors.grey;
     }
+  }
+
+  /// 构建渐变色
+  LinearGradient _buildGradient(List<String> gradientColors) {
+    return LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: gradientColors.map((color) => _parseColor(color)).toList(),
+    );
   }
 
   /// 显示按钮功能介绍
@@ -477,5 +609,182 @@ class _CalculatorButtonWidgetState extends State<CalculatorButtonWidget>
     };
     
     return descriptions[expression] ?? '使用表达式 "$expression" 进行计算';
+  }
+}
+
+/// 弹跳动画组件
+class _BounceAnimation extends StatefulWidget {
+  final Widget child;
+  final Duration duration;
+
+  const _BounceAnimation({
+    required this.child,
+    required this.duration,
+  });
+
+  @override
+  State<_BounceAnimation> createState() => _BounceAnimationState();
+}
+
+class _BounceAnimationState extends State<_BounceAnimation>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: widget.duration,
+      vsync: this,
+    );
+    _animation = Tween<double>(
+      begin: 1.0,
+      end: 1.1,
+    ).animate(CurvedAnimation(
+      parent: _controller,
+      curve: Curves.elasticInOut,
+    ));
+    _controller.repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _animation,
+      builder: (context, child) {
+        return Transform.scale(
+          scale: _animation.value,
+          child: widget.child,
+        );
+      },
+    );
+  }
+}
+
+/// 脉冲动画组件
+class _PulseAnimation extends StatefulWidget {
+  final Widget child;
+  final Duration duration;
+
+  const _PulseAnimation({
+    required this.child,
+    required this.duration,
+  });
+
+  @override
+  State<_PulseAnimation> createState() => _PulseAnimationState();
+}
+
+class _PulseAnimationState extends State<_PulseAnimation>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: widget.duration,
+      vsync: this,
+    );
+    _animation = Tween<double>(
+      begin: 0.8,
+      end: 1.2,
+    ).animate(CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeInOut,
+    ));
+    _controller.repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _animation,
+      builder: (context, child) {
+        return Transform.scale(
+          scale: _animation.value,
+          child: widget.child,
+        );
+      },
+    );
+  }
+}
+
+/// 发光动画组件
+class _GlowAnimation extends StatefulWidget {
+  final Widget child;
+  final Duration duration;
+
+  const _GlowAnimation({
+    required this.child,
+    required this.duration,
+  });
+
+  @override
+  State<_GlowAnimation> createState() => _GlowAnimationState();
+}
+
+class _GlowAnimationState extends State<_GlowAnimation>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: widget.duration,
+      vsync: this,
+    );
+    _animation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeInOut,
+    ));
+    _controller.repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _animation,
+      builder: (context, child) {
+        return Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(8),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.blue.withOpacity(_animation.value * 0.5),
+                blurRadius: 10 + (_animation.value * 10),
+                spreadRadius: _animation.value * 5,
+              ),
+            ],
+          ),
+          child: widget.child,
+        );
+      },
+    );
   }
 } 

@@ -178,6 +178,26 @@ class CalculatorButton {
   final double? fontSize;
   final double? borderRadius;
   final double? elevation;
+  final double? width;
+  final double? height;
+  final String? backgroundColor;
+  final String? textColor;
+  final String? borderColor;
+  final double? borderWidth;
+  final String? shadowColor;
+  final Map<String, double>? shadowOffset;
+  final double? shadowRadius;
+  final double? opacity;
+  final double? rotation;
+  final double? scale;
+  final String? backgroundPattern;
+  final String? patternColor;
+  final double? patternOpacity;
+  final String? animation;
+  final double? animationDuration;
+  final String? customIcon;
+  final double? iconSize;
+  final String? iconColor;
 
   const CalculatorButton({
     required this.id,
@@ -194,24 +214,66 @@ class CalculatorButton {
     this.fontSize,
     this.borderRadius,
     this.elevation,
+    this.width,
+    this.height,
+    this.backgroundColor,
+    this.textColor,
+    this.borderColor,
+    this.borderWidth,
+    this.shadowColor,
+    this.shadowOffset,
+    this.shadowRadius,
+    this.opacity,
+    this.rotation,
+    this.scale,
+    this.backgroundPattern,
+    this.patternColor,
+    this.patternOpacity,
+    this.animation,
+    this.animationDuration,
+    this.customIcon,
+    this.iconSize,
+    this.iconColor,
   });
 
   factory CalculatorButton.fromJson(Map<String, dynamic> json) {
     return CalculatorButton(
-      id: json['id'] as String,
-      label: json['label'] as String,
-      action: CalculatorAction.fromJson(json['action'] as Map<String, dynamic>),
-      gridPosition: GridPosition.fromJson(json['gridPosition'] as Map<String, dynamic>),
-      type: json['type'] as String,
-      customColor: json['customColor'] as String?,
-      isWide: json['isWide'] as bool? ?? false,
-      widthMultiplier: (json['widthMultiplier'] as num?)?.toDouble() ?? 1.0,
-      heightMultiplier: (json['heightMultiplier'] as num?)?.toDouble() ?? 1.0,
-      gradientColors: (json['gradientColors'] as List<dynamic>?)?.cast<String>(),
-      backgroundImage: json['backgroundImage'] as String?,
-      fontSize: (json['fontSize'] as num?)?.toDouble(),
-      borderRadius: (json['borderRadius'] as num?)?.toDouble(),
-      elevation: (json['elevation'] as num?)?.toDouble(),
+      id: json['id'] ?? '',
+      label: json['label'] ?? '',
+      action: CalculatorAction.fromJson(json['action'] ?? {}),
+      gridPosition: GridPosition.fromJson(json['gridPosition'] ?? {}),
+      type: json['type'] ?? 'primary',
+      customColor: json['customColor'],
+      isWide: json['isWide'] ?? false,
+      widthMultiplier: (json['widthMultiplier'] ?? 1.0).toDouble(),
+      heightMultiplier: (json['heightMultiplier'] ?? 1.0).toDouble(),
+      gradientColors: json['gradientColors']?.cast<String>(),
+      backgroundImage: json['backgroundImage'],
+      fontSize: json['fontSize']?.toDouble(),
+      borderRadius: json['borderRadius']?.toDouble(),
+      elevation: json['elevation']?.toDouble(),
+      width: json['width']?.toDouble(),
+      height: json['height']?.toDouble(),
+      backgroundColor: json['backgroundColor'],
+      textColor: json['textColor'],
+      borderColor: json['borderColor'],
+      borderWidth: json['borderWidth']?.toDouble(),
+      shadowColor: json['shadowColor'],
+      shadowOffset: json['shadowOffset'] != null 
+          ? Map<String, double>.from(json['shadowOffset'].map((k, v) => MapEntry(k, v.toDouble())))
+          : null,
+      shadowRadius: json['shadowRadius']?.toDouble(),
+      opacity: json['opacity']?.toDouble(),
+      rotation: json['rotation']?.toDouble(),
+      scale: json['scale']?.toDouble(),
+      backgroundPattern: json['backgroundPattern'],
+      patternColor: json['patternColor'],
+      patternOpacity: json['patternOpacity']?.toDouble(),
+      animation: json['animation'],
+      animationDuration: json['animationDuration']?.toDouble(),
+      customIcon: json['customIcon'],
+      iconSize: json['iconSize']?.toDouble(),
+      iconColor: json['iconColor'],
     );
   }
 
@@ -231,6 +293,26 @@ class CalculatorButton {
       'fontSize': fontSize,
       'borderRadius': borderRadius,
       'elevation': elevation,
+      'width': width,
+      'height': height,
+      'backgroundColor': backgroundColor,
+      'textColor': textColor,
+      'borderColor': borderColor,
+      'borderWidth': borderWidth,
+      'shadowColor': shadowColor,
+      'shadowOffset': shadowOffset,
+      'shadowRadius': shadowRadius,
+      'opacity': opacity,
+      'rotation': rotation,
+      'scale': scale,
+      'backgroundPattern': backgroundPattern,
+      'patternColor': patternColor,
+      'patternOpacity': patternOpacity,
+      'animation': animation,
+      'animationDuration': animationDuration,
+      'customIcon': customIcon,
+      'iconSize': iconSize,
+      'iconColor': iconColor,
     };
   }
 }

@@ -199,4 +199,118 @@ class AIService {
       '我需要一个适合夜晚使用的暗色计算器',
     ];
   }
+
+  /// 生成自定义计算器配置
+  static Future<CalculatorConfig> generateCalculator({
+    required String userInput,
+    List<Map<String, String>>? conversationHistory,
+    CalculatorConfig? currentConfig,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$_baseUrl/customize'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'user_input': userInput,
+          'conversation_history': conversationHistory ?? [],
+          'current_config': currentConfig?.toJson(),
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return CalculatorConfig.fromJson(data);
+      } else {
+        throw Exception('生成失败: ${response.body}');
+      }
+    } catch (e) {
+      throw Exception('网络请求失败: $e');
+    }
+  }
+
+  /// 获取可用的AI模型列表
+  static Future<Map<String, dynamic>> getAvailableModels() async {
+    try {
+      final response = await http.get(Uri.parse('$_baseUrl/models'));
+      
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        throw Exception('获取模型列表失败: ${response.body}');
+      }
+    } catch (e) {
+      throw Exception('网络请求失败: $e');
+    }
+  }
+
+  /// 切换AI模型
+  static Future<Map<String, dynamic>> switchModel(String modelKey) async {
+    try {
+      final response = await http.post(Uri.parse('$_baseUrl/switch-model/$modelKey'));
+      
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        throw Exception('切换模型失败: ${response.body}');
+      }
+    } catch (e) {
+      throw Exception('网络请求失败: $e');
+    }
+  }
+
+  /// AI生成图像
+  static Future<Map<String, dynamic>> generateImage({
+    required String prompt,
+    String style = 'realistic',
+    String size = '1024x1024',
+    String quality = 'standard',
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$_baseUrl/generate-image'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'prompt': prompt,
+          'style': style,
+          'size': size,
+          'quality': quality,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        throw Exception('图像生成失败: ${response.body}');
+      }
+    } catch (e) {
+      throw Exception('网络请求失败: $e');
+    }
+  }
+
+  /// AI生成按钮背景图案
+  static Future<Map<String, dynamic>> generatePattern({
+    required String prompt,
+    String style = 'minimal',
+    String size = '256x256',
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$_baseUrl/generate-pattern'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'prompt': prompt,
+          'style': style,
+          'size': size,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        throw Exception('图案生成失败: ${response.body}');
+      }
+    } catch (e) {
+      throw Exception('网络请求失败: $e');
+    }
+  }
 } 

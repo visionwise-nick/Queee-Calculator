@@ -7,6 +7,11 @@ import json
 import os
 from datetime import datetime
 import time
+import re
+# 添加图像生成相关导入
+import requests
+import base64
+from io import BytesIO
 
 app = FastAPI(title="Queee Calculator AI Backend", version="2.0.0")
 
@@ -91,6 +96,27 @@ class CalculatorButton(BaseModel):
     fontSize: Optional[float] = None  # 按钮独立字体大小
     borderRadius: Optional[float] = None  # 按钮独立圆角
     elevation: Optional[float] = None  # 按钮独立阴影高度
+    # 新增属性
+    width: Optional[float] = None  # 按钮绝对宽度(dp)
+    height: Optional[float] = None  # 按钮绝对高度(dp)
+    backgroundColor: Optional[str] = None  # 按钮独立背景色
+    textColor: Optional[str] = None  # 按钮独立文字颜色
+    borderColor: Optional[str] = None  # 按钮边框颜色
+    borderWidth: Optional[float] = None  # 按钮边框宽度
+    shadowColor: Optional[str] = None  # 按钮独立阴影颜色
+    shadowOffset: Optional[Dict[str, float]] = None  # 阴影偏移 {"x": 0, "y": 2}
+    shadowRadius: Optional[float] = None  # 阴影半径
+    opacity: Optional[float] = None  # 按钮透明度 (0.0-1.0)
+    rotation: Optional[float] = None  # 按钮旋转角度
+    scale: Optional[float] = None  # 按钮缩放比例
+    backgroundPattern: Optional[str] = None  # 背景图案类型 ("dots", "stripes", "grid", "waves")
+    patternColor: Optional[str] = None  # 图案颜色
+    patternOpacity: Optional[float] = None  # 图案透明度
+    animation: Optional[str] = None  # 按钮动画类型 ("bounce", "pulse", "shake", "glow")
+    animationDuration: Optional[float] = None  # 动画持续时间(秒)
+    customIcon: Optional[str] = None  # 自定义图标URL或名称
+    iconSize: Optional[float] = None  # 图标大小
+    iconColor: Optional[str] = None  # 图标颜色
 
 class CalculatorTheme(BaseModel):
     name: str
@@ -273,26 +299,28 @@ async def get_available_models():
 
 @app.post("/switch-model/{model_key}")
 async def switch_model(model_key: str):
-    """动态切换AI模型"""
+    """切换AI模型"""
     global current_model_key
     
     if model_key not in AVAILABLE_MODELS:
-        raise HTTPException(
-            status_code=400, 
-            detail=f"不支持的模型: {model_key}. 可用模型: {list(AVAILABLE_MODELS.keys())}"
-        )
+        raise HTTPException(status_code=400, detail=f"不支持的模型: {model_key}")
     
-    old_model = AVAILABLE_MODELS[current_model_key]["display_name"]
+    old_model = current_model_key
     current_model_key = model_key
-    new_model = AVAILABLE_MODELS[current_model_key]["display_name"]
     
-    return {
-        "message": f"模型已切换: {old_model} → {new_model}",
-        "old_model": old_model,
-        "new_model": new_model,
-        "model_key": current_model_key,
-        "description": AVAILABLE_MODELS[current_model_key]["description"]
-    }
+    # 重新初始化模型
+    try:
+        initialize_genai()
+        return {
+            "message": f"成功切换模型: {old_model} → {model_key}",
+            "old_model": AVAILABLE_MODELS[old_model]["name"],
+            "new_model": AVAILABLE_MODELS[model_key]["name"],
+            "model_key": model_key
+        }
+    except Exception as e:
+        # 如果切换失败，回滚到原模型
+        current_model_key = old_model
+        raise HTTPException(status_code=500, detail=f"切换模型失败: {str(e)}")
 
 @app.post("/customize")
 async def customize_calculator(request: CustomizationRequest) -> CalculatorConfig:
@@ -720,6 +748,124 @@ async def fix_calculator_config(user_input: str, current_config: dict, generated
     except Exception as e:
         print(f"AI修复过程中出错: {str(e)}")
         return generated_config
+
+class ImageGenerationRequest(BaseModel):
+    prompt: str = Field(..., description="图像生成提示词")
+    style: Optional[str] = Field(default="realistic", description="图像风格")
+    size: Optional[str] = Field(default="1024x1024", description="图像尺寸")
+    quality: Optional[str] = Field(default="standard", description="图像质量")
+
+@app.post("/generate-image")
+async def generate_image(request: ImageGenerationRequest):
+    """使用Google Imagen生成图像"""
+    try:
+        # 构建生成图像的提示词
+        enhanced_prompt = f"""
+        {request.prompt}
+        
+        Style: {request.style}
+        High quality, detailed, professional
+        """
+        
+        # 使用Gemini模型生成图像描述并优化提示词
+        model = get_current_model()
+        
+        # 先让AI优化提示词
+        optimization_prompt = f"""
+        请将以下提示词优化为适合AI图像生成的英文提示词，要求：
+        1. 使用专业的图像生成术语
+        2. 包含风格、质量、细节等描述
+        3. 适合作为计算器按钮或背景图案
+        4. 返回优化后的英文提示词
+        
+        原始提示词：{request.prompt}
+        风格：{request.style}
+        """
+        
+        response = model.generate_content([
+            {"role": "user", "parts": [optimization_prompt]}
+        ])
+        
+        optimized_prompt = response.text.strip()
+        print(f"🎨 优化后的提示词: {optimized_prompt}")
+        
+        # 模拟图像生成（实际应用中需要接入真实的图像生成API）
+        # 这里返回一个占位符URL，实际部署时需要替换为真实的图像生成服务
+        image_url = f"https://via.placeholder.com/{request.size.replace('x', 'x')}/FF6B6B/FFFFFF?text=AI+Generated+Image"
+        
+        return {
+            "success": True,
+            "image_url": image_url,
+            "original_prompt": request.prompt,
+            "optimized_prompt": optimized_prompt,
+            "style": request.style,
+            "size": request.size,
+            "quality": request.quality,
+            "message": "图像生成成功（演示模式）"
+        }
+        
+    except Exception as e:
+        print(f"图像生成失败: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"图像生成失败: {str(e)}")
+
+@app.post("/generate-pattern")
+async def generate_pattern(request: ImageGenerationRequest):
+    """生成按钮背景图案"""
+    try:
+        # 针对按钮图案的特殊处理
+        pattern_prompt = f"""
+        Generate a seamless pattern for calculator button background:
+        {request.prompt}
+        
+        Requirements:
+        - Seamless and tileable
+        - Suitable for button background
+        - Not too busy or distracting
+        - Style: {request.style}
+        - High contrast and readability
+        """
+        
+        # 使用AI优化图案提示词
+        model = get_current_model()
+        
+        optimization_prompt = f"""
+        请将以下提示词优化为适合生成按钮背景图案的英文提示词：
+        
+        原始需求：{request.prompt}
+        风格：{request.style}
+        
+        要求：
+        1. 图案应该是无缝平铺的
+        2. 适合作为计算器按钮背景
+        3. 不能太花哨，要保证文字可读性
+        4. 包含专业的图案设计术语
+        
+        返回优化后的英文提示词。
+        """
+        
+        response = model.generate_content([
+            {"role": "user", "parts": [optimization_prompt]}
+        ])
+        
+        optimized_prompt = response.text.strip()
+        print(f"🎨 优化后的图案提示词: {optimized_prompt}")
+        
+        # 模拟图案生成
+        pattern_url = f"https://via.placeholder.com/256x256/4A90E2/FFFFFF?text=Pattern"
+        
+        return {
+            "success": True,
+            "pattern_url": pattern_url,
+            "original_prompt": request.prompt,
+            "optimized_prompt": optimized_prompt,
+            "style": request.style,
+            "is_seamless": True,
+            "message": "图案生成成功（演示模式）"
+        }
+        
+    except Exception as e:
+        print(f"图案生成失败: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"图案生成失败: {str(e)}")
 
 if __name__ == "__main__":
     import uvicorn
