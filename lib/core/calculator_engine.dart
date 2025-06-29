@@ -31,13 +31,47 @@ class CalculatorAction {
 
   factory CalculatorAction.fromJson(Map<String, dynamic> json) {
     return CalculatorAction(
-      type: CalculatorActionType.values.firstWhere(
-        (e) => e.toString() == 'CalculatorActionType.${json['type']}',
-        orElse: () => CalculatorActionType.input,
-      ),
+      type: _parseActionType(json['type']?.toString()),
       value: json['value']?.toString(),
       expression: json['expression']?.toString(),
     );
+  }
+
+  static CalculatorActionType _parseActionType(String? typeString) {
+    if (typeString == null) return CalculatorActionType.input;
+    
+    // 处理不同的类型字符串格式
+    final cleanType = typeString.toLowerCase().replaceAll('calculatoractiontype.', '');
+    
+    switch (cleanType) {
+      case 'input':
+        return CalculatorActionType.input;
+      case 'operator':
+        return CalculatorActionType.operator;
+      case 'equals':
+        return CalculatorActionType.equals;
+      case 'clear':
+        return CalculatorActionType.clear;
+      case 'clearall':
+        return CalculatorActionType.clearAll;
+      case 'backspace':
+        return CalculatorActionType.backspace;
+      case 'decimal':
+        return CalculatorActionType.decimal;
+      case 'negate':
+        return CalculatorActionType.negate;
+      case 'expression':
+        return CalculatorActionType.expression;
+      case 'multiparamfunction':
+        return CalculatorActionType.multiParamFunction;
+      case 'parameterseparator':
+        return CalculatorActionType.parameterSeparator;
+      case 'functionexecute':
+        return CalculatorActionType.functionExecute;
+      default:
+        print('⚠️ 未知的action类型: $typeString，使用默认input类型');
+        return CalculatorActionType.input;
+    }
   }
 
   Map<String, dynamic> toJson() {
