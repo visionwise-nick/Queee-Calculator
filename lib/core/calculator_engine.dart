@@ -53,6 +53,7 @@ class CalculatorAction {
     
     // 处理不同的类型字符串格式
     final cleanType = typeString.toLowerCase().replaceAll('calculatoractiontype.', '');
+    print('🔍 解析action类型: $typeString -> $cleanType');
     
     switch (cleanType) {
       case 'input':
@@ -193,6 +194,7 @@ class CalculatorEngine {
 
   /// 执行计算器操作
   CalculatorState execute(CalculatorAction action) {
+    print('🔍 执行计算器操作: type=${action.type}, value=${action.value}, expression=${action.expression}');
     try {
       switch (action.type) {
         case CalculatorActionType.input:
