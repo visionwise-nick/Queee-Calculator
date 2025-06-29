@@ -29,12 +29,7 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
   bool _isGeneratingAppBg = false;
   bool _isGeneratingButtonBg = false;
   String? _generatedAppBgUrl;
-  String _selectedBgStyle = 'modern';
-  String _selectedBgSize = '1080x1920';
-  String _selectedBgQuality = 'high';
-  String _selectedBgTheme = 'calculator';
-  
-  String _selectedButtonStyle = 'minimal';
+
   Set<String> _selectedButtonIds = {}; // 多选按键ID集合
   bool _selectAll = false;
 
@@ -109,12 +104,12 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 快速选择区域
-          _buildQuickSelectionCard(),
+          // 自定义生成区域（移到上面）
+          _buildCustomGenerationCard(),
           const SizedBox(height: 20),
           
-          // 自定义生成区域
-          _buildCustomGenerationCard(),
+          // 快速选择区域（移到下面）
+          _buildQuickSelectionCard(),
           const SizedBox(height: 20),
           
           // 预览和应用区域
@@ -347,64 +342,6 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
                 ),
                 contentPadding: const EdgeInsets.all(16),
               ),
-            ),
-            const SizedBox(height: 16),
-            
-            // 生成参数
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('风格', style: TextStyle(color: Colors.grey.shade600)),
-                      const SizedBox(height: 4),
-                      DropdownButtonFormField<String>(
-                        value: _selectedBgStyle,
-                        decoration: InputDecoration(
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        ),
-                        items: ['modern', 'minimalist', 'cyberpunk', 'nature', 'abstract']
-                            .map((style) => DropdownMenuItem(
-                                  value: style,
-                                  child: Text(style),
-                                ))
-                            .toList(),
-                        onChanged: (value) => setState(() => _selectedBgStyle = value!),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('质量', style: TextStyle(color: Colors.grey.shade600)),
-                      const SizedBox(height: 4),
-                      DropdownButtonFormField<String>(
-                        value: _selectedBgQuality,
-                        decoration: InputDecoration(
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        ),
-                        items: ['standard', 'high']
-                            .map((quality) => DropdownMenuItem(
-                                  value: quality,
-                                  child: Text(quality == 'high' ? '高质量' : '标准'),
-                                ))
-                            .toList(),
-                        onChanged: (value) => setState(() => _selectedBgQuality = value!),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
             ),
             const SizedBox(height: 20),
             
@@ -810,7 +747,7 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: _canGenerateButtonText() ? _generateButtonText : null,
+                                    onPressed: _generateButtonText,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.deepPurple.shade600,
                   foregroundColor: Colors.white,
@@ -843,12 +780,7 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
     );
   }
 
-  bool _canGenerateButtonText() {
-    if (_isGeneratingButtonBg) return false;
-    if (_buttonBgPromptController.text.trim().isEmpty) return false;
-    if (_selectedButtonIds.isEmpty) return false;
-    return true;
-  }
+
 
   Future<void> _generateAppBackground() async {
     if (_appBgPromptController.text.trim().isEmpty) {
@@ -866,10 +798,10 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
     try {
       final result = await AIService.generateAppBackground(
         prompt: _appBgPromptController.text.trim(),
-        style: _selectedBgStyle,
-        size: _selectedBgSize,
-        quality: _selectedBgQuality,
-        theme: _selectedBgTheme,
+        style: 'modern',
+        size: '1080x1920',
+        quality: 'high',
+        theme: 'calculator',
       );
 
       if (result['success'] == true && result['background_url'] != null) {
@@ -933,6 +865,28 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
   }
 
   Future<void> _generateButtonText() async {
+    // 检查条件并给出提示
+    if (_isGeneratingButtonBg) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('正在生成中，请稍候...')),
+      );
+      return;
+    }
+    
+    if (_buttonBgPromptController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('请先输入文字风格描述')),
+      );
+      return;
+    }
+    
+    if (_selectedButtonIds.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('请先选择要生成文字的按键')),
+      );
+      return;
+    }
+
     setState(() {
       _isGeneratingButtonBg = true;
     });
