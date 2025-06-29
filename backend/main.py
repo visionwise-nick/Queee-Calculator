@@ -519,7 +519,7 @@ async def customize_calculator(request: CustomizationRequest) -> CalculatorConfi
                     button['action'] = {'type': 'decimal'}
                 elif button_id == 'negate':
                     button['action'] = {'type': 'negate'}
-                else:
+            else:
                     # 如果没有匹配的ID，根据标签推断
                     button['action'] = {'type': 'input', 'value': button.get('label', '0')}
         

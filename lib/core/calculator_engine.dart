@@ -229,7 +229,10 @@ class CalculatorEngine {
   }
 
   CalculatorState _handleInput(String digit) {
+    print('🔍 处理输入: $digit, 当前状态: 错误=${_state.isError}, 等待操作数=${_state.waitingForOperand}, 多参数函数=${_state.isInputtingFunction}');
+    
     if (_state.isError) {
+      print('🔧 从错误状态恢复');
       _state = const CalculatorState();
     }
 
@@ -244,6 +247,8 @@ class CalculatorEngine {
         _state = _state.copyWith(display: newDisplay);
       }
     }
+    
+    print('🔍 输入处理后显示: ${_state.display}');
     return _state;
   }
 
@@ -359,17 +364,8 @@ class CalculatorEngine {
   }
 
   CalculatorState _handleClearAll() {
-    _state = _state.copyWith(
-      display: '0',
-      waitingForOperand: false,
-      isError: false,
-      clearPreviousValue: true,
-      clearOperator: true,
-      clearFunction: true,
-      functionParameters: [],
-      currentParameterIndex: 0,
-      isInputtingFunction: false,
-    );
+    print('🔧 执行完全清除：重置所有状态');
+    _state = const CalculatorState(); // 完全重置为初始状态
     return _state;
   }
 
@@ -1032,6 +1028,7 @@ class CalculatorEngine {
 
   /// 重置计算器状态
   void reset() {
+    print('🔧 重置计算器引擎：完全清除所有状态');
     _state = const CalculatorState();
   }
 

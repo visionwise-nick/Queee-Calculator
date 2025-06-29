@@ -21,14 +21,6 @@ echo ""
 # 检查必要的工具
 echo "🔍 检查必要工具..."
 command -v git >/dev/null 2>&1 || { echo "❌ 错误: git 未安装" >&2; exit 1; }
-command -v docker >/dev/null 2>&1 || { echo "❌ 错误: docker 未安装" >&2; exit 1; }
-
-# 检查Docker是否运行
-echo "🔐 检查Docker状态..."
-if ! docker info >/dev/null 2>&1; then
-    echo "❌ 错误: Docker 未运行，请启动Docker Desktop" >&2
-    exit 1
-fi
 
 # 检查部署平台工具
 DEPLOY_PLATFORM=""
@@ -49,9 +41,7 @@ else
     exit 1
 fi
 
-# 构建Docker镜像
-echo "🏗️  构建Docker镜像..."
-docker build -t $APP_NAME:latest .
+# 跳过本地Docker构建，使用云端构建
 
 if [ "$DEPLOY_PLATFORM" = "heroku" ]; then
     echo "🚀 使用 Heroku 部署..."
@@ -62,18 +52,17 @@ if [ "$DEPLOY_PLATFORM" = "heroku" ]; then
         heroku login
     fi
     
-    # 登录容器仓库
-    echo "📦 登录 Heroku 容器仓库..."
-    heroku container:login
+    # 使用Git部署而不是容器部署
+    echo "📤 使用 Git 推送到 Heroku..."
     
-    # 推送镜像
-    echo "📤 推送镜像到 Heroku..."
-    docker tag $APP_NAME:latest registry.heroku.com/$APP_NAME/web
-    docker push registry.heroku.com/$APP_NAME/web
+    # 检查是否已添加Heroku remote
+    if ! git remote get-url heroku >/dev/null 2>&1; then
+        echo "🔗 添加 Heroku remote..."
+        heroku git:remote -a $APP_NAME
+    fi
     
-    # 发布应用
-    echo "🚀 发布应用..."
-    heroku container:release web --app $APP_NAME
+    # 推送到Heroku
+    git push heroku main
     
     # 设置环境变量
     echo "⚙️  设置环境变量..."
@@ -90,26 +79,15 @@ if [ "$DEPLOY_PLATFORM" = "heroku" ]; then
 elif [ "$DEPLOY_PLATFORM" = "gcp" ]; then
     echo "🚀 使用 Google Cloud Run 部署..."
     
-    # 设置项目（如果未设置）
-    if [ -z "${GOOGLE_CLOUD_PROJECT:-}" ]; then
-        echo "⚠️  请设置 GOOGLE_CLOUD_PROJECT 环境变量"
-        echo "   例如: export GOOGLE_CLOUD_PROJECT=your-project-id"
-        exit 1
-    fi
-    
-    # 推送到Container Registry
-    echo "📤 推送镜像到 Google Container Registry..."
-    docker tag $APP_NAME:latest gcr.io/$GOOGLE_CLOUD_PROJECT/$APP_NAME:latest
-    docker push gcr.io/$GOOGLE_CLOUD_PROJECT/$APP_NAME:latest
-    
-    # 部署到Cloud Run
-    echo "🚀 部署到 Cloud Run..."
+    # 使用云端构建和部署
+    echo "☁️  使用 Cloud Build 进行云端构建和部署..."
     gcloud run deploy $APP_NAME \
-        --image gcr.io/$GOOGLE_CLOUD_PROJECT/$APP_NAME:latest \
+        --source . \
         --platform managed \
         --region $REGION \
         --allow-unauthenticated \
-        --set-env-vars GEMINI_API_KEY="${GEMINI_API_KEY:-}",ENVIRONMENT=production
+        --set-env-vars GEMINI_API_KEY="${GEMINI_API_KEY:-}",ENVIRONMENT=production \
+        --quiet
     
     # 获取应用URL
     APP_URL=$(gcloud run services describe $APP_NAME --region=$REGION --format="value(status.url)")
