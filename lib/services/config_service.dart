@@ -40,20 +40,6 @@ class ConfigService {
 
   /// 加载当前配置
   static Future<CalculatorConfig> loadCurrentConfig() async {
-    // 临时修复：直接返回默认配置，忽略保存的配置
-    print('🔧 临时修复：强制使用默认配置');
-    final config = CalculatorConfig.createDefault();
-    
-    // 调试：检查默认配置的按钮action类型
-    print('🔍 默认配置按钮数量: ${config.layout.buttons.length}');
-    for (int i = 0; i < config.layout.buttons.length && i < 5; i++) {
-      final button = config.layout.buttons[i];
-      print('🔍 按钮 ${button.id}: label=${button.label}, action.type=${button.action.type}');
-    }
-    
-    return config;
-    
-    /* 原始代码（暂时注释）
     try {
       final prefs = await SharedPreferences.getInstance();
       final configJson = prefs.getString(_currentConfigKey);
@@ -66,9 +52,9 @@ class ConfigService {
       print('Failed to load current config: $e');
     }
     
-    // 如果没有保存的配置，加载赛博朋克主题作为默认配置
-    return loadPresetConfig('cyberpunk_theme');
-    */
+    // 如果没有保存的配置，使用默认配置而不是赛博朋克主题
+    print('🔧 使用默认配置（修复后）');
+    return CalculatorConfig.createDefault();
   }
 
   /// 保存自定义配置
