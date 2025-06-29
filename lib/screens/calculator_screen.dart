@@ -7,7 +7,6 @@ import '../widgets/calculator_button_grid.dart';
 import '../widgets/calculation_history_dialog.dart';
 import '../widgets/multi_param_function_help_dialog.dart';
 import 'ai_customize_screen.dart';
-import 'app_background_screen.dart';
 import 'dart:math' as math;
 import 'dart:convert';
 import 'dart:typed_data';
@@ -185,27 +184,7 @@ class CalculatorScreen extends StatelessWidget {
                 },
                 tooltip: 'AI 助手',
               ),
-              const SizedBox(width: 4),
-              // APP背景设置按钮
-              _buildCompactIconButton(
-                icon: Icons.wallpaper,
-                colors: [Color(0xFFEC4899), Color(0xFFF43F5E)],
-                shadowColor: Colors.pink,
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => AppBackgroundScreen(
-                        currentConfig: provider.config,
-                        onConfigUpdated: (newConfig) {
-                          provider.applyConfig(newConfig);
-                        },
-                      ),
-                    ),
-                  );
-                },
-                tooltip: 'APP背景',
-              ),
+
             ],
           ),
         ],

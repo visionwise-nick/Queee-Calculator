@@ -6,6 +6,7 @@ import '../services/ai_service.dart';
 import '../services/conversation_service.dart';
 import '../models/calculator_dsl.dart';
 import '../widgets/thinking_process_dialog.dart';
+import 'image_generation_screen.dart';
 
 class AICustomizeScreen extends StatefulWidget {
   const AICustomizeScreen({super.key});
@@ -321,270 +322,11 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
     }
   }
 
-  void _showButtonBackgroundGenerator() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.7,
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        child: Column(
-          children: [
-            Container(
-              width: 40,
-              height: 4,
-              margin: const EdgeInsets.symmetric(vertical: 12),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade300,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(20),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.deepPurple.shade100,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(Icons.texture, color: Colors.deepPurple.shade700),
-                  ),
-                  const SizedBox(width: 12),
-                  const Text(
-                    '🎨 按键背景图生成',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: _buildButtonBackgroundGeneratorContent(),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
-  Widget _buildButtonBackgroundGeneratorContent() {
-    final provider = Provider.of<CalculatorProvider>(context, listen: false);
-    final buttons = provider.config.layout.buttons;
-    
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      itemCount: buttons.length,
-      itemBuilder: (context, index) {
-        final button = buttons[index];
-        return Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: () => _generateButtonBackground(button),
-              borderRadius: BorderRadius.circular(12),
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade50,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey.shade200),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: button.backgroundImage != null 
-                          ? Colors.green.shade100 
-                          : Colors.grey.shade100,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: button.backgroundImage != null 
-                            ? Colors.green.shade300 
-                            : Colors.grey.shade300,
-                        ),
-                      ),
-                      child: Center(
-                        child: Text(
-                          button.label,
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: button.backgroundImage != null 
-                              ? Colors.green.shade700 
-                              : Colors.grey.shade700,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            '按键: ${button.label}',
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            button.backgroundImage != null 
-                              ? '✅ 已有背景图' 
-                              : '🎨 点击生成背景图',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: button.backgroundImage != null 
-                                ? Colors.green.shade600 
-                                : Colors.grey.shade600,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Icon(
-                      button.backgroundImage != null 
-                        ? Icons.check_circle 
-                        : Icons.add_circle_outline,
-                      color: button.backgroundImage != null 
-                        ? Colors.green.shade600 
-                        : Colors.grey.shade400,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
 
-  Future<void> _generateButtonBackground(CalculatorButton button) async {
-    try {
-      // 显示加载提示
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => AlertDialog(
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CircularProgressIndicator(color: Colors.deepPurple.shade400),
-              const SizedBox(height: 16),
-              Text('正在为 "${button.label}" 按键生成背景图...'),
-            ],
-          ),
-        ),
-      );
 
-      // 生成背景图案
-      final result = await AIService.generatePattern(
-        prompt: '为计算器按键"${button.label}"生成简洁的背景图案',
-        style: 'minimal',
-        size: '256x256',
-      );
 
-      Navigator.pop(context); // 关闭加载对话框
 
-      if (result['success'] == true && result['pattern_url'] != null) {
-        // 更新按键背景图
-        final provider = Provider.of<CalculatorProvider>(context, listen: false);
-        final updatedButton = CalculatorButton(
-          id: button.id,
-          label: button.label,
-          action: button.action,
-          gridPosition: button.gridPosition,
-          type: button.type,
-          customColor: button.customColor,
-          isWide: button.isWide,
-          widthMultiplier: button.widthMultiplier,
-          heightMultiplier: button.heightMultiplier,
-          gradientColors: button.gradientColors,
-          backgroundImage: result['pattern_url'], // 设置背景图
-          fontSize: button.fontSize,
-          borderRadius: button.borderRadius,
-          elevation: button.elevation,
-          width: button.width,
-          height: button.height,
-          backgroundColor: button.backgroundColor,
-          textColor: button.textColor,
-          borderColor: button.borderColor,
-          borderWidth: button.borderWidth,
-          shadowColor: button.shadowColor,
-          shadowOffset: button.shadowOffset,
-          shadowRadius: button.shadowRadius,
-          opacity: button.opacity,
-          rotation: button.rotation,
-          scale: button.scale,
-          backgroundPattern: button.backgroundPattern,
-          patternColor: button.patternColor,
-          patternOpacity: button.patternOpacity,
-          animation: button.animation,
-          animationDuration: button.animationDuration,
-          customIcon: button.customIcon,
-          iconSize: button.iconSize,
-          iconColor: button.iconColor,
-        );
-
-        // 更新配置中的按键
-        final updatedButtons = provider.config.layout.buttons.map((b) {
-          return b.id == button.id ? updatedButton : b;
-        }).toList();
-
-        final updatedLayout = CalculatorLayout(
-          name: provider.config.layout.name,
-          rows: provider.config.layout.rows,
-          columns: provider.config.layout.columns,
-          buttons: updatedButtons,
-          description: provider.config.layout.description,
-          minButtonSize: provider.config.layout.minButtonSize,
-          maxButtonSize: provider.config.layout.maxButtonSize,
-          gridSpacing: provider.config.layout.gridSpacing,
-        );
-
-        final updatedConfig = CalculatorConfig(
-          id: provider.config.id,
-          name: provider.config.name,
-          description: provider.config.description,
-          theme: provider.config.theme,
-          layout: updatedLayout,
-          version: provider.config.version,
-          createdAt: provider.config.createdAt,
-          authorPrompt: provider.config.authorPrompt,
-          thinkingProcess: provider.config.thinkingProcess,
-          aiResponse: provider.config.aiResponse,
-        );
-
-        await provider.applyConfig(updatedConfig);
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('✅ 已为"${button.label}"按键生成背景图！'),
-            backgroundColor: Colors.green.shade600,
-          ),
-        );
-      } else {
-        throw Exception(result['message'] ?? '生成失败');
-      }
-    } catch (e) {
-      Navigator.pop(context); // 关闭加载对话框
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('❌ 生成失败: $e'),
-          backgroundColor: Colors.red.shade600,
-        ),
-      );
-    }
-  }
 
   void _showQuickReplies() {
     final quickReplies = [
@@ -736,84 +478,7 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
                 },
               ),
             ),
-            // 添加按键背景图生成功能
-            Container(
-              margin: const EdgeInsets.all(16),
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: () {
-                    Navigator.pop(context);
-                    _showButtonBackgroundGenerator();
-                  },
-                  borderRadius: BorderRadius.circular(16),
-                  child: Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [Colors.deepPurple.shade100, Colors.deepPurple.shade50],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.deepPurple.shade200),
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.1),
-                                blurRadius: 4,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: Icon(
-                            Icons.texture,
-                            color: Colors.deepPurple.shade400,
-                            size: 24,
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                '🎨 按键背景图生成',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.grey.shade800,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                '为每个按键生成独特的背景图案',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey.shade600,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Icon(
-                          Icons.arrow_forward_ios,
-                          size: 16,
-                          color: Colors.grey.shade400,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
+
             Padding(
               padding: const EdgeInsets.all(20),
               child: Text(
@@ -886,6 +551,21 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
             child: const Text('开始新对话', style: TextStyle(color: Colors.white)),
           ),
         ],
+      ),
+    );
+  }
+
+  void _openImageGeneration() {
+    final provider = Provider.of<CalculatorProvider>(context, listen: false);
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ImageGenerationScreen(
+          currentConfig: provider.config,
+          onConfigUpdated: (newConfig) {
+            provider.applyConfig(newConfig);
+          },
+        ),
       ),
     );
   }
@@ -1369,6 +1049,11 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
             icon: Icon(Icons.lightbulb_outline, color: Colors.amber.shade600),
             onPressed: _showQuickReplies,
             tooltip: '快速想法',
+          ),
+          IconButton(
+            icon: Icon(Icons.palette, color: Colors.purple.shade600),
+            onPressed: _openImageGeneration,
+            tooltip: '图像生成工坊',
           ),
           IconButton(
             icon: Icon(Icons.refresh, color: Colors.orange.shade600),

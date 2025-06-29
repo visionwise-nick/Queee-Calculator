@@ -314,6 +314,106 @@ class AIService {
     }
   }
 
+  /// AI生成按键文字内容
+  static Future<Map<String, dynamic>> generateButtonText({
+    required String prompt,
+    required String currentLabel,
+    required String buttonType,
+  }) async {
+    try {
+      print('✨ 正在生成按键文字...');
+      print('提示词: $prompt');
+      print('当前文字: $currentLabel');
+      print('按键类型: $buttonType');
+      
+      final response = await http.post(
+        Uri.parse('$_baseUrl/generate-button-text'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'prompt': prompt,
+          'current_label': currentLabel,
+          'button_type': buttonType,
+        }),
+      ).timeout(const Duration(seconds: 30));
+
+      print('📡 收到响应: ${response.statusCode}');
+      
+      if (response.statusCode == 200) {
+        final result = json.decode(response.body);
+        print('✅ 按键文字生成成功: ${result['text']}');
+        return result;
+      } else {
+        print('❌ 按键文字生成失败: ${response.statusCode}');
+        print('错误详情: ${response.body}');
+        
+        // 如果后端API不存在，我们可以在前端生成一些创意文字
+        return _generateCreativeText(currentLabel, buttonType, prompt);
+      }
+    } catch (e) {
+      print('❌ 按键文字生成请求失败: $e');
+      // 网络错误时，使用本地生成逻辑
+      return _generateCreativeText(currentLabel, buttonType, prompt);
+    }
+  }
+
+  /// 本地生成创意文字（备用方案）
+  static Map<String, dynamic> _generateCreativeText(String currentLabel, String buttonType, String prompt) {
+    print('🔄 使用本地生成逻辑...');
+    
+    // 表情符号映射
+    Map<String, String> emojiNumbers = {
+      '0': '😐', '1': '😀', '2': '😁', '3': '😂', '4': '😃',
+      '5': '😄', '6': '😅', '7': '😆', '8': '😇', '9': '😈',
+    };
+    
+    Map<String, String> animalEmojis = {
+      '0': '🐶', '1': '🐱', '2': '🐰', '3': '🦊', '4': '🐻',
+      '5': '🐼', '6': '🐨', '7': '🐯', '8': '🐮', '9': '🐷',
+    };
+    
+    Map<String, String> fruitEmojis = {
+      '0': '🍎', '1': '🍊', '2': '🍌', '3': '🍇', '4': '🍓',
+      '5': '🥝', '6': '🍑', '7': '🥭', '8': '🍍', '9': '🥥',
+    };
+    
+    Map<String, String> chineseNumbers = {
+      '0': '零', '1': '壹', '2': '贰', '3': '叁', '4': '肆',
+      '5': '伍', '6': '陆', '7': '柒', '8': '捌', '9': '玖',
+    };
+    
+    Map<String, String> romanNumbers = {
+      '0': '⓪', '1': 'Ⅰ', '2': 'Ⅱ', '3': 'Ⅲ', '4': 'Ⅳ',
+      '5': 'Ⅴ', '6': 'Ⅵ', '7': 'Ⅶ', '8': 'Ⅷ', '9': 'Ⅸ',
+    };
+    
+    Map<String, String> specialSymbols = {
+      '+': '➕', '-': '➖', '×': '✖️', '÷': '➗', '=': '🟰',
+      'AC': '🔄', 'C': '🗑️', '±': '🔄', '%': '💯', '.': '🔸',
+    };
+    
+    String newText = currentLabel;
+    
+    if (prompt.contains('表情符号') && emojiNumbers.containsKey(currentLabel)) {
+      newText = emojiNumbers[currentLabel]!;
+    } else if (prompt.contains('动物') && animalEmojis.containsKey(currentLabel)) {
+      newText = animalEmojis[currentLabel]!;
+    } else if (prompt.contains('水果') && fruitEmojis.containsKey(currentLabel)) {
+      newText = fruitEmojis[currentLabel]!;
+    } else if (prompt.contains('古典汉字') && chineseNumbers.containsKey(currentLabel)) {
+      newText = chineseNumbers[currentLabel]!;
+    } else if (prompt.contains('罗马数字') && romanNumbers.containsKey(currentLabel)) {
+      newText = romanNumbers[currentLabel]!;
+    } else if (specialSymbols.containsKey(currentLabel)) {
+      newText = specialSymbols[currentLabel]!;
+    }
+    
+    return {
+      'success': true,
+      'text': newText,
+      'message': '本地生成成功'
+    };
+  }
+
   /// AI生成APP背景图
   static Future<Map<String, dynamic>> generateAppBackground({
     required String prompt,

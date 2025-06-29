@@ -49,7 +49,7 @@ void main() {
   testWidgets('Calculator provider initialization test', (WidgetTester tester) async {
     // Test that provider can be created without issues
     final provider = CalculatorProvider();
-    await provider.initializeConfig();
+    await provider.initialize();
     
     expect(provider.config, isNotNull);
     expect(provider.state.display, equals('0'));
