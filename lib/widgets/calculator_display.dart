@@ -40,11 +40,7 @@ class CalculatorDisplay extends StatelessWidget {
             ),
         ],
         image: theme.backgroundImage != null ? DecorationImage(
-          image: theme.backgroundImage!.startsWith('data:')
-              ? MemoryImage(
-                  Uri.parse(theme.backgroundImage!).data!.contentAsBytes(),
-                )
-              : NetworkImage(theme.backgroundImage!) as ImageProvider,
+          image: NetworkImage(theme.backgroundImage!),
           fit: BoxFit.cover,
           colorFilter: ColorFilter.mode(
             Colors.black.withValues(alpha: 0.3),

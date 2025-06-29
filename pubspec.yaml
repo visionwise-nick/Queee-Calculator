@@ -8,14 +8,12 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  http: ^1.1.0
-  cupertino_icons: ^1.0.2
-  provider: ^6.1.1
-  shared_preferences: ^2.2.2
+  http: ^1.2.1
+  cupertino_icons: ^1.0.8
+  provider: ^6.1.2
+  shared_preferences: ^2.2.3
   math_expressions: ^3.0.0
-  audioplayers: ^5.2.1
-  image_picker: ^1.0.4
-  http_parser: ^4.0.2
+  audioplayers: ^6.1.0  # 音效播放支持
 
 dev_dependencies:
   flutter_test:

@@ -2,9 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/calculator_provider.dart';
 import '../services/config_service.dart';
-import '../models/calculator_dsl.dart';
-import '../widgets/image_upload_widget.dart';
-import 'advanced_theme_settings_screen.dart';
 
 class ThemeSettingsScreen extends StatelessWidget {
   const ThemeSettingsScreen({super.key});
@@ -32,36 +29,10 @@ class ThemeSettingsScreen extends StatelessWidget {
                   child: _buildPresetThemesList(provider),
                 ),
                 
-                // 高级主题设置按钮
-                Container(
-                  width: double.infinity,
-                  margin: const EdgeInsets.only(top: 16),
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (context) => const AdvancedThemeSettingsScreen(),
-                        ),
-                      );
-                    },
-                    icon: const Icon(Icons.tune),
-                    label: const Text('高级主题设置'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: provider.getButtonBackgroundColor(
-                        provider.config.layout.buttons.first,
-                      ),
-                      foregroundColor: provider.getButtonTextColor(
-                        provider.config.layout.buttons.first,
-                      ),
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                    ),
-                  ),
-                ),
-                
                 // AI 定制按钮
                 Container(
                   width: double.infinity,
-                  margin: const EdgeInsets.only(top: 8),
+                  margin: const EdgeInsets.only(top: 16),
                   child: ElevatedButton.icon(
                     onPressed: () {
                       Navigator.of(context).pushNamed('/ai-customize');

@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Field  # , UploadFile, File, Form
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any
@@ -7,10 +7,6 @@ import json
 import os
 from datetime import datetime
 import time
-# from PIL import Image
-# import base64
-# import io
-# import hashlib
 
 app = FastAPI(title="Queee Calculator AI Backend", version="2.0.0")
 
@@ -260,9 +256,8 @@ VALIDATION_PROMPT = """你是配置修复专家。检查并修复生成的计算
 
 @app.get("/health")
 async def health_check():
-    """健康检查端点"""
     return {
-        "status": "healthy",
+        "status": "healthy", 
         "version": "2.0.0",
         "current_model": AVAILABLE_MODELS[current_model_key]["display_name"],
         "model_key": current_model_key
@@ -725,24 +720,6 @@ async def fix_calculator_config(user_input: str, current_config: dict, generated
     except Exception as e:
         print(f"AI修复过程中出错: {str(e)}")
         return generated_config
-
-# TODO: 图片上传功能将在后续版本中实现
-# 需要添加 Pillow, base64, io, hashlib 等依赖
-# 
-# # 图片上传和处理相关API
-# @app.post("/upload-image")
-# async def upload_image(file: UploadFile = File(...)):
-#     """上传图片并返回base64编码的URL"""
-#     pass
-# 
-# @app.post("/generate-background") 
-# async def generate_background(
-#     prompt: str = Form(...),
-#     style: str = Form(default="modern"),
-#     size: str = Form(default="1024x1024")
-# ):
-#     """使用AI生成背景图片"""
-#     pass
 
 if __name__ == "__main__":
     import uvicorn
