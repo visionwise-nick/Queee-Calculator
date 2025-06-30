@@ -34,6 +34,10 @@ class _CalculationHistoryDialogState extends State<CalculationHistoryDialog>
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
+  
+  String _searchQuery = '';
+  String _selectedFilter = 'all';
+  bool _showDetails = false;
 
   @override
   void initState() {
@@ -78,10 +82,10 @@ class _CalculationHistoryDialogState extends State<CalculationHistoryDialog>
           position: _slideAnimation,
           child: Container(
             constraints: const BoxConstraints(
-              maxWidth: 500,
-              maxHeight: 600,
+              maxWidth: 600,
+              maxHeight: 700,
             ),
-            margin: const EdgeInsets.all(20),
+            margin: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
@@ -92,7 +96,7 @@ class _CalculationHistoryDialogState extends State<CalculationHistoryDialog>
                   Colors.purple.shade900,
                 ],
               ),
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(24),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.3),
@@ -103,170 +107,22 @@ class _CalculationHistoryDialogState extends State<CalculationHistoryDialog>
             ),
             child: Column(
               children: [
-                // 标题栏
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        Colors.orange.shade400,
-                        Colors.red.shade500,
-                      ],
-                    ),
-                    borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(20),
-                      topRight: Radius.circular(20),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.history,
-                        color: Colors.white,
-                        size: 28,
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              '运算过程',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            Text(
-                              '查看底层计算步骤',
-                              style: TextStyle(
-                                color: Colors.white70,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      IconButton(
-                        onPressed: () => Navigator.of(context).pop(),
-                        icon: Icon(Icons.close, color: Colors.white),
-                      ),
-                    ],
-                  ),
-                ),
+                // 增强的标题栏
+                _buildEnhancedTitleBar(),
+                
+                // 搜索和筛选栏
+                _buildSearchAndFilterBar(),
+                
+                // 统计信息栏
+                _buildStatisticsBar(),
                 
                 // 运算步骤内容
                 Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      children: [
-                        // 说明文字
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: Colors.orange.withValues(alpha: 0.3),
-                              width: 1,
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.info_outline,
-                                color: Colors.orange,
-                                size: 20,
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  '每一步运算的详细过程，帮助理解计算逻辑',
-                                  style: TextStyle(
-                                    color: Colors.white70,
-                                    fontSize: 13,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        
-                        const SizedBox(height: 16),
-                        
-                        // 运算步骤列表
-                        Expanded(
-                          child: widget.steps.isEmpty
-                              ? _buildEmptyState()
-                              : ListView.builder(
-                                  itemCount: widget.steps.length,
-                                  itemBuilder: (context, index) {
-                                    final step = widget.steps[widget.steps.length - 1 - index];
-                                    return _buildStepCard(step, index);
-                                  },
-                                ),
-                        ),
-                      ],
-                    ),
-                  ),
+                  child: _buildEnhancedHistoryContent(),
                 ),
                 
-                // 底部按钮
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          onPressed: widget.steps.isNotEmpty ? () {
-                            final historyText = widget.steps.map((step) =>
-                              '${step.description}\n输入: ${step.input} → 结果: ${step.result}\n表达式: ${step.expression}\n时间: ${_formatTime(step.timestamp)}'
-                            ).join('\n\n');
-                            
-                            Clipboard.setData(ClipboardData(text: historyText));
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('运算历史已复制到剪贴板'),
-                                backgroundColor: Colors.green,
-                                behavior: SnackBarBehavior.floating,
-                              ),
-                            );
-                          } : null,
-                          icon: Icon(Icons.copy),
-                          label: Text('复制历史'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: widget.steps.isNotEmpty 
-                                ? Colors.orange.shade600 
-                                : Colors.grey,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      ElevatedButton(
-                        onPressed: () => Navigator.of(context).pop(),
-                        child: Text('关闭'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.grey.shade700,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(
-                            vertical: 12,
-                            horizontal: 24,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                // 底部操作栏
+                _buildBottomActionBar(),
               ],
             ),
           ),
@@ -275,29 +131,434 @@ class _CalculationHistoryDialogState extends State<CalculationHistoryDialog>
     );
   }
 
+  /// 构建增强的标题栏
+  Widget _buildEnhancedTitleBar() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            Colors.orange.shade400,
+            Colors.red.shade500,
+          ],
+        ),
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(24),
+          topRight: Radius.circular(24),
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              Icons.history,
+              color: Colors.white,
+              size: 24,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '运算历史',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Text(
+                  '共 ${widget.steps.length} 条记录',
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // 切换详细信息显示
+          IconButton(
+            onPressed: () {
+              setState(() {
+                _showDetails = !_showDetails;
+              });
+            },
+            icon: Icon(
+              _showDetails ? Icons.visibility_off : Icons.visibility,
+              color: Colors.white,
+            ),
+            tooltip: _showDetails ? '隐藏详细信息' : '显示详细信息',
+          ),
+          IconButton(
+            onPressed: () => Navigator.of(context).pop(),
+            icon: Icon(Icons.close, color: Colors.white),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 构建搜索和筛选栏
+  Widget _buildSearchAndFilterBar() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        children: [
+          // 搜索框
+          Expanded(
+            flex: 2,
+            child: Container(
+              height: 40,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: Colors.orange.withValues(alpha: 0.3),
+                  width: 1,
+                ),
+              ),
+              child: TextField(
+                onChanged: (value) {
+                  setState(() {
+                    _searchQuery = value;
+                  });
+                },
+                style: TextStyle(color: Colors.white, fontSize: 14),
+                decoration: InputDecoration(
+                  hintText: '搜索运算...',
+                  hintStyle: TextStyle(color: Colors.white60, fontSize: 14),
+                  prefixIcon: Icon(Icons.search, color: Colors.white60, size: 20),
+                  border: InputBorder.none,
+                  contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          // 筛选下拉框
+          Expanded(
+            child: Container(
+              height: 40,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: Colors.orange.withValues(alpha: 0.3),
+                  width: 1,
+                ),
+              ),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<String>(
+                  value: _selectedFilter,
+                  dropdownColor: Colors.indigo.shade800,
+                  style: TextStyle(color: Colors.white, fontSize: 14),
+                  icon: Icon(Icons.filter_list, color: Colors.white60, size: 20),
+                  items: [
+                    DropdownMenuItem(value: 'all', child: Text('全部')),
+                    DropdownMenuItem(value: 'basic', child: Text('基础运算')),
+                    DropdownMenuItem(value: 'function', child: Text('函数运算')),
+                    DropdownMenuItem(value: 'recent', child: Text('最近使用')),
+                  ],
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedFilter = value ?? 'all';
+                    });
+                  },
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 构建统计信息栏
+  Widget _buildStatisticsBar() {
+    final filteredSteps = _getFilteredSteps();
+    final totalOperations = filteredSteps.length;
+    final avgResult = totalOperations > 0 
+        ? filteredSteps.map((s) => s.result).reduce((a, b) => a + b) / totalOperations
+        : 0.0;
+    final maxResult = totalOperations > 0 
+        ? filteredSteps.map((s) => s.result).reduce((a, b) => a > b ? a : b)
+        : 0.0;
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Colors.blue.withValues(alpha: 0.3),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          _buildStatItem('总计', '$totalOperations', Icons.calculate),
+          _buildStatItem('平均值', _formatNumber(avgResult), Icons.trending_flat),
+          _buildStatItem('最大值', _formatNumber(maxResult), Icons.trending_up),
+          _buildStatItem('今日', '${_getTodayCount()}', Icons.today),
+        ],
+      ),
+    );
+  }
+
+  /// 构建统计项
+  Widget _buildStatItem(String label, String value, IconData icon) {
+    return Column(
+      children: [
+        Icon(icon, color: Colors.blue.shade300, size: 16),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        Text(
+          label,
+          style: TextStyle(
+            color: Colors.white60,
+            fontSize: 10,
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// 构建增强的历史内容
+  Widget _buildEnhancedHistoryContent() {
+    final filteredSteps = _getFilteredSteps();
+    
+    if (filteredSteps.isEmpty) {
+      return _buildEmptyState();
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: ListView.builder(
+        physics: const BouncingScrollPhysics(),
+        itemCount: filteredSteps.length,
+        itemBuilder: (context, index) {
+          final step = filteredSteps[index];
+          final isEven = index % 2 == 0;
+          
+          return _buildEnhancedHistoryItem(step, index, isEven);
+        },
+      ),
+    );
+  }
+
+  /// 构建增强的历史项
+  Widget _buildEnhancedHistoryItem(CalculationStep step, int index, bool isEven) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: isEven 
+            ? Colors.white.withValues(alpha: 0.05)
+            : Colors.white.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.1),
+          width: 1,
+        ),
+      ),
+      child: ExpansionTile(
+        tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        childrenPadding: const EdgeInsets.all(16),
+        leading: Container(
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Colors.blue.shade400, Colors.purple.shade400],
+            ),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Center(
+            child: Text(
+              '${index + 1}',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ),
+        title: Row(
+          children: [
+            Expanded(
+              flex: 2,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    step.description,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  if (_showDetails)
+                    Text(
+                      step.expression,
+                      style: TextStyle(
+                        color: Colors.white60,
+                        fontSize: 12,
+                        fontFamily: 'monospace',
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    _formatNumber(step.result),
+                    style: TextStyle(
+                      color: Colors.green.shade300,
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      fontFamily: 'monospace',
+                    ),
+                  ),
+                  if (_showDetails)
+                    Text(
+                      _formatTime(step.timestamp),
+                      style: TextStyle(
+                        color: Colors.white60,
+                        fontSize: 10,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // 复制按钮
+            IconButton(
+              onPressed: () => _copyToClipboard(step),
+              icon: Icon(Icons.copy, color: Colors.white60, size: 16),
+              iconSize: 16,
+              constraints: BoxConstraints(minWidth: 32, minHeight: 32),
+            ),
+            Icon(
+              Icons.expand_more,
+              color: Colors.white60,
+              size: 16,
+            ),
+          ],
+        ),
+        children: [
+          _buildDetailedStepInfo(step),
+        ],
+      ),
+    );
+  }
+
+  /// 构建详细步骤信息
+  Widget _buildDetailedStepInfo(CalculationStep step) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.2),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildDetailRow('表达式', step.expression, Icons.functions),
+          const SizedBox(height: 8),
+          _buildDetailRow('输入值', _formatNumber(step.input), Icons.input),
+          const SizedBox(height: 8),
+          _buildDetailRow('结果', _formatNumber(step.result), Icons.output),
+          const SizedBox(height: 8),
+          _buildDetailRow('时间', _formatFullTime(step.timestamp), Icons.access_time),
+          const SizedBox(height: 8),
+          _buildDetailRow('精度', '${step.result.toString().length} 位', Icons.precision_manufacturing),
+        ],
+      ),
+    );
+  }
+
+  /// 构建详细信息行
+  Widget _buildDetailRow(String label, String value, IconData icon) {
+    return Row(
+      children: [
+        Icon(icon, color: Colors.blue.shade300, size: 16),
+        const SizedBox(width: 8),
+        Text(
+          '$label:',
+          style: TextStyle(
+            color: Colors.white70,
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            value,
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 12,
+              fontFamily: 'monospace',
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// 构建空状态
   Widget _buildEmptyState() {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
-            Icons.calculate_outlined,
+            Icons.history_edu,
             size: 64,
             color: Colors.white.withValues(alpha: 0.3),
           ),
           const SizedBox(height: 16),
           Text(
-            '还没有运算记录',
+            '暂无运算记录',
             style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.6),
+              color: Colors.white60,
               fontSize: 18,
               fontWeight: FontWeight.w500,
             ),
           ),
           const SizedBox(height: 8),
           Text(
-            '开始使用科学计算功能\n查看详细的运算过程',
-            textAlign: TextAlign.center,
+            '开始使用计算器来查看运算历史',
             style: TextStyle(
               color: Colors.white.withValues(alpha: 0.4),
               fontSize: 14,
@@ -308,168 +569,189 @@ class _CalculationHistoryDialogState extends State<CalculationHistoryDialog>
     );
   }
 
-  Widget _buildStepCard(CalculationStep step, int index) {
-    return TweenAnimationBuilder<double>(
-      duration: Duration(milliseconds: 300 + (index * 100)),
-      tween: Tween(begin: 0.0, end: 1.0),
-      builder: (context, value, child) {
-        return Transform.translate(
-          offset: Offset(20 * (1 - value), 0),
-          child: Opacity(
-            opacity: value,
-            child: Container(
-              margin: const EdgeInsets.only(bottom: 12),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.2),
-                  width: 1,
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // 操作描述
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.orange.withValues(alpha: 0.3),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          '#${widget.steps.length - index}',
-                          style: TextStyle(
-                            color: Colors.orange.shade200,
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          step.description,
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                      Text(
-                        _formatTime(step.timestamp),
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.5),
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                  
-                  const SizedBox(height: 12),
-                  
-                  // 计算过程
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.3),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Text(
-                              '输入：',
-                              style: TextStyle(
-                                color: Colors.cyan.shade300,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            Text(
-                              step.input.toString(),
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 14,
-                                fontFamily: 'monospace',
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 6),
-                        Row(
-                          children: [
-                            Text(
-                              '表达式：',
-                              style: TextStyle(
-                                color: Colors.purple.shade300,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            Expanded(
-                              child: Text(
-                                step.expression,
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 14,
-                                  fontFamily: 'monospace',
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 6),
-                        Row(
-                          children: [
-                            Text(
-                              '结果：',
-                              style: TextStyle(
-                                color: Colors.green.shade300,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            Text(
-                              step.result.toString(),
-                              style: TextStyle(
-                                color: Colors.green.shade100,
-                                fontSize: 14,
-                                fontFamily: 'monospace',
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
+  /// 构建底部操作栏
+  Widget _buildBottomActionBar() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        border: Border(
+          top: BorderSide(
+            color: Colors.white.withValues(alpha: 0.1),
+            width: 1,
           ),
-        );
-      },
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          _buildActionButton(
+            '导出',
+            Icons.download,
+            () => _exportHistory(),
+            Colors.blue,
+          ),
+          _buildActionButton(
+            '清除',
+            Icons.delete_outline,
+            () => _showClearConfirmation(),
+            Colors.red,
+          ),
+          _buildActionButton(
+            '统计',
+            Icons.analytics,
+            () => _showStatistics(),
+            Colors.green,
+          ),
+        ],
+      ),
     );
   }
 
-  String _formatTime(DateTime time) {
-    return '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}:${time.second.toString().padLeft(2, '0')}';
+  /// 构建操作按钮
+  Widget _buildActionButton(String label, IconData icon, VoidCallback onPressed, Color color) {
+    return ElevatedButton.icon(
+      onPressed: onPressed,
+      icon: Icon(icon, size: 16),
+      label: Text(label, style: TextStyle(fontSize: 12)),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: color.withValues(alpha: 0.2),
+        foregroundColor: color,
+        elevation: 0,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+      ),
+    );
   }
 
-  static void show(BuildContext context, List<CalculationStep> steps) {
+  /// 获取筛选后的步骤
+  List<CalculationStep> _getFilteredSteps() {
+    var steps = widget.steps.reversed.toList(); // 最新的在前
+    
+    // 应用搜索筛选
+    if (_searchQuery.isNotEmpty) {
+      steps = steps.where((step) =>
+        step.description.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+        step.expression.toLowerCase().contains(_searchQuery.toLowerCase())
+      ).toList();
+    }
+    
+    // 应用类型筛选
+    switch (_selectedFilter) {
+      case 'basic':
+        steps = steps.where((step) => 
+          step.expression.contains('+') || 
+          step.expression.contains('-') || 
+          step.expression.contains('*') || 
+          step.expression.contains('/')
+        ).toList();
+        break;
+      case 'function':
+        steps = steps.where((step) => 
+          step.expression.contains('(') && step.expression.contains(')')
+        ).toList();
+        break;
+      case 'recent':
+        final now = DateTime.now();
+        steps = steps.where((step) => 
+          now.difference(step.timestamp).inHours < 24
+        ).toList();
+        break;
+    }
+    
+    return steps;
+  }
+
+  /// 获取今日运算次数
+  int _getTodayCount() {
+    final today = DateTime.now();
+    return widget.steps.where((step) {
+      final stepDate = step.timestamp;
+      return stepDate.year == today.year &&
+             stepDate.month == today.month &&
+             stepDate.day == today.day;
+    }).length;
+  }
+
+  /// 格式化数字
+  String _formatNumber(double number) {
+    if (number == number.toInt()) {
+      return number.toInt().toString();
+    } else {
+      String formatted = number.toStringAsFixed(6);
+      formatted = formatted.replaceAll(RegExp(r'0*$'), '').replaceAll(RegExp(r'\.$'), '');
+      return formatted;
+    }
+  }
+
+  /// 格式化时间
+  String _formatTime(DateTime time) {
+    return '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
+  }
+
+  /// 格式化完整时间
+  String _formatFullTime(DateTime time) {
+    return '${time.year}-${time.month.toString().padLeft(2, '0')}-${time.day.toString().padLeft(2, '0')} ${_formatTime(time)}';
+  }
+
+  /// 复制到剪贴板
+  void _copyToClipboard(CalculationStep step) {
+    final text = '${step.description}: ${step.expression} = ${_formatNumber(step.result)}';
+    Clipboard.setData(ClipboardData(text: text));
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('已复制到剪贴板'),
+        duration: Duration(seconds: 2),
+        backgroundColor: Colors.green,
+      ),
+    );
+  }
+
+  /// 导出历史
+  void _exportHistory() {
+    // TODO: 实现导出功能
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('导出功能开发中...'),
+        backgroundColor: Colors.blue,
+      ),
+    );
+  }
+
+  /// 显示清除确认
+  void _showClearConfirmation() {
     showDialog(
       context: context,
-      barrierDismissible: true,
-      barrierColor: Colors.black.withValues(alpha: 0.7),
-      builder: (context) => CalculationHistoryDialog(steps: steps),
+      builder: (context) => AlertDialog(
+        title: Text('清除历史记录'),
+        content: Text('确定要清除所有运算历史吗？此操作无法撤销。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('取消'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              // TODO: 实现清除功能
+            },
+            child: Text('确定'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 显示统计信息
+  void _showStatistics() {
+    // TODO: 实现统计功能
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('统计功能开发中...'),
+        backgroundColor: Colors.green,
+      ),
     );
   }
 } 

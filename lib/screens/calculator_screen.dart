@@ -66,6 +66,7 @@ class CalculatorScreen extends StatelessWidget {
           child: CalculatorDisplay(
             state: provider.state,
             theme: provider.config.theme,
+            calculationHistory: provider.calculationHistory,
           ),
         ),
         
