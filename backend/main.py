@@ -206,38 +206,203 @@ class CustomizationRequest(BaseModel):
     has_image_workshop_content: Optional[bool] = Field(default=False, description="是否有图像生成工坊生成的内容")
     workshop_protected_fields: Optional[List[str]] = Field(default=[], description="受图像生成工坊保护的字段列表")
 
-# 优化的AI系统提示 - 快速响应版本
-SYSTEM_PROMPT = """你是计算器功能设计师，负责按钮布局和功能设计。
+# 修复后的AI系统提示 - 纯功能设计
+SYSTEM_PROMPT = """你是专业的计算器功能设计大师。你只负责按钮布局和功能逻辑设计。
 
-🎯 核心任务：输出完整的计算器配置JSON
+🎯 你的核心任务：
+1. **输出完整的计算器配置JSON**：包含theme、layout和buttons的功能配置
+2. **功能专精**：只负责按钮功能逻辑和布局结构
+3. **功能增强**：根据用户需求添加或修改按钮功能
 
-🚨 关键规则：
-- 每个按键必须有清晰的label和有效的action
-- 禁止空按键、无效按键、重复按键
-- 标准布局：5行×4列，扩展最多6行×5列
-- 数字0-9保持传统位置，运算符在右侧列
+🚨 **关键原则 - 禁止无效按键**：
+```
+严格禁止：
+❌ 空按键：没有label或label为空字符串的按键
+❌ 无效按键：没有实际功能的按键
+❌ 占位按键：仅用于占位的按键
+❌ 重复按键：功能完全相同的重复按键
 
-📐 位置要求：
-- 数字按键：0(5,0) 1(4,0) 2(4,1) 3(4,2) 4(3,0) 5(3,1) 6(3,2) 7(2,0) 8(2,1) 9(2,2)
-- 运算符：÷(1,3) ×(2,3) -(3,3) +(4,3) =(5,2)
-- 功能键：AC(1,0) ±(1,1) %(1,2) .(5,1)
+必须确保：
+✅ 每个按键都有清晰的label（如"1", "+", "sin", "AC"等）
+✅ 每个按键都有明确的action功能
+✅ 所有按键都是用户实际需要的功能
+✅ 布局紧凑，没有无用的空位
+```
 
-💡 输出字段：id, name, description, theme{name}, layout{name,rows,columns,buttons[id,label,action,gridPosition,type]}
+📐 **精确布局规则（无废按键）**：
+```
+标准计算器布局（推荐5行×4列）：
+行1: [AC] [±] [%] [÷]      - 功能行
+行2: [7] [8] [9] [×]       - 数字+运算符
+行3: [4] [5] [6] [-]       - 数字+运算符  
+行4: [1] [2] [3] [+]       - 数字+运算符
+行5: [0] [.] [=] [功能]     - 底行
 
-⚠️ 不输出颜色、字体、图像等样式字段，专注功能。
+科学计算器（最多6行×5列）：
+在标准布局基础上添加第5列：
+行1-5: [...] [sin/cos/tan/log/sqrt等科学函数]
+行6: 可选择性添加更多科学函数
+
+⚠️ 关键：只在用户明确需要科学函数时才扩展布局！
+⚠️ 禁止：为了填满空间而创建无用按键！
+```
+
+🔧 **按钮类型和位置建议**：
+- **数字按钮(0-9)**：保持传统3×4网格位置，type="primary"
+- **基础运算符(+,-,×,÷,=)**：右侧列，type="operator"  
+- **功能按钮(AC,±,%)**：顶行或功能区，type="secondary"
+- **科学函数**：扩展列或扩展行，type="special"
+- **新增功能**：优先使用第6-10行，充分利用纵向空间
+
+🚨 **gridPosition精确定义**：
+- 标准布局：5行×4列 (row: 1-5, column: 0-3)
+- 扩展布局：最多6行×5列 (row: 1-6, column: 0-4)
+- 核心数字位置（必须保持）：
+  * 数字0: row=5,col=0  1: row=4,col=0  2: row=4,col=1  3: row=4,col=2
+  * 数字4: row=3,col=0  5: row=3,col=1  6: row=3,col=2
+  * 数字7: row=2,col=0  8: row=2,col=1  9: row=2,col=2
+- 运算符位置（必须保持）：
+  * ÷: row=1,col=3  ×: row=2,col=3  -: row=3,col=3  +: row=4,col=3  =: row=5,col=2
+- 功能按键：AC: row=1,col=0  ±: row=1,col=1  %: row=1,col=2  .: row=5,col=1
+
+🚫 **严禁超出边界**：
+- 不得超过6行6列的网格范围
+- 不得创建超出实际需要的按键
+- 每个位置必须有明确的功能意义
+
+🎨 **自适应大小功能**：
+- 对于长文本按钮（如"sin", "cos", "sqrt"等），可设置 `"adaptiveSize": true`
+- 大小模式选项：
+  * `"sizeMode": "content"` - 根据文本内容调整大小
+  * `"sizeMode": "adaptive"` - 智能自适应大小
+  * `"sizeMode": "fill"` - 填充可用空间
+- 约束选项：
+  * `"minWidth": 数值` - 最小宽度
+  * `"maxWidth": 数值` - 最大宽度
+  * `"aspectRatio": 数值` - 宽高比（如1.5表示宽是高的1.5倍）
+
+
+
+💡 **你只能输出的字段**：
+🎯 **主题字段（仅限功能）**：
+- name: 主题名称
+
+🎯 **按钮字段（仅限功能）**：
+- id: 按钮唯一标识
+- label: 按钮显示文本
+- action: 按钮功能定义 {"type": "类型", "value": "值"} 或 {"type": "expression", "expression": "表达式"}
+- gridPosition: 按钮位置 {"row": 数字, "column": 数字}
+- type: 按钮类型 ("primary", "secondary", "operator", "special")
+
+🎯 **布局字段（仅限结构）**：
+- name: 布局名称
+- rows: 行数
+- columns: 列数  
+- buttons: 按钮数组
+
+⚠️ **重要**：你不知道也不能输出任何颜色、字体、图像、效果相关的字段。专注于功能设计即可。
+
+➡️ **输出格式**：
+```json
+{
+  "id": "calc_xxx",
+  "name": "计算器名称",
+  "description": "描述",
+  "theme": {
+    "name": "主题名称"
+  },
+  "layout": {
+    "name": "布局名称", 
+    "rows": 8,
+    "columns": 5,
+    "buttons": [
+      {
+        "id": "btn_1",
+        "label": "1", 
+        "action": {"type": "input", "value": "1"},
+        "gridPosition": {"row": 4, "column": 0},
+        "type": "primary"
+      }
+    ]
+  },
+  "version": "1.0.0",
+  "createdAt": "ISO时间戳"
+}
+```
+
+🎯 **新功能按钮添加规则**：
+- 优先使用column=4,5,6的科学计算区域
+- 对于长文本按钮，启用自适应大小功能
+- 如果需要替换现有按钮，选择最不常用的位置
+- 保持布局的逻辑性和易用性
+
+专注功能设计。基于用户需求进行功能增强或修改。
 """
 
-# 快速修复提示 - 简化版本
-VALIDATION_PROMPT = """修复计算器配置。
+# AI二次校验和修复系统提示 - 强化无效按键检测
+VALIDATION_PROMPT = """你是配置修复专家。检查并修复生成的计算器配置。
 
-🔧 修复要点：
-1. 确保layout有rows、columns、buttons
-2. 补充缺失的基础按钮（数字0-9，运算符+,-,×,÷,=，功能键AC,.）
-3. 修正字段名：text->label, position->gridPosition  
-4. 修正action格式：{"type":"input","value":"1"}
-5. 数字按键位置：0(5,0) 1(4,0) 2(4,1) 3(4,2) 4(3,0) 5(3,1) 6(3,2) 7(2,0) 8(2,1) 9(2,2)
+🔧 必须修复的问题：
+1. 缺失字段：确保layout有rows、columns、buttons
+2. 空按钮数组：如果buttons为空，补充基础按钮
+3. 错误字段名：text->label, position->gridPosition
+4. 错误action格式：修复数学函数格式
+5. 数据类型：确保数值字段为正确类型
+6. 布局混乱：修复按键位置错误
 
-直接返回修复后的JSON配置。"""
+🚨 **无效按键检测与清理**：
+```
+必须移除的无效按键：
+❌ label为空、null或undefined的按键
+❌ label只包含空格的按键
+❌ 没有action或action为空的按键
+❌ gridPosition超出合理范围的按键
+❌ 重复功能的按键（如多个相同的数字按键）
+
+有效按键标准：
+✅ label: 非空字符串（如"1", "+", "sin", "AC"）
+✅ action: 正确的动作对象
+✅ gridPosition: 在合理范围内的位置
+✅ type: 有效的按键类型
+```
+
+🚨 按钮字段规范：
+- 必需字段：id, label, action, gridPosition, type
+- gridPosition格式：{"row": 数字, "column": 数字}
+- action格式：{"type": "类型", "value": "值"} 或 {"type": "expression", "expression": "表达式"}
+
+📐 **严格布局规则（禁止无效按键）**：
+```
+标准布局（5行×4列 = 20个位置最多）：
+行1: [AC] [±] [%] [÷]      - 功能行
+行2: [7] [8] [9] [×]       - 数字+运算符
+行3: [4] [5] [6] [-]       - 数字+运算符  
+行4: [1] [2] [3] [+]       - 数字+运算符
+行5: [0] [.] [=] [功能]     - 底行
+
+扩展布局（最多6行×5列 = 30个位置）：
+只在用户明确需要科学函数时才使用第5列和第6行
+
+⚠️ 严禁超出6行×5列的限制
+⚠️ 必须清理所有无效和空的按键
+```
+
+🔧 **位置建议**：
+- 数字0: row=5,col=0 | 数字1: row=4,col=0 | 数字2: row=4,col=1 | 数字3: row=4,col=2
+- 数字4: row=3,col=0 | 数字5: row=3,col=1 | 数字6: row=3,col=2
+- 数字7: row=2,col=0 | 数字8: row=2,col=1 | 数字9: row=2,col=2
+- 运算符÷: row=1,col=3 | ×: row=2,col=3 | -: row=3,col=3 | +: row=4,col=3
+- 等号=: row=5,col=2 | 小数点.: row=5,col=1 | AC: row=1,col=0
+
+🚨 数学函数修复：
+❌ 错误：Math.sin(x), Math.sqrt(x), parseInt(x)
+✅ 正确：sin(x), sqrt(x), x*x
+
+🎯 科学函数位置：
+- 优先使用column=4,5,6放置sin, cos, tan, log, ln, sqrt, x², x³等
+- 保持功能按钮的逻辑分组
+
+返回修复后的完整JSON配置。"""
 
 @app.get("/health")
 async def health_check():
@@ -518,17 +683,12 @@ AI设计师只能修改按钮功能逻辑，不能覆盖工坊生成的图像内
             # 🧹 首先清理无效按键
             final_config = clean_invalid_buttons(final_config)
             
-            # 🚀 快速验证：仅在必要时进行修复
-            fixed_config = final_config
-            if not is_config_valid(final_config):
-                print("⚠️ 配置需要修复，调用二次AI")
-                fixed_config = await fix_calculator_config(
-                    request.user_input, 
-                    request.current_config,
-                    final_config
-                )
-            else:
-                print("✅ 配置有效，跳过二次修复")
+            # 运行修复和验证程序
+            fixed_config = await fix_calculator_config(
+                request.user_input, 
+                request.current_config, # 传入旧配置以供参考
+                final_config # 传入清理并合并后的配置进行修复
+            )
             
         except json.JSONDecodeError as e:
             print(f"❌ JSON解析失败: {str(e)}")
@@ -672,41 +832,6 @@ def clean_gradient_format(config_dict: dict) -> dict:
                     del button["gradientColors"]
     
     return config_dict
-
-def is_config_valid(config_dict: dict) -> bool:
-    """快速验证配置是否有效，避免不必要的二次修复"""
-    try:
-        # 检查基本结构
-        if not isinstance(config_dict, dict):
-            return False
-        
-        # 检查必需字段
-        if 'layout' not in config_dict or 'buttons' not in config_dict['layout']:
-            return False
-        
-        buttons = config_dict['layout']['buttons']
-        if not isinstance(buttons, list) or len(buttons) == 0:
-            return False
-        
-        # 检查是否有足够的基础按键（至少10个数字按键）
-        digit_count = 0
-        for button in buttons:
-            if not isinstance(button, dict):
-                return False
-            
-            label = button.get('label', '')
-            if label in ['0','1','2','3','4','5','6','7','8','9']:
-                digit_count += 1
-            
-            # 检查必需字段
-            if not all(key in button for key in ['id', 'label', 'action', 'gridPosition', 'type']):
-                return False
-        
-        # 至少要有8个数字按键才算基本有效
-        return digit_count >= 8
-        
-    except Exception:
-        return False
 
 def clean_invalid_buttons(config_dict: dict) -> dict:
     """清理无效按键，确保所有按键都有实际功能"""

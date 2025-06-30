@@ -994,9 +994,11 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
   void _updateButtonTextImage(CalculatorButton button, String imageUrl) {
     final provider = Provider.of<CalculatorProvider>(context, listen: false);
     
+    print('🎨 为按键 "${button.label}" 应用光影文字图片: $imageUrl');
+    
     final updatedButton = CalculatorButton(
       id: button.id,
-      label: button.label, // 保持原有文字标签
+      label: button.label, // 保持原有文字标签（在按键渲染中会被忽略）
       action: button.action,
       gridPosition: button.gridPosition,
       type: button.type,
@@ -1005,14 +1007,14 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
       widthMultiplier: button.widthMultiplier,
       heightMultiplier: button.heightMultiplier,
       gradientColors: button.gradientColors,
-      backgroundImage: imageUrl, // 设置生成的光影文字图片为背景
+      backgroundImage: imageUrl, // 🎨 设置生成的光影文字图片为背景
       fontSize: button.fontSize,
       borderRadius: button.borderRadius,
       elevation: button.elevation,
       width: button.width,
       height: button.height,
       backgroundColor: button.backgroundColor,
-      textColor: '#00000000', // 隐藏原文字，显示图片
+      textColor: '#00000000', // 🚫 完全透明，确保不显示原文字
       borderColor: button.borderColor,
       borderWidth: button.borderWidth,
       shadowColor: button.shadowColor,

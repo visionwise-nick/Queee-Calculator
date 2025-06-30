@@ -486,6 +486,12 @@ class _CalculatorButtonWidgetState extends State<CalculatorButtonWidget>
     // 优先使用按钮独立的字体大小，否则使用主题的全局字体大小
     final fontSize = widget.button.fontSize ?? theme.fontSize;
 
+    // 🚫 检查是否有背景图片（光影文字图片）- 如果有，不显示任何文字内容
+    if (widget.button.backgroundImage != null && widget.button.backgroundImage!.isNotEmpty) {
+      // 返回透明的空内容，完全不显示文字，让背景图片完全展示
+      return const SizedBox.shrink();
+    }
+
     // 检查是否有自定义图标
     if (widget.button.customIcon != null && widget.button.customIcon!.isNotEmpty) {
       // 在这里返回一个图标控件，或者其他你想要显示的自定义内容
