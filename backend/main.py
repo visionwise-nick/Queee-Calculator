@@ -8,6 +8,7 @@ import os
 from datetime import datetime
 import time
 import re
+import copy
 # 添加图像生成相关导入
 import requests
 import base64
@@ -386,7 +387,7 @@ async def customize_calculator(request: CustomizationRequest) -> CalculatorConfi
             
             # 🛡️ 绝对样式保护：构建最终配置
             # 1. 深度复制现有配置作为基础
-            final_config = request.current_config.copy(deep=True)
+            final_config = copy.deepcopy(request.current_config)
             
             # 2. 用AI生成的按钮列表替换布局中的按钮
             final_config['layout']['buttons'] = buttons_list
