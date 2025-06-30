@@ -253,6 +253,7 @@ class CalculatorButton {
   final List<String>? gradientColors;
   final String? backgroundImage;
   final double? fontSize;
+  final String? fontFamily;
   final double? borderRadius;
   final double? elevation;
   final double? width;
@@ -289,6 +290,7 @@ class CalculatorButton {
     this.gradientColors,
     this.backgroundImage,
     this.fontSize,
+    this.fontFamily,
     this.borderRadius,
     this.elevation,
     this.width,
@@ -327,6 +329,7 @@ class CalculatorButton {
       gradientColors: json['gradientColors']?.cast<String>(),
       backgroundImage: json['backgroundImage'],
       fontSize: json['fontSize']?.toDouble(),
+      fontFamily: json['fontFamily'] as String?,
       borderRadius: json['borderRadius']?.toDouble(),
       elevation: json['elevation']?.toDouble(),
       width: json['width']?.toDouble(),
@@ -368,6 +371,7 @@ class CalculatorButton {
       'gradientColors': gradientColors,
       'backgroundImage': backgroundImage,
       'fontSize': fontSize,
+      'fontFamily': fontFamily,
       'borderRadius': borderRadius,
       'elevation': elevation,
       'width': width,

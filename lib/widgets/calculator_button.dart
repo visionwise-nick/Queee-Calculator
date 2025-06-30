@@ -330,26 +330,34 @@ class _CalculatorButtonWidgetState extends State<CalculatorButtonWidget>
   }
 
   Widget _buildButtonContent(Color textColor, CalculatorTheme theme) {
-    return Consumer<CalculatorProvider>(
-      builder: (context, provider, child) {
-        // 使用按钮独立字体大小或根据布局动态调整
-        final layout = provider.config.layout;
-        double fontSize = widget.button.fontSize ?? _getButtonFontSize(theme.fontSize, layout.rows);
-        
-        // 显示文字
-        return Text(
+    // 优先使用按钮独立的字体大小，否则使用主题的全局字体大小
+    final fontSize = widget.button.fontSize ?? theme.fontSize;
+
+    // 检查是否有自定义图标
+    if (widget.button.customIcon != null && widget.button.customIcon!.isNotEmpty) {
+      // 在这里返回一个图标控件，或者其他你想要显示的自定义内容
+      // 例如：
+      return Icon(
+        Icons.star, // 这是一个示例图标，你需要根据customIcon的值来决定显示哪个图标
+        color: widget.button.iconColor != null ? _parseColor(widget.button.iconColor!) : textColor,
+        size: widget.button.iconSize ?? fontSize,
+      );
+    } else {
+      // 默认显示文本
+      return FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Text(
           widget.button.label,
           style: TextStyle(
-            fontSize: fontSize,
-            fontWeight: _getButtonFontWeight(),
             color: textColor,
-            // fontFamily: 'monospace',
+            fontSize: fontSize, // 应用动态字体大小
+            fontWeight: FontWeight.w500,
+            fontFamily: widget.button.fontFamily, // 应用字体
           ),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        );
-      },
-    );
+          textAlign: TextAlign.center,
+        ),
+      );
+    }
   }
 
   /// 获取图标数据

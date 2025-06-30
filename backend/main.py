@@ -180,91 +180,27 @@ class CustomizationRequest(BaseModel):
     current_config: Optional[Dict[str, Any]] = Field(default=None, description="当前计算器配置")
 
 # 优化的AI系统提示 - 修复按键功能问题
-SYSTEM_PROMPT = """你是专业计算器设计师。必须返回完整的JSON配置，严格按照技术规范。
+SYSTEM_PROMPT = """你是专业的计算器功能设计大师。你的唯一任务是根据用户的功能需求，修改计算器按钮布局。
 
-🔧 必须包含的字段：
-- layout.rows: 行数 (4-6，避免过多按钮)
-- layout.columns: 列数 (4-5) 
-- layout.buttons: 按钮数组（18-30个按钮，避免过多）
+🎯 你的任务：
+1. **只输出`"buttons"`数组**：你的输出必须是一个JSON数组，只包含`buttons`。不要输出包含`theme`或`layout`的完整JSON对象。
+2. **绝对禁止修改样式**：不要在任何按钮对象中包含颜色、字体、背景等样式字段。
+3. **保持现有按钮**：不要删除或修改现有按钮的`id`或`gridPosition`，除非用户明确要求。只添加新功能按钮。
+4. **确保功能完整**：所有按钮必须有正确的`action`定义。
 
-🔧 ACTION字段规范（严格遵守）：
-数字：{"type": "input", "value": "0-9"}
-小数点：{"type": "decimal"}
-运算符：{"type": "operator", "value": "+|-|*|/"}
-等号：{"type": "equals"}
-清除：{"type": "clearAll"}
-退格：{"type": "backspace"}
-正负号：{"type": "negate"}
-单参数函数：{"type": "expression", "expression": "函数名(x)"}
-多参数函数：{"type": "multiParamFunction", "value": "函数名"}
-参数分隔符：{"type": "parameterSeparator"}
-函数执行：{"type": "functionExecute"}
+➡️ 你的输出格式必须是：
+[
+  { "id": "btn1", "label": "1", "action": {"type": "input", "value": "1"}, "gridPosition": {"row": 0, "column": 0}, "type": "primary" },
+  { "id": "btn2", "label": "+", "action": {"type": "operator", "value": "+"}, "gridPosition": {"row": 0, "column": 1}, "type": "operator" }
+]
 
-🚀 数学函数格式（严格使用）：
-✅ 正确的单参数函数：
-- sin(x), cos(x), tan(x) - 三角函数
-- sqrt(x), x*x, 1/x - 幂运算
-- abs(x), factorial(x) - 其他函数
-- random() - 随机数（不需要x参数）
-- x*0.15, x*0.18, x*0.20 - 百分比计算
+⚠️ 严格禁止：
+- 输出`theme`对象。
+- 输出`layout`对象。
+- 在按钮中包含任何样式字段 (`backgroundColor`, `fontSize`, `backgroundImage`, etc.)。
 
-✅ 正确的多参数函数（必须包含配套按钮）：
-- pow - 幂运算 pow(x,y)
-- log - 对数 log(x,base)
-- max, min - 最值 max(x,y,z...)
-- 汇率转换, 复利计算, 贷款计算, 投资回报 - 金融函数
-
-❌ 禁止的错误格式：
-- Math.sin, Math.sqrt, Math.random - JavaScript语法
-- parseInt, toString - JavaScript方法
-- -x - 错误的负号表达式（应该用negate类型）
-- 不完整的多参数函数（缺少逗号或执行按钮）
-
-🔧 多参数函数完整配置要求：
-如果包含多参数函数，必须同时包含：
-1. 多参数函数按钮：{"type": "multiParamFunction", "value": "pow"}, "label": "x^y"
-2. 参数分隔符按钮：{"type": "parameterSeparator"}, "label": "," 
-3. 函数执行按钮：{"type": "functionExecute"}, "label": "执行"
-
-🏷️ 按钮标签规范：
-- 多参数函数按钮使用清晰的数学符号：
-  * pow → "x^y" 或 "幂运算"
-  * log → "log(x,b)" 或 "对数"
-  * 汇率转换 → "汇率" 或 "💱"
-  * 复利计算 → "复利" 或 "📈"
-  * 贷款计算 → "贷款" 或 "🏠"
-- 参数分隔符统一使用 ","
-- 函数执行按钮使用 "执行" 或 "EXE"
-
-📐 推荐布局：
-- 基础计算器：5行4列，20个按钮
-- 科学计算器：6行5列，25-30个按钮
-- 避免7行以上的布局（按钮太多，用户体验差）
-
-🎯 按钮优先级：
-1. 基础按钮（数字0-9，运算符+－×÷，等号，清除）- 必须
-2. 常用函数（√x，x²，+/-）- 推荐
-3. 三角函数（sin，cos，tan）- 科学计算器
-4. 多参数函数（pow，log，max等）- 高级功能
-
-⚠️ 严格限制原则：
-- 🚫 绝对禁止修改任何样式相关字段（backgroundImage、gradientColors、customColor等）
-- 🚫 绝对禁止删除或更改现有按钮的样式属性
-- ✅ 只能修改按钮的功能逻辑（action字段）
-- ✅ 只能添加新的功能按钮（不包含样式属性）
-- 🚫 禁止"创新"或"改进"用户未要求的部分
-
-🔄 继承性原则：
-- 如果有current_config，严格保持所有样式配置不变
-- 只修改用户直接要求的功能逻辑
-- 所有现有按钮的样式配置必须原样保留
-
-🎨 样式保护规则：
-- theme中的所有样式字段必须原样继承
-- 按钮的backgroundImage、gradientColors、customColor等样式字段必须保留
-- 只能在layout.buttons中添加纯功能按钮，不得包含样式属性
-
-必须返回包含theme和layout的完整JSON，确保layout有rows、columns、buttons字段。"""
+只关注功能，忽略所有外观。基于`current_config`中的按钮进行修改。
+"""
 
 # AI二次校验和修复系统提示 - 简化版
 VALIDATION_PROMPT = """你是配置修复专家。检查并修复生成的计算器配置。
@@ -428,8 +364,8 @@ async def customize_calculator(request: CustomizationRequest) -> CalculatorConfi
             config_json = response_text[json_start:json_end].strip()
         else:
             # 尝试找到JSON对象的开始和结束
-            json_start = response_text.find('{')
-            json_end = response_text.rfind('}')
+            json_start = response_text.find('[')
+            json_end = response_text.rfind(']')
             if json_start != -1 and json_end != -1:
                 config_json = response_text[json_start:json_end+1]
             else:
@@ -438,329 +374,45 @@ async def customize_calculator(request: CustomizationRequest) -> CalculatorConfi
         print(f"🔍 提取的JSON长度: {len(config_json)} 字符")
         print(f"🔍 JSON前100字符: {config_json[:100]}")
         
-        # 解析JSON
         try:
-            raw_config = json.loads(config_json)
-            print(f"✅ JSON解析成功")
+            # AI现在应该只返回一个按钮数组
+            buttons_list = json.loads(config_json)
+            if not isinstance(buttons_list, list):
+                raise HTTPException(status_code=500, detail="AI未能生成有效的按钮列表JSON")
+            
+            # 如果没有当前配置，无法继续
+            if not request.current_config:
+                raise HTTPException(status_code=400, detail="无法在没有当前配置的情况下进行纯功能修改")
+            
+            # 🛡️ 绝对样式保护：构建最终配置
+            # 1. 深度复制现有配置作为基础
+            final_config = request.current_config.copy(deep=True)
+            
+            # 2. 用AI生成的按钮列表替换布局中的按钮
+            final_config['layout']['buttons'] = buttons_list
+            
+            # 3. 运行修复和验证程序
+            #    我们传入完整的final_config，让fixer能够修复其中的新按钮布局
+            fixed_config = await fix_calculator_config(
+                request.user_input, 
+                request.current_config, # 传入旧配置以供参考
+                final_config # 传入合并后的配置进行修复
+            )
+            
         except json.JSONDecodeError as e:
             print(f"❌ JSON解析失败: {str(e)}")
             print(f"📄 原始响应: {response_text[:500]}")
             raise HTTPException(status_code=500, detail=f"AI生成的JSON格式无效: {str(e)}")
         
-        # 🔍 AI二次校验和修复
-        fixed_config = await fix_calculator_config(request.user_input, request.current_config, raw_config)
-        
-        # 🎨 保留用户现有的样式配置（背景图、按键样式等）
-        if request.current_config:
-            current_theme = request.current_config.get('theme', {})
-            current_layout = request.current_config.get('layout', {})
-            
-            # 保留所有样式相关的字段
-            style_fields = [
-                'backgroundImage', 'backgroundGradient', 'displayBackgroundGradient',
-                'primaryButtonGradient', 'secondaryButtonGradient', 'operatorButtonGradient',
-                'buttonShadowColors', 'shadowColor', 'buttonElevation', 'hasGlowEffect'
-            ]
-            
-            for field in style_fields:
-                if field in current_theme and field not in fixed_config.get('theme', {}):
-                    if 'theme' not in fixed_config:
-                        fixed_config['theme'] = {}
-                    fixed_config['theme'][field] = current_theme[field]
-                    print(f"🎨 保留用户样式配置: {field}")
-            
-            # 保留现有按键的样式配置
-            if 'buttons' in current_layout and 'layout' in fixed_config and 'buttons' in fixed_config['layout']:
-                current_buttons = {btn['id']: btn for btn in current_layout['buttons']}
-                
-                for new_button in fixed_config['layout']['buttons']:
-                    button_id = new_button.get('id')
-                    if button_id in current_buttons:
-                        current_button = current_buttons[button_id]
-                        
-                        # 保留按键的样式配置
-                        style_button_fields = [
-                            'gradientColors', 'backgroundImage', 'customColor', 'backgroundColor',
-                            'textColor', 'borderColor', 'borderRadius', 'elevation', 'shadowColor'
-                        ]
-                        
-                        for field in style_button_fields:
-                            if field in current_button and field not in new_button:
-                                new_button[field] = current_button[field]
-                                print(f"🎨 保留按键 {button_id} 的样式: {field}")
-        
-        # 基本数据验证和字段补充
-        if 'theme' not in fixed_config:
-            fixed_config['theme'] = {}
-        if 'layout' not in fixed_config:
-            fixed_config['layout'] = {'buttons': []}
-        
-        # 补充必需字段
-        theme = fixed_config['theme']
-        if 'name' not in theme:
-            theme['name'] = '自定义主题'
-        
-        # 🔧 修复渐变色格式问题
-        def fix_gradient_format(gradient_value):
-            """将CSS格式的渐变色转换为字符串数组"""
-            if isinstance(gradient_value, str):
-                # 解析CSS linear-gradient格式
-                if 'linear-gradient' in gradient_value:
-                    # 提取颜色值
-                    import re
-                    colors = re.findall(r'#[0-9a-fA-F]{6}|#[0-9a-fA-F]{3}', gradient_value)
-                    if len(colors) >= 2:
-                        return colors[:2]  # 只取前两个颜色
-                # 如果是逗号分隔的颜色
-                elif ',' in gradient_value:
-                    colors = [color.strip() for color in gradient_value.split(',')]
-                    return colors[:2] if len(colors) >= 2 else None
-                # 单个颜色值，不是渐变
-                else:
-                    return None
-            elif isinstance(gradient_value, list):
-                return gradient_value  # 已经是正确格式
-            else:
-                return None
-        
-        # 修复主题中的所有渐变色字段
-        gradient_fields = [
-            'backgroundGradient', 'displayBackgroundGradient', 
-            'primaryButtonGradient', 'secondaryButtonGradient', 
-            'operatorButtonGradient', 'buttonShadowColors'
-        ]
-        
-        for field in gradient_fields:
-            if field in theme and theme[field] is not None:
-                fixed_gradient = fix_gradient_format(theme[field])
-                if fixed_gradient:
-                    theme[field] = fixed_gradient
-                    print(f"🔧 修复渐变色字段 {field}: {theme[field]}")
-                else:
-                    # 如果无法修复，删除该字段
-                    del theme[field]
-                    print(f"⚠️ 删除无效的渐变色字段 {field}")
-        
-        layout = fixed_config['layout']
-        if 'name' not in layout:
-            layout['name'] = '自定义布局'
-        if 'buttons' not in layout:
-            layout['buttons'] = []
-        if 'rows' not in layout:
-            layout['rows'] = 5  # 默认5行
-        if 'columns' not in layout:
-            layout['columns'] = 4  # 默认4列
-        
-        # 🔧 修复按钮字段名问题
-        for i, button in enumerate(layout.get('buttons', [])):
-            # 修复字段名：text -> label
-            if 'text' in button and 'label' not in button:
-                button['label'] = button['text']
-                del button['text']
-            
-            # 确保必需字段存在
-            if 'id' not in button:
-                button['id'] = f"button_{i}"
-            if 'label' not in button:
-                button['label'] = button.get('text', f"按钮{i}")
-            if 'type' not in button:
-                button['type'] = 'primary'
-            if 'gridPosition' not in button:
-                # 根据索引计算网格位置
-                row = i // layout['columns']
-                col = i % layout['columns']
-                button['gridPosition'] = {'row': row, 'column': col}
-        
-        # 🔧 确保所有按钮都有正确的action字段
-        print(f"🔍 开始修复按钮action，当前按钮数量: {len(layout.get('buttons', []))}")
-        for button in layout.get('buttons', []):
-            button_id = button.get('id', '')
-            button_label = button.get('label', '')
-            current_action = button.get('action', {})
-            print(f"🔍 按钮 {button_id} ('{button_label}') 当前action: {current_action}")
-            
-            # 检查action是否有效
-            action_valid = (
-                'action' in button and 
-                isinstance(button['action'], dict) and
-                'type' in button['action'] and
-                button['action']['type'] != 'input' or (
-                    button['action']['type'] == 'input' and 
-                    'value' in button['action'] and 
-                    button['action']['value'] is not None
-                )
-            )
-            
-            if not action_valid:
-                print(f"⚠️ 按钮 {button_id} action无效，开始修复...")
-                
-                # 根据按钮ID和标签推断正确的action
-                if button_id in ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine']:
-                    number_map = {'zero': '0', 'one': '1', 'two': '2', 'three': '3', 'four': '4', 
-                                  'five': '5', 'six': '6', 'seven': '7', 'eight': '8', 'nine': '9'}
-                    button['action'] = {'type': 'input', 'value': number_map.get(button_id, button_id)}
-                elif button_label in ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']:
-                    button['action'] = {'type': 'input', 'value': button_label}
-                elif button_id == 'add' or button_label == '+':
-                    button['action'] = {'type': 'operator', 'value': '+'}
-                elif button_id == 'subtract' or button_label == '-':
-                    button['action'] = {'type': 'operator', 'value': '-'}
-                elif button_id == 'multiply' or button_label in ['×', '*', '×']:
-                    button['action'] = {'type': 'operator', 'value': '*'}
-                elif button_id == 'divide' or button_label in ['÷', '/', '÷']:
-                    button['action'] = {'type': 'operator', 'value': '/'}
-                elif button_id == 'equals' or button_label == '=':
-                    button['action'] = {'type': 'equals'}
-                elif button_id in ['clear', 'clearAll'] or button_label in ['AC', 'C', '清除']:
-                    button['action'] = {'type': 'clearAll'}
-                elif button_id == 'decimal' or button_label == '.':
-                    button['action'] = {'type': 'decimal'}
-                elif button_id == 'negate' or button_label in ['±', '+/-']:
-                    button['action'] = {'type': 'negate'}
-                elif button_id == 'backspace' or button_label in ['⌫', '退格']:
-                    button['action'] = {'type': 'backspace'}
-                elif button_label == '%':
-                    button['action'] = {'type': 'operator', 'value': '%'}
-                elif 'sin' in button_label.lower():
-                    button['action'] = {'type': 'expression', 'expression': 'sin(x)'}
-                elif 'cos' in button_label.lower():
-                    button['action'] = {'type': 'expression', 'expression': 'cos(x)'}
-                elif 'tan' in button_label.lower():
-                    button['action'] = {'type': 'expression', 'expression': 'tan(x)'}
-                elif 'sqrt' in button_label.lower() or '√' in button_label:
-                    button['action'] = {'type': 'expression', 'expression': 'sqrt(x)'}
-                elif 'x²' in button_label or 'x^2' in button_label:
-                    button['action'] = {'type': 'expression', 'expression': 'x*x'}
-                elif 'log' in button_label.lower():
-                    button['action'] = {'type': 'expression', 'expression': 'log(x)'}
-                elif 'ln' in button_label.lower():
-                    button['action'] = {'type': 'expression', 'expression': 'ln(x)'}
-                elif '1/x' in button_label:
-                    button['action'] = {'type': 'expression', 'expression': '1/x'}
-                else:
-                    # 默认为输入类型，使用标签作为值
-                    button['action'] = {'type': 'input', 'value': button_label or '0'}
-                    print(f"⚠️ 按钮 {button_id} 使用默认action: input")
-                
-                print(f"✅ 为按钮 {button_id} 修复了action: {button['action']}")
-            else:
-                print(f"✅ 按钮 {button_id} action有效，无需修复")
-        
-        # 🔧 修复所有按钮中的错误表达式格式
-        for button in layout.get('buttons', []):
-            action = button.get('action', {})
-            if action.get('type') == 'expression' and action.get('expression'):
-                # 修复常见的错误表达式格式
-                expression = action['expression']
-                expression_fixes = {
-                    'Math.random()': 'random()',
-                    'Math.abs(x)': 'abs(x)',
-                    'Math.sin(x)': 'sin(x)',
-                    'Math.cos(x)': 'cos(x)',
-                    'Math.tan(x)': 'tan(x)',
-                    'Math.sqrt(x)': 'sqrt(x)',
-                    'Math.log(x)': 'log(x)',
-                    'Math.exp(x)': 'exp(x)',
-                    'Math.pow(x,2)': 'x*x',
-                    'Math.pow(x,3)': 'pow(x,3)',
-                    'parseInt(x)': 'x',
-                    '-x': 'negate_placeholder',  # 特殊处理
-                    'x!': 'factorial(x)',
-                }
-                
-                if expression in expression_fixes:
-                    if expression_fixes[expression] == 'negate_placeholder':
-                        # 将错误的-x表达式改为正确的negate类型
-                        button['action'] = {'type': 'negate'}
-                        print(f"🔧 修复按钮 {button.get('id')} 的错误表达式: {expression} → negate类型")
-                    else:
-                        button['action']['expression'] = expression_fixes[expression]
-                        print(f"🔧 修复按钮 {button.get('id')} 的错误表达式: {expression} → {expression_fixes[expression]}")
-            
-            # 修复错误的input类型
-            if action.get('type') == 'input' and action.get('value') in ['(', ')']:
-                # 括号按钮应该是特殊类型，暂时保持input类型但确保功能正确
-                print(f"⚠️ 发现括号按钮 {button.get('id')}，保持input类型")
-            
-            # 检查多参数函数是否配套
-            if action.get('type') == 'multiParamFunction':
-                func_name = action.get('value', '')
-                print(f"🔧 发现多参数函数按钮: {func_name}")
-                # 这里可以添加检查是否有对应的分隔符和执行按钮的逻辑
-            
-            # 🔧 修复按钮中的渐变色格式
-            if 'gradientColors' in button and button['gradientColors'] is not None:
-                fixed_gradient = fix_gradient_format(button['gradientColors'])
-                if fixed_gradient:
-                    button['gradientColors'] = fixed_gradient
-                    print(f"🔧 修复按钮 {button.get('id')} 的渐变色: {button['gradientColors']}")
-                else:
-                    del button['gradientColors']
-                    print(f"⚠️ 删除按钮 {button.get('id')} 的无效渐变色")
-            
-            # 🔧 修复错误的数学函数action格式
-            action = button.get('action', {})
-            action_type = action.get('type', '')
-            
-            # 如果发现错误的function、scientific、math类型，自动修复为expression格式
-            if action_type in ['function', 'scientific', 'math']:
-                # 数学函数映射表 - 修复错误格式
-                math_function_map = {
-                    'sin': 'sin(x)',
-                    'cos': 'cos(x)',
-                    'tan': 'tan(x)',
-                    'asin': 'asin(x)',
-                    'acos': 'acos(x)',
-                    'atan': 'atan(x)',
-                    'log': 'log(x)',
-                    'ln': 'log(x)',
-                    'log10': 'log10(x)',
-                    'log2': 'log2(x)',
-                    'exp': 'exp(x)',
-                    'sqrt': 'sqrt(x)',
-                    'cbrt': 'cbrt(x)',
-                    'pow2': 'x*x',
-                    'pow3': 'pow(x,3)',
-                    'factorial': 'factorial(x)',
-                    'inverse': '1/x',
-                    'abs': 'abs(x)',
-                    'random': 'random()',
-                    'percent': 'x*0.01',
-                    # 修复常见的错误格式
-                    'Math.sin': 'sin(x)',
-                    'Math.cos': 'cos(x)',
-                    'Math.sqrt': 'sqrt(x)',
-                    'Math.random': 'random()',
-                    'Math.abs': 'abs(x)',
-                    'x!': 'factorial(x)',
-                }
-                
-                # 获取函数名
-                func_name = action.get('value') or action.get('function') or action.get('operation')
-                if func_name and func_name in math_function_map:
-                    # 修复为正确的expression格式
-                    button['action'] = {
-                        'type': 'expression',
-                        'expression': math_function_map[func_name]
-                    }
-                    print(f"🔧 修复按钮 {button.get('id')} 的action格式: {func_name} → {math_function_map[func_name]}")
-                else:
-                    # 如果没有映射，保持原有格式但改为expression类型
-                    button['action'] = {
-                        'type': 'expression',
-                        'expression': func_name or 'x'
-                    }
-                    print(f"⚠️ 未知函数 {func_name}，使用默认expression格式")
-        
-        print(f"🔍 修复后按钮数量: {len(layout.get('buttons', []))}")
+        print("✅ AI响应处理和样式保护完成")
         
         # 创建完整的配置对象
         config = CalculatorConfig(
             id=f"calc_{int(time.time())}",
             name=fixed_config.get('name', '自定义计算器'),
             description=fixed_config.get('description', '由AI修复的计算器配置'),
-            theme=CalculatorTheme(**theme),
-            layout=CalculatorLayout(**layout),
+            theme=CalculatorTheme(**fixed_config.get('theme', {})),
+            layout=CalculatorLayout(**fixed_config.get('layout', {})),
             version="1.0.0",
             createdAt=datetime.now().isoformat(),
             authorPrompt=request.user_input,
