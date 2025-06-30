@@ -577,15 +577,33 @@ AI设计师只能修改按钮功能逻辑，不能覆盖工坊生成的图像内
                     final_config = ai_generated_config
                 else:
                     # 有当前配置但没有保护字段，进行智能合并
+                    # 这里的问题：AI虽然不输出样式字段，但AI输出的JSON结构可能包含空的样式字段
+                    # 我们需要只合并AI实际有内容的字段，而不是全量覆盖
                     final_config = copy.deepcopy(request.current_config)
                     
-                    # 合并AI生成的主题更改
-                    if 'theme' in ai_generated_config:
-                        final_config.setdefault('theme', {}).update(ai_generated_config['theme'])
+                    # 智能合并AI生成的主题更改（只合并非空字段）
+                    if 'theme' in ai_generated_config and ai_generated_config['theme']:
+                        current_theme = final_config.setdefault('theme', {})
+                        ai_theme = ai_generated_config['theme']
+                        
+                        # 只更新AI实际输出的非空字段
+                        for key, value in ai_theme.items():
+                            if value is not None and value != "":
+                                current_theme[key] = value
                     
-                    # 合并AI生成的布局更改
-                    if 'layout' in ai_generated_config:
-                        final_config.setdefault('layout', {}).update(ai_generated_config['layout'])
+                    # 智能合并AI生成的布局更改
+                    if 'layout' in ai_generated_config and ai_generated_config['layout']:
+                        current_layout = final_config.setdefault('layout', {})
+                        ai_layout = ai_generated_config['layout']
+                        
+                        # 对于布局，我们主要关心buttons数组的更新
+                        if 'buttons' in ai_layout:
+                            current_layout['buttons'] = ai_layout['buttons']
+                        
+                        # 其他布局字段只在非空时更新
+                        for key, value in ai_layout.items():
+                            if key != 'buttons' and value is not None and value != "":
+                                current_layout[key] = value
             
             # 运行修复和验证程序
             fixed_config = await fix_calculator_config(
