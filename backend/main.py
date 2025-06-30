@@ -189,21 +189,57 @@ SYSTEM_PROMPT = """你是专业的计算器功能设计大师。你的唯一任�
 3. **保持现有按钮**：不要删除或修改现有按钮的`id`或`gridPosition`，除非用户明确要求。只添加新功能按钮。
 4. **确保功能完整**：所有按钮必须有正确的`action`定义。
 
+📐 **标准按键布局规则（必须遵守）**：
+```
+标准6行×4列布局：
+行0: [显示区域，不放按钮]
+行1: [AC/C] [±] [%] [÷]     - 功能行
+行2: [7] [8] [9] [×]         - 数字+运算符
+行3: [4] [5] [6] [-]         - 数字+运算符  
+行4: [1] [2] [3] [+]         - 数字+运算符
+行5: [0] [.] [=] [新功能]     - 底行
+
+科学计算器扩展（6行×7列）：
+列4-6用于科学函数：sin, cos, tan, log, ln, sqrt, x², x³, x^y等
+```
+
+🔧 **按钮类型和位置约束**：
+- **数字按钮(0-9)**：必须保持在传统位置，type="primary"
+- **基础运算符(+,-,×,÷,=)**：必须在右列，type="operator"  
+- **功能按钮(AC,±,%)**：通常在顶行，type="secondary"
+- **科学函数**：放在右侧扩展列，type="special"
+
+🚨 **gridPosition规则**：
+- row: 0-5 (第0行是显示区)
+- column: 0-6 (基础0-3，科学4-6)
+- 数字按钮位置固定：
+  * 0: row=5,col=0  1: row=4,col=0  2: row=4,col=1  3: row=4,col=2
+  * 4: row=3,col=0  5: row=3,col=1  6: row=3,col=2
+  * 7: row=2,col=0  8: row=2,col=1  9: row=2,col=2
+- 运算符位置固定：
+  * ÷: row=1,col=3  ×: row=2,col=3  -: row=3,col=3  +: row=4,col=3  =: row=5,col=2
+
 ➡️ 你的输出格式必须是：
 [
-  { "id": "btn1", "label": "1", "action": {"type": "input", "value": "1"}, "gridPosition": {"row": 0, "column": 0}, "type": "primary" },
-  { "id": "btn2", "label": "+", "action": {"type": "operator", "value": "+"}, "gridPosition": {"row": 0, "column": 1}, "type": "operator" }
+  { "id": "btn1", "label": "1", "action": {"type": "input", "value": "1"}, "gridPosition": {"row": 4, "column": 0}, "type": "primary" },
+  { "id": "btn2", "label": "+", "action": {"type": "operator", "value": "+"}, "gridPosition": {"row": 4, "column": 3}, "type": "operator" }
 ]
 
 ⚠️ 严格禁止：
 - 输出`theme`对象。
 - 输出`layout`对象。
 - 在按钮中包含任何样式字段 (`backgroundColor`, `fontSize`, `backgroundImage`, etc.)。
+- 改变基础数字和运算符的位置。
+
+🎯 **新功能按钮添加规则**：
+- 优先使用column=4,5,6的科学计算区域
+- 如果需要替换现有按钮，选择最不常用的位置
+- 保持布局的逻辑性和易用性
 
 只关注功能，忽略所有外观。基于`current_config`中的按钮进行修改。
 """
 
-# AI二次校验和修复系统提示 - 简化版
+# AI二次校验和修复系统提示 - 增强布局规则
 VALIDATION_PROMPT = """你是配置修复专家。检查并修复生成的计算器配置。
 
 🔧 必须修复的问题：
@@ -212,18 +248,37 @@ VALIDATION_PROMPT = """你是配置修复专家。检查并修复生成的计算
 3. 错误字段名：text->label, position->gridPosition
 4. 错误action格式：修复数学函数格式
 5. 数据类型：确保数值字段为正确类型
+6. 布局混乱：修复按键位置错误
 
 🚨 按钮字段规范：
 - 必需字段：id, label, action, gridPosition, type
 - gridPosition格式：{"row": 数字, "column": 数字}
 - action格式：{"type": "类型", "value": "值"} 或 {"type": "expression", "expression": "表达式"}
 
+📐 **强制布局规则**：
+```
+标准布局（必须遵守）：
+行1: [AC] [±] [%] [÷]      - 功能行
+行2: [7] [8] [9] [×]       - 数字+运算符
+行3: [4] [5] [6] [-]       - 数字+运算符  
+行4: [1] [2] [3] [+]       - 数字+运算符
+行5: [0] [.] [=] [其他]     - 底行
+```
+
+🔧 **固定位置约束**：
+- 数字0: row=5,col=0 | 数字1: row=4,col=0 | 数字2: row=4,col=1 | 数字3: row=4,col=2
+- 数字4: row=3,col=0 | 数字5: row=3,col=1 | 数字6: row=3,col=2
+- 数字7: row=2,col=0 | 数字8: row=2,col=1 | 数字9: row=2,col=2
+- 运算符÷: row=1,col=3 | ×: row=2,col=3 | -: row=3,col=3 | +: row=4,col=3
+- 等号=: row=5,col=2 | 小数点.: row=5,col=1 | AC: row=1,col=0
+
 🚨 数学函数修复：
 ❌ 错误：Math.sin(x), Math.sqrt(x), parseInt(x)
 ✅ 正确：sin(x), sqrt(x), x*x
 
-🔧 基础按钮模板（如果缺失）：
-数字0-9、运算符+−×÷、功能=、AC、±、.
+🎯 科学函数位置：
+- 优先使用column=4,5,6放置sin, cos, tan, log, ln, sqrt, x², x³等
+- 保持功能按钮的逻辑分组
 
 返回修复后的完整JSON配置。"""
 
