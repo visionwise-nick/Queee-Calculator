@@ -324,7 +324,56 @@ class AIService {
     }
   }
 
-  /// AI生成按键文字内容
+  /// AI生成光影文字图片 - 用于按键文字
+  static Future<Map<String, dynamic>> generateTextImage({
+    required String prompt,
+    required String text,
+    String style = 'modern',
+    String size = '512x512',
+    String background = 'transparent',
+    List<String> effects = const [],
+  }) async {
+    try {
+      print('🎨 正在生成光影文字图片...');
+      print('文字内容: $text');
+      print('提示词: $prompt');
+      print('风格: $style');
+      
+      final response = await http.post(
+        Uri.parse('$_baseUrl/generate-text-image'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'prompt': prompt,
+          'text': text,
+          'style': style,
+          'size': size,
+          'background': background,
+          'effects': effects,
+        }),
+      ).timeout(const Duration(seconds: 60));
+
+      print('📡 收到响应: ${response.statusCode}');
+      
+      if (response.statusCode == 200) {
+        final result = json.decode(response.body);
+        if (result['success'] == true) {
+          print('✅ 光影文字图片生成成功: $text');
+          return result;
+        } else {
+          throw Exception(result['message'] ?? '生成失败');
+        }
+      } else {
+        print('❌ 光影文字图片生成失败: ${response.statusCode}');
+        print('错误详情: ${response.body}');
+        throw Exception('光影文字图片生成失败: ${response.body}');
+      }
+    } catch (e) {
+      print('❌ 光影文字图片生成请求失败: $e');
+      throw Exception('网络请求失败: $e');
+    }
+  }
+
+  /// AI生成按键文字内容（保留备用方法）
   static Future<Map<String, dynamic>> generateButtonText({
     required String prompt,
     required String currentLabel,

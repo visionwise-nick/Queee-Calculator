@@ -1183,6 +1183,113 @@ async def get_background_presets():
         ]
     }
 
+class TextImageRequest(BaseModel):
+    prompt: str = Field(..., description="光影文字生成提示词")
+    text: str = Field(..., description="要生成的文字内容")
+    style: Optional[str] = Field(default="modern", description="文字风格：modern, neon, gold, silver, fire, ice, galaxy等")
+    size: Optional[str] = Field(default="512x512", description="图像尺寸")
+    background: Optional[str] = Field(default="transparent", description="背景类型：transparent, dark, light, gradient")
+    effects: Optional[List[str]] = Field(default=[], description="特效列表：glow, shadow, reflect, emboss, outline等")
+
+@app.post("/generate-text-image")
+async def generate_text_image(request: TextImageRequest):
+    """生成光影文字图片 - 专门用于按键文字"""
+    try:
+        print(f"🎨 正在生成光影文字图片...")
+        print(f"文字内容: {request.text}")
+        print(f"提示词: {request.prompt}")
+        print(f"风格: {request.style}")
+        
+        # 构建详细的图像生成提示词
+        detailed_prompt = f"""Create a stunning text image with lighting effects for the text '{request.text}'.
+
+Style: {request.style}
+Effects: {', '.join(request.effects) if request.effects else 'glow, shadow, depth'}
+Background: {request.background}
+Size: {request.size}
+
+Requirements:
+- Text '{request.text}' should be clearly readable and prominent
+- Apply beautiful lighting effects like glow, shadow, reflection, depth
+- Use high-quality typography with 3D dimension effects
+- Make it suitable for use as a button image in a calculator app
+- Professional and polished appearance
+- Text should have artistic lighting similar to logos like APPLE with metallic/glass effects
+- Add depth, emboss, and sophisticated visual effects
+- Ensure high contrast and readability
+
+Additional context: {request.prompt}"""
+
+        print(f"🚀 使用提示词: {detailed_prompt}")
+
+        # 使用图像生成专用模型
+        image_model = genai.GenerativeModel("gemini-2.0-flash-preview-image-generation")
+        
+        # 生成配置
+        generation_config = {
+            "response_modalities": ["TEXT", "IMAGE"]
+        }
+        
+        # 生成图像
+        response = image_model.generate_content(
+            contents=[detailed_prompt],
+            generation_config=generation_config
+        )
+        
+        # 检查响应中是否包含图像
+        if hasattr(response, 'parts') and response.parts:
+            for part in response.parts:
+                if hasattr(part, 'inline_data') and part.inline_data:
+                    # 获取生成的图像数据
+                    image_data = part.inline_data.data
+                    mime_type = part.inline_data.mime_type
+                    
+                    # 检查数据是否已经是base64格式
+                    if isinstance(image_data, bytes):
+                        # 如果是bytes，需要转换为base64
+                        import base64
+                        text_image_base64_data = base64.b64encode(image_data).decode('utf-8')
+                    else:
+                        # 如果已经是字符串，直接使用
+                        text_image_base64_data = str(image_data)
+                    
+                    # 将图像数据转换为base64 URL
+                    text_image_base64 = f"data:{mime_type};base64,{text_image_base64_data}"
+                    
+                    print(f"✅ 光影文字图片生成成功: '{request.text}'，MIME类型: {mime_type}")
+                    
+                    return {
+                        "success": True,
+                        "image_url": text_image_base64,
+                        "text": request.text,
+                        "style": request.style,
+                        "size": request.size,
+                        "background": request.background,
+                        "effects": request.effects,
+                        "mime_type": mime_type,
+                        "original_prompt": request.prompt,
+                        "enhanced_prompt": detailed_prompt,
+                        "message": f"光影文字 '{request.text}' 生成成功"
+                    }
+        
+        # 检查是否有文本响应
+        if hasattr(response, 'text') and response.text:
+            print(f"🤖 AI响应: {response.text}")
+            
+        # 如果没有生成图像，返回错误
+        raise Exception("未找到生成的图像数据")
+        
+    except Exception as e:
+        print(f"❌ 光影文字图片生成失败: {str(e)}")
+        
+        # 返回错误信息
+        return {
+            "success": False,
+            "error": str(e),
+            "text": request.text,
+            "message": f"生成光影文字 '{request.text}' 失败: {str(e)}"
+        }
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", 8080))) 

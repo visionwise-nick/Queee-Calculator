@@ -687,17 +687,25 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
                     color: Colors.deepPurple.shade100,
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(Icons.text_fields, color: Colors.deepPurple.shade700),
+                  child: Icon(Icons.auto_awesome, color: Colors.deepPurple.shade700),
                 ),
                 const SizedBox(width: 12),
                 const Text(
-                  '按键文字生成',
+                  '光影文字图片生成',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
               ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              '🎨 为按键生成带有光影效果的艺术文字图片',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey.shade600,
+              ),
             ),
             const SizedBox(height: 16),
             
@@ -706,7 +714,7 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
               controller: _buttonBgPromptController,
               maxLines: 3,
               decoration: InputDecoration(
-                hintText: '描述你想要的按键文字风格...\n例如：用有趣的表情符号替换按键文字',
+                hintText: '描述你想要的光影文字效果...\n例如：金色金属质感，带有光晕和阴影的3D效果',
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide(color: Colors.grey.shade300),
@@ -733,23 +741,23 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
               spacing: 8,
               runSpacing: 8,
               children: [
-                '表情符号数字 😀😁😂',
-                '动物符号 🐱🐶🐰',
-                '水果符号 🍎🍊🍌',
-                '古典汉字 壹贰叁',
-                '罗马数字 Ⅰ Ⅱ Ⅲ',
-                '特殊符号 ✨⭐💫',
+                '🌟 金色金属质感',
+                '💎 水晶玻璃效果',
+                '🔥 炫酷霓虹风格',
+                '❄️ 冰雪透明质感',
+                '🌈 彩虹渐变光影',
+                '⚡ 雷电发光效果',
               ].map((example) => 
                 ActionChip(
                   label: Text(example, style: const TextStyle(fontSize: 11)),
                   onPressed: () {
                     String prompt = '';
-                    if (example.contains('表情符号')) prompt = '用表情符号替换所有按键文字，数字用笑脸系列，运算符用有趣的符号';
-                    else if (example.contains('动物符号')) prompt = '用可爱的动物符号替换所有按键文字';
-                    else if (example.contains('水果')) prompt = '用各种水果符号替换按键文字';
-                    else if (example.contains('古典汉字')) prompt = '用古典汉字（壹贰叁等）替换数字，用传统符号替换运算符';
-                    else if (example.contains('罗马数字')) prompt = '用罗马数字和古典符号替换所有按键';
-                    else if (example.contains('特殊符号')) prompt = '用星星、闪电等特殊Unicode符号替换按键文字';
+                    if (example.contains('金色金属')) prompt = '金色金属质感文字，带有光泽反射和深度阴影效果，类似苹果LOGO的高端质感';
+                    else if (example.contains('水晶玻璃')) prompt = '透明水晶玻璃效果，清澈透明带有折射光线，精致高雅';
+                    else if (example.contains('炫酷霓虹')) prompt = '霓虹灯发光效果，鲜艳色彩带有炫酷光晕，科技感十足';
+                    else if (example.contains('冰雪透明')) prompt = '冰雪透明质感，清冷的蓝白色调，带有结冰纹理效果';
+                    else if (example.contains('彩虹渐变')) prompt = '彩虹渐变光影效果，丰富色彩流动，梦幻绚烂';
+                    else if (example.contains('雷电发光')) prompt = '雷电般的发光效果，电光闪烁，动感十足的视觉冲击';
                     _buttonBgPromptController.text = prompt;
                   },
                   backgroundColor: Colors.grey.shade100,
@@ -781,7 +789,7 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
                         ),
                       )
                     : const Text(
-                        '✨ 生成按键文字',
+                        '✨ 生成光影文字图片',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
@@ -931,38 +939,128 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
     final selectedButtons = buttons.where((b) => _selectedButtonIds.contains(b.id)).toList();
     final basePrompt = _buttonBgPromptController.text.trim();
     
+    int successCount = 0;
+    
     for (int i = 0; i < selectedButtons.length; i++) {
       final button = selectedButtons[i];
-      final prompt = '$basePrompt - 为按键"${button.label}"生成创意文字';
+      final enhancedPrompt = '$basePrompt，为文字"${button.label}"生成光影效果图片';
       
       try {
-        final result = await AIService.generateButtonText(
-          prompt: prompt,
-          currentLabel: button.label,
-          buttonType: button.type.toString(),
+        // 根据按键类型选择不同的风格
+        String style = 'modern';
+        List<String> effects = ['glow', 'shadow', 'depth'];
+        
+        if (button.type == 'operator') {
+          style = 'neon';
+          effects = ['glow', 'shadow', 'emboss'];
+        } else if (button.type == 'special') {
+          style = 'silver';
+          effects = ['metallic', 'reflection', 'shadow'];
+        }
+        
+        final result = await AIService.generateTextImage(
+          prompt: enhancedPrompt,
+          text: button.label,
+          style: style,
+          size: '256x256',
+          background: 'transparent',
+          effects: effects,
         );
 
-        if (result['success'] == true && result['text'] != null) {
-          _updateButtonText(button, result['text']);
+        if (result['success'] == true && result['image_url'] != null) {
+          _updateButtonTextImage(button, result['image_url']);
+          successCount++;
         }
       } catch (e) {
-        print('生成按键${button.label}文字失败: $e');
+        print('生成按键${button.label}光影文字图片失败: $e');
       }
       
       // 添加短暂延迟避免API限制
       if (i < selectedButtons.length - 1) {
-        await Future.delayed(const Duration(milliseconds: 200));
+        await Future.delayed(const Duration(milliseconds: 500));
       }
     }
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('✅ 已为 ${selectedButtons.length} 个按键生成新文字！'),
+          content: Text('✅ 已为 $successCount 个按键生成光影文字图片！'),
           backgroundColor: Colors.green,
         ),
       );
     }
+  }
+
+  void _updateButtonTextImage(CalculatorButton button, String imageUrl) {
+    final provider = Provider.of<CalculatorProvider>(context, listen: false);
+    
+    final updatedButton = CalculatorButton(
+      id: button.id,
+      label: button.label, // 保持原有文字标签
+      action: button.action,
+      gridPosition: button.gridPosition,
+      type: button.type,
+      customColor: button.customColor,
+      isWide: button.isWide,
+      widthMultiplier: button.widthMultiplier,
+      heightMultiplier: button.heightMultiplier,
+      gradientColors: button.gradientColors,
+      backgroundImage: imageUrl, // 设置生成的光影文字图片为背景
+      fontSize: button.fontSize,
+      borderRadius: button.borderRadius,
+      elevation: button.elevation,
+      width: button.width,
+      height: button.height,
+      backgroundColor: button.backgroundColor,
+      textColor: '#00000000', // 隐藏原文字，显示图片
+      borderColor: button.borderColor,
+      borderWidth: button.borderWidth,
+      shadowColor: button.shadowColor,
+      shadowOffset: button.shadowOffset,
+      shadowRadius: button.shadowRadius,
+      opacity: button.opacity,
+      rotation: button.rotation,
+      scale: button.scale,
+      backgroundPattern: button.backgroundPattern,
+      patternColor: button.patternColor,
+      patternOpacity: button.patternOpacity,
+      animation: button.animation,
+      animationDuration: button.animationDuration,
+      customIcon: button.customIcon,
+      iconSize: button.iconSize,
+      iconColor: button.iconColor,
+    );
+
+    final updatedButtons = provider.config.layout.buttons.map((b) {
+      return b.id == button.id ? updatedButton : b;
+    }).toList();
+
+    final updatedLayout = CalculatorLayout(
+      name: provider.config.layout.name,
+      rows: provider.config.layout.rows,
+      columns: provider.config.layout.columns,
+      buttons: updatedButtons,
+      description: provider.config.layout.description,
+      minButtonSize: provider.config.layout.minButtonSize,
+      maxButtonSize: provider.config.layout.maxButtonSize,
+      gridSpacing: provider.config.layout.gridSpacing,
+    );
+
+    final updatedConfig = CalculatorConfig(
+      id: provider.config.id,
+      name: provider.config.name,
+      description: provider.config.description,
+      theme: provider.config.theme,
+      layout: updatedLayout,
+      version: provider.config.version,
+      createdAt: provider.config.createdAt,
+      authorPrompt: provider.config.authorPrompt,
+      thinkingProcess: provider.config.thinkingProcess,
+      aiResponse: provider.config.aiResponse,
+      appBackground: provider.config.appBackground,
+    );
+
+    provider.applyConfig(updatedConfig);
   }
 
   void _updateButtonText(CalculatorButton button, String newText) {
@@ -1031,6 +1129,7 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
       authorPrompt: provider.config.authorPrompt,
       thinkingProcess: provider.config.thinkingProcess,
       aiResponse: provider.config.aiResponse,
+      appBackground: provider.config.appBackground,
     );
 
     provider.applyConfig(updatedConfig);
