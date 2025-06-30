@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'package:math_expressions/math_expressions.dart';
 import '../widgets/calculation_history_dialog.dart';
 
 /// 计算器操作类型 - 简化版本
@@ -700,37 +701,67 @@ class CalculatorEngine {
     // 处理基本的算术运算
     expression = expression.replaceAll(' ', '');
     
-    // 乘法
+    try {
+      // 尝试使用math_expressions库进行解析
+      Parser parser = ShuntingYardParser();
+      Expression exp = parser.parse(expression);
+      ContextModel cm = ContextModel();
+      return exp.evaluate(EvaluationType.REAL, cm);
+    } catch (e) {
+      print('⚠️ math_expressions解析失败，使用简单解析器：$e');
+      return _evaluateSimpleArithmetic(expression);
+    }
+  }
+
+  /// 简单算术表达式计算
+  double _evaluateSimpleArithmetic(String expression) {
+    // 处理乘法（支持多个操作数）
     if (expression.contains('*')) {
       var parts = expression.split('*');
-      if (parts.length == 2) {
-        return double.parse(parts[0]) * double.parse(parts[1]);
+      if (parts.length >= 2) {
+        double result = double.parse(parts[0]);
+        for (int i = 1; i < parts.length; i++) {
+          result *= double.parse(parts[i]);
+        }
+        return result;
       }
     }
     
-    // 除法
+    // 处理除法（支持多个操作数）
     if (expression.contains('/')) {
       var parts = expression.split('/');
-      if (parts.length == 2) {
-        double divisor = double.parse(parts[1]);
-        if (divisor == 0) throw Exception('Division by zero');
-        return double.parse(parts[0]) / divisor;
+      if (parts.length >= 2) {
+        double result = double.parse(parts[0]);
+        for (int i = 1; i < parts.length; i++) {
+          double divisor = double.parse(parts[i]);
+          if (divisor == 0) throw Exception('Division by zero');
+          result /= divisor;
+        }
+        return result;
       }
     }
     
-    // 加法
+    // 处理加法（支持多个操作数）
     if (expression.contains('+')) {
       var parts = expression.split('+');
-      if (parts.length == 2) {
-        return double.parse(parts[0]) + double.parse(parts[1]);
+      if (parts.length >= 2) {
+        double result = 0;
+        for (String part in parts) {
+          result += double.parse(part);
+        }
+        return result;
       }
     }
     
-    // 减法
+    // 处理减法（注意负数）
     if (expression.contains('-') && !expression.startsWith('-')) {
       var parts = expression.split('-');
-      if (parts.length == 2) {
-        return double.parse(parts[0]) - double.parse(parts[1]);
+      if (parts.length >= 2) {
+        double result = double.parse(parts[0]);
+        for (int i = 1; i < parts.length; i++) {
+          result -= double.parse(parts[i]);
+        }
+        return result;
       }
     }
     
