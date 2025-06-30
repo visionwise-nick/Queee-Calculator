@@ -706,7 +706,14 @@ class CalculatorEngine {
       Parser parser = ShuntingYardParser();
       Expression exp = parser.parse(expression);
       ContextModel cm = ContextModel();
-      return exp.evaluate(EvaluationType.REAL, cm);
+      double result = exp.evaluate(EvaluationType.REAL, cm);
+      
+      // 检查无效结果
+      if (result.isNaN || result.isInfinite) {
+        throw Exception('Invalid calculation result');
+      }
+      
+      return result;
     } catch (e) {
       print('⚠️ math_expressions解析失败，使用简单解析器：$e');
       return _evaluateSimpleArithmetic(expression);
