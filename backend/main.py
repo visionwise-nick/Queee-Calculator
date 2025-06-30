@@ -1311,8 +1311,47 @@ async def generate_text_image(request: TextImageRequest):
     try:
         print(f"🎨 正在生成创意字符图片...")
         print(f"字符内容: {request.text}")
-        print(f"创意描述: {request.prompt}")
+        print(f"原始创意描述: {request.prompt}")
         print(f"风格: {request.style}")
+        
+        # 🧹 清理用户输入，去除描述性文字，只保留创意核心
+        def clean_user_prompt(prompt: str) -> str:
+            """清理用户输入的提示词，去除描述性文字，只保留创意核心"""
+            if not prompt:
+                return ""
+            
+            # 需要过滤的描述性词汇和短语
+            descriptive_phrases = [
+                "生成", "图片", "效果", "光影", "文字", "数字", "字符", "符号",
+                "为", "的", "进行", "制作", "创建", "设计", "绘制",
+                "生成光影效果", "光影效果图片", "效果图片", "文字图片", 
+                "数字图片", "字符图片", "背景图", "按键", "按钮",
+                "白底", "透明", "背景", "底色", "不能有其他字出现",
+                "生成光影效果的图片", "为文字.*?生成.*?图片", "光影文字", "特效"
+            ]
+            
+            cleaned = prompt.strip()
+            
+            # 移除描述性短语
+            import re
+            for phrase in descriptive_phrases:
+                # 使用正则表达式匹配包含这些短语的部分
+                pattern = f"[，。、]*{re.escape(phrase)}[^，。]*"
+                cleaned = re.sub(pattern, "", cleaned, flags=re.IGNORECASE)
+                
+                # 移除完整短语
+                cleaned = cleaned.replace(phrase, "")
+            
+            # 清理多余的标点符号和空格
+            cleaned = re.sub(r'[，。、；：！？\s]+', ' ', cleaned)
+            cleaned = re.sub(r'^[，。、；：！？\s]+|[，。、；：！？\s]+$', '', cleaned)
+            cleaned = re.sub(r'\s+', ' ', cleaned).strip()
+            
+            return cleaned
+        
+        # 清理用户输入
+        cleaned_prompt = clean_user_prompt(request.prompt) if request.prompt else ""
+        print(f"清理后创意描述: {cleaned_prompt}")
         
         # 🎨 构建创意字符生成提示词，用指定元素构造字符形状
         # 根据风格选择不同的视觉风格描述
@@ -1331,14 +1370,14 @@ async def generate_text_image(request: TextImageRequest):
         style_effect = style_effects.get(request.style, style_effects["modern"])
         
         # 🎨 创意字符构造：用指定元素构成字符形状，绝对禁止文字和杂乱背景
-        if request.prompt and request.prompt.strip():
-            # 完全按照用户创意描述构造字符，强制规则在前
+        if cleaned_prompt and cleaned_prompt.strip():
+            # 完全按照清理后的创意描述构造字符，强制规则在前
             detailed_prompt = f"""MANDATORY RULES - STRICTLY ENFORCE:
 1. ABSOLUTELY ZERO TEXT - No letters, no words, no labels, no descriptions, no captions anywhere
 2. CLEAN BACKGROUND - Pure {request.background} background, no patterns, no textures, no clutter
-3. VISUAL ONLY - Only show the character/symbol "{request.text}" {request.prompt}
+3. VISUAL ONLY - Only show the character/symbol "{request.text}" made from {cleaned_prompt}
 
-Create visual art where the character/symbol "{request.text}" is formed/shaped {request.prompt}. The character must be constructed using the described elements. Background must be completely clean {request.background}. FORBIDDEN: Any text, words, letters, descriptions, busy backgrounds."""
+Create visual art where the character/symbol "{request.text}" is formed/shaped using {cleaned_prompt}. The character must be constructed using these elements only. Background must be completely clean {request.background}. FORBIDDEN: Any text, words, letters, descriptions, busy backgrounds."""
         else:
             # 标准字符设计，同样强制规则
             detailed_prompt = f"""MANDATORY RULES - STRICTLY ENFORCE:
@@ -1396,6 +1435,7 @@ Create visual art showing the character/symbol "{request.text}" {style_effect}. 
                         "effects": request.effects,
                         "mime_type": mime_type,
                         "original_prompt": request.prompt,
+                        "cleaned_prompt": cleaned_prompt,
                         "enhanced_prompt": detailed_prompt,
                         "message": f"创意字符 '{request.text}' 生成成功"
                     }
