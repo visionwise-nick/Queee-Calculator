@@ -1,0 +1,261 @@
+{
+  "id": "adaptive_demo",
+  "name": "自适应大小演示",
+  "description": "演示按键自适应大小功能的计算器配置",
+  "version": "1.0.0",
+  "createdAt": "2024-01-01T00:00:00Z",
+  "theme": {
+    "name": "自适应主题",
+    "backgroundColor": "#1a1a1a",
+    "displayBackgroundColor": "#2d2d2d",
+    "displayTextColor": "#ffffff",
+    "primaryButtonColor": "#404040",
+    "primaryButtonTextColor": "#ffffff",
+    "secondaryButtonColor": "#606060",
+    "secondaryButtonTextColor": "#ffffff",
+    "operatorButtonColor": "#ff9500",
+    "operatorButtonTextColor": "#ffffff",
+    "fontSize": 20.0,
+    "buttonBorderRadius": 12.0,
+    "adaptiveLayout": true,
+    "buttonSpacing": 4.0
+  },
+  "layout": {
+    "name": "自适应布局",
+    "rows": 6,
+    "columns": 7,
+    "description": "支持自适应大小的计算器布局",
+    "buttons": [
+      {
+        "id": "btn_ac",
+        "label": "AC",
+        "action": {"type": "clearAll"},
+        "gridPosition": {"row": 1, "column": 0},
+        "type": "secondary"
+      },
+      {
+        "id": "btn_plus_minus",
+        "label": "±",
+        "action": {"type": "negate"},
+        "gridPosition": {"row": 1, "column": 1},
+        "type": "secondary"
+      },
+      {
+        "id": "btn_percent",
+        "label": "%",
+        "action": {"type": "expression", "expression": "x/100"},
+        "gridPosition": {"row": 1, "column": 2},
+        "type": "secondary"
+      },
+      {
+        "id": "btn_divide",
+        "label": "÷",
+        "action": {"type": "operator", "value": "/"},
+        "gridPosition": {"row": 1, "column": 3},
+        "type": "operator"
+      },
+      {
+        "id": "btn_7",
+        "label": "7",
+        "action": {"type": "input", "value": "7"},
+        "gridPosition": {"row": 2, "column": 0},
+        "type": "primary"
+      },
+      {
+        "id": "btn_8",
+        "label": "8",
+        "action": {"type": "input", "value": "8"},
+        "gridPosition": {"row": 2, "column": 1},
+        "type": "primary"
+      },
+      {
+        "id": "btn_9",
+        "label": "9",
+        "action": {"type": "input", "value": "9"},
+        "gridPosition": {"row": 2, "column": 2},
+        "type": "primary"
+      },
+      {
+        "id": "btn_multiply",
+        "label": "×",
+        "action": {"type": "operator", "value": "*"},
+        "gridPosition": {"row": 2, "column": 3},
+        "type": "operator"
+      },
+      {
+        "id": "btn_4",
+        "label": "4",
+        "action": {"type": "input", "value": "4"},
+        "gridPosition": {"row": 3, "column": 0},
+        "type": "primary"
+      },
+      {
+        "id": "btn_5",
+        "label": "5",
+        "action": {"type": "input", "value": "5"},
+        "gridPosition": {"row": 3, "column": 1},
+        "type": "primary"
+      },
+      {
+        "id": "btn_6",
+        "label": "6",
+        "action": {"type": "input", "value": "6"},
+        "gridPosition": {"row": 3, "column": 2},
+        "type": "primary"
+      },
+      {
+        "id": "btn_subtract",
+        "label": "-",
+        "action": {"type": "operator", "value": "-"},
+        "gridPosition": {"row": 3, "column": 3},
+        "type": "operator"
+      },
+      {
+        "id": "btn_1",
+        "label": "1",
+        "action": {"type": "input", "value": "1"},
+        "gridPosition": {"row": 4, "column": 0},
+        "type": "primary"
+      },
+      {
+        "id": "btn_2",
+        "label": "2",
+        "action": {"type": "input", "value": "2"},
+        "gridPosition": {"row": 4, "column": 1},
+        "type": "primary"
+      },
+      {
+        "id": "btn_3",
+        "label": "3",
+        "action": {"type": "input", "value": "3"},
+        "gridPosition": {"row": 4, "column": 2},
+        "type": "primary"
+      },
+      {
+        "id": "btn_add",
+        "label": "+",
+        "action": {"type": "operator", "value": "+"},
+        "gridPosition": {"row": 4, "column": 3},
+        "type": "operator"
+      },
+      {
+        "id": "btn_0",
+        "label": "0",
+        "action": {"type": "input", "value": "0"},
+        "gridPosition": {"row": 5, "column": 0},
+        "type": "primary",
+        "adaptiveSize": true,
+        "sizeMode": "fill",
+        "aspectRatio": 2.0
+      },
+      {
+        "id": "btn_decimal",
+        "label": ".",
+        "action": {"type": "decimal"},
+        "gridPosition": {"row": 5, "column": 1},
+        "type": "primary"
+      },
+      {
+        "id": "btn_equals",
+        "label": "=",
+        "action": {"type": "equals"},
+        "gridPosition": {"row": 5, "column": 2},
+        "type": "operator"
+      },
+      {
+        "id": "btn_sin",
+        "label": "sin",
+        "action": {"type": "expression", "expression": "sin(x)"},
+        "gridPosition": {"row": 1, "column": 4},
+        "type": "special",
+        "adaptiveSize": true,
+        "sizeMode": "content",
+        "minWidth": 50,
+        "contentPadding": {"left": 6, "top": 4, "right": 6, "bottom": 4}
+      },
+      {
+        "id": "btn_cos",
+        "label": "cos",
+        "action": {"type": "expression", "expression": "cos(x)"},
+        "gridPosition": {"row": 1, "column": 5},
+        "type": "special",
+        "adaptiveSize": true,
+        "sizeMode": "content",
+        "minWidth": 50,
+        "contentPadding": {"left": 6, "top": 4, "right": 6, "bottom": 4}
+      },
+      {
+        "id": "btn_tan",
+        "label": "tan",
+        "action": {"type": "expression", "expression": "tan(x)"},
+        "gridPosition": {"row": 1, "column": 6},
+        "type": "special",
+        "adaptiveSize": true,
+        "sizeMode": "content",
+        "minWidth": 50,
+        "contentPadding": {"left": 6, "top": 4, "right": 6, "bottom": 4}
+      },
+      {
+        "id": "btn_sqrt",
+        "label": "√",
+        "action": {"type": "expression", "expression": "sqrt(x)"},
+        "gridPosition": {"row": 2, "column": 4},
+        "type": "special",
+        "adaptiveSize": true,
+        "sizeMode": "adaptive",
+        "aspectRatio": 1.0
+      },
+      {
+        "id": "btn_square",
+        "label": "x²",
+        "action": {"type": "expression", "expression": "x*x"},
+        "gridPosition": {"row": 2, "column": 5},
+        "type": "special",
+        "adaptiveSize": true,
+        "sizeMode": "adaptive",
+        "aspectRatio": 1.0
+      },
+      {
+        "id": "btn_power",
+        "label": "x^y",
+        "action": {"type": "expression", "expression": "pow(x,y)"},
+        "gridPosition": {"row": 2, "column": 6},
+        "type": "special",
+        "adaptiveSize": true,
+        "sizeMode": "content",
+        "minWidth": 45,
+        "maxWidth": 70
+      },
+      {
+        "id": "btn_log",
+        "label": "log",
+        "action": {"type": "expression", "expression": "log(x)"},
+        "gridPosition": {"row": 3, "column": 4},
+        "type": "special",
+        "adaptiveSize": true,
+        "sizeMode": "content",
+        "minWidth": 50
+      },
+      {
+        "id": "btn_ln",
+        "label": "ln",
+        "action": {"type": "expression", "expression": "ln(x)"},
+        "gridPosition": {"row": 3, "column": 5},
+        "type": "special",
+        "adaptiveSize": true,
+        "sizeMode": "content",
+        "minWidth": 40
+      },
+      {
+        "id": "btn_factorial",
+        "label": "x!",
+        "action": {"type": "expression", "expression": "factorial(x)"},
+        "gridPosition": {"row": 3, "column": 6},
+        "type": "special",
+        "adaptiveSize": true,
+        "sizeMode": "adaptive",
+        "aspectRatio": 1.0
+      }
+    ]
+  }
+} 

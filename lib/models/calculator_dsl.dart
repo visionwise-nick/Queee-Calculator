@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import '../core/calculator_engine.dart';
 
 /// APP背景图配置
@@ -280,6 +281,18 @@ class CalculatorButton {
   final String? customIcon;
   final double? iconSize;
   final String? iconColor;
+  
+  // 新增：自适应大小相关属性
+  final bool? adaptiveSize; // 是否启用自适应大小
+  final double? minWidth; // 最小宽度
+  final double? maxWidth; // 最大宽度
+  final double? minHeight; // 最小高度
+  final double? maxHeight; // 最大高度
+  final double? aspectRatio; // 宽高比，null表示不限制
+  final String? sizeMode; // 'content', 'fill', 'fixed', 'adaptive'
+  final EdgeInsets? contentPadding; // 内容边距
+  final bool? autoShrink; // 内容过长时是否自动缩小
+  final double? textScaleFactor; // 文字缩放因子
 
   const CalculatorButton({
     required this.id,
@@ -317,6 +330,17 @@ class CalculatorButton {
     this.customIcon,
     this.iconSize,
     this.iconColor,
+    // 新增属性
+    this.adaptiveSize,
+    this.minWidth,
+    this.maxWidth,
+    this.minHeight,
+    this.maxHeight,
+    this.aspectRatio,
+    this.sizeMode,
+    this.contentPadding,
+    this.autoShrink,
+    this.textScaleFactor,
   });
 
   factory CalculatorButton.fromJson(Map<String, dynamic> json) {
@@ -358,6 +382,24 @@ class CalculatorButton {
       customIcon: json['customIcon'],
       iconSize: json['iconSize']?.toDouble(),
       iconColor: json['iconColor'],
+      // 新增属性解析
+      adaptiveSize: json['adaptiveSize'] as bool?,
+      minWidth: json['minWidth']?.toDouble(),
+      maxWidth: json['maxWidth']?.toDouble(),
+      minHeight: json['minHeight']?.toDouble(),
+      maxHeight: json['maxHeight']?.toDouble(),
+      aspectRatio: json['aspectRatio']?.toDouble(),
+      sizeMode: json['sizeMode'] as String?,
+      contentPadding: json['contentPadding'] != null 
+          ? EdgeInsets.fromLTRB(
+              json['contentPadding']['left']?.toDouble() ?? 0,
+              json['contentPadding']['top']?.toDouble() ?? 0,
+              json['contentPadding']['right']?.toDouble() ?? 0,
+              json['contentPadding']['bottom']?.toDouble() ?? 0,
+            )
+          : null,
+      autoShrink: json['autoShrink'] as bool?,
+      textScaleFactor: json['textScaleFactor']?.toDouble(),
     );
   }
 
@@ -398,6 +440,24 @@ class CalculatorButton {
       'customIcon': customIcon,
       'iconSize': iconSize,
       'iconColor': iconColor,
+      // 新增属性序列化
+      'adaptiveSize': adaptiveSize,
+      'minWidth': minWidth,
+      'maxWidth': maxWidth,
+      'minHeight': minHeight,
+      'maxHeight': maxHeight,
+      'aspectRatio': aspectRatio,
+      'sizeMode': sizeMode,
+      'contentPadding': contentPadding != null 
+          ? {
+              'left': contentPadding!.left,
+              'top': contentPadding!.top,
+              'right': contentPadding!.right,
+              'bottom': contentPadding!.bottom,
+            }
+          : null,
+      'autoShrink': autoShrink,
+      'textScaleFactor': textScaleFactor,
     };
   }
 }

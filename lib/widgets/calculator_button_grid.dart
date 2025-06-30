@@ -223,30 +223,24 @@ class CalculatorButtonGrid extends StatelessWidget {
         currentColumn++;
       }
       
-      // 计算按钮实际尺寸，确保不超出可用空间
-      final buttonWidth = math.min(
-        sizing.baseButtonWidth * button.widthMultiplier,
-        sizing.totalWidth / layout.columns * 0.95, // 限制最大宽度
-      );
-      final buttonHeight = math.min(
-        sizing.baseButtonHeight * button.heightMultiplier,
-        rowHeight,
-      );
+      // 计算按钮实际尺寸 - 支持自适应大小
+      Size buttonSize = _calculateButtonSize(button, sizing, layout);
       
       // 创建按钮
       rowWidgets.add(
         Flexible(
+          flex: _calculateButtonFlex(button, sizing),
           child: Container(
             constraints: BoxConstraints(
-              maxWidth: buttonWidth,
-              maxHeight: buttonHeight,
-              minWidth: sizing.baseButtonWidth * 0.8, // 最小宽度
-              minHeight: sizing.baseButtonHeight * 0.8, // 最小高度
+              maxWidth: buttonSize.width,
+              maxHeight: buttonSize.height,
+              minWidth: button.minWidth ?? sizing.baseButtonWidth * 0.5,
+              minHeight: button.minHeight ?? sizing.baseButtonHeight * 0.5,
             ),
             child: CalculatorButtonWidget(
               button: button,
               onPressed: () => provider.executeAction(button.action),
-              fixedSize: Size(buttonWidth, buttonHeight),
+              fixedSize: null, // 让按钮自己决定大小
             ),
           ),
         ),
@@ -269,13 +263,81 @@ class CalculatorButtonGrid extends StatelessWidget {
     }
 
     return Container(
-      height: rowHeight,
-      margin: EdgeInsets.symmetric(horizontal: 4.0), // 添加水平边距
+      constraints: BoxConstraints(
+        minHeight: rowHeight,
+        maxHeight: rowHeight * 1.5, // 允许行高度适当增加
+      ),
+      margin: EdgeInsets.symmetric(horizontal: 4.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: rowWidgets,
       ),
     );
+  }
+
+  /// 计算按钮大小
+  Size _calculateButtonSize(CalculatorButton button, ButtonSizing sizing, CalculatorLayout layout) {
+    // 如果按钮启用了自适应大小，让按钮组件自己计算
+    if (button.adaptiveSize == true) {
+      // 返回一个基础大小，实际大小由按钮组件决定
+      return Size(
+        sizing.baseButtonWidth * button.widthMultiplier,
+        sizing.baseButtonHeight * button.heightMultiplier,
+      );
+    }
+    
+    // 传统大小计算
+    double buttonWidth = sizing.baseButtonWidth * button.widthMultiplier;
+    double buttonHeight = sizing.baseButtonHeight * button.heightMultiplier;
+    
+    // 应用按钮自定义大小
+    if (button.width != null) buttonWidth = button.width!;
+    if (button.height != null) buttonHeight = button.height!;
+    
+    // 应用宽高比约束
+    if (button.aspectRatio != null) {
+      final aspectRatio = button.aspectRatio!;
+      if (buttonWidth / buttonHeight > aspectRatio) {
+        buttonWidth = buttonHeight * aspectRatio;
+      } else {
+        buttonHeight = buttonWidth / aspectRatio;
+      }
+    }
+    
+    // 应用最小最大限制
+    if (button.minWidth != null) buttonWidth = math.max(buttonWidth, button.minWidth!);
+    if (button.maxWidth != null) buttonWidth = math.min(buttonWidth, button.maxWidth!);
+    if (button.minHeight != null) buttonHeight = math.max(buttonHeight, button.minHeight!);
+    if (button.maxHeight != null) buttonHeight = math.min(buttonHeight, button.maxHeight!);
+    
+    // 确保不超出可用空间
+    final maxAllowedWidth = sizing.totalWidth / layout.columns * 0.95;
+    final maxAllowedHeight = sizing.totalHeight / layout.rows * 0.95;
+    
+    return Size(
+      math.min(buttonWidth, maxAllowedWidth),
+      math.min(buttonHeight, maxAllowedHeight),
+    );
+  }
+
+  /// 计算按钮的弹性系数
+  int _calculateButtonFlex(CalculatorButton button, ButtonSizing sizing) {
+    // 自适应大小的按钮根据内容调整弹性
+    if (button.adaptiveSize == true) {
+      switch (button.sizeMode) {
+        case 'content':
+          return 0; // 不拉伸，使用内容大小
+        case 'fill':
+          return 2; // 更多空间
+        case 'adaptive':
+        default:
+          return 1; // 标准弹性
+      }
+    }
+    
+    // 根据宽度倍数调整弹性
+    return (button.widthMultiplier * 10).round().clamp(1, 10);
   }
 
   /// 构建固定网格（传统方法）

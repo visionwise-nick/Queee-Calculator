@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/calculator_provider.dart';
 import '../models/calculator_dsl.dart';
 import 'dart:convert';
+import 'dart:math' as math;
 
 class CalculatorButtonWidget extends StatefulWidget {
   final CalculatorButton button;
@@ -94,11 +95,15 @@ class _CalculatorButtonWidgetState extends State<CalculatorButtonWidget>
         ? _parseColor(widget.button.textColor!) 
         : textColor;
     
+    // 新增：计算自适应大小
+    final adaptiveSize = _calculateAdaptiveSize(theme);
+    
     // 构建主容器
     Widget buttonWidget = Container(
       margin: widget.fixedSize != null ? EdgeInsets.zero : const EdgeInsets.all(2),
-      width: widget.button.width,
-      height: widget.button.height,
+      width: adaptiveSize.width,
+      height: adaptiveSize.height,
+      constraints: _buildSizeConstraints(),
       child: Material(
         color: Colors.transparent,
         elevation: elevation,
@@ -123,6 +128,7 @@ class _CalculatorButtonWidgetState extends State<CalculatorButtonWidget>
           borderRadius: BorderRadius.circular(borderRadius),
           child: Container(
             decoration: _buildButtonDecoration(finalButtonColor, theme, gradient, backgroundImage, borderRadius, elevation),
+            padding: _getContentPadding(),
             child: Center(
               child: _buildButtonContent(finalTextColor, theme),
             ),
@@ -156,6 +162,153 @@ class _CalculatorButtonWidgetState extends State<CalculatorButtonWidget>
     }
 
     return buttonWidget;
+  }
+
+  /// 计算自适应大小
+  Size _calculateAdaptiveSize(CalculatorTheme theme) {
+    // 如果有固定大小，优先使用
+    if (widget.fixedSize != null) {
+      return widget.fixedSize!;
+    }
+    
+    // 如果按钮指定了固定宽高，使用指定值
+    if (widget.button.width != null && widget.button.height != null) {
+      return Size(widget.button.width!, widget.button.height!);
+    }
+    
+    // 获取屏幕信息
+    final mediaQuery = MediaQuery.of(context);
+    final screenSize = mediaQuery.size;
+    final screenWidth = screenSize.width;
+    final screenHeight = screenSize.height;
+    
+    // 默认基础大小（可根据屏幕大小调整）
+    double baseWidth = screenWidth * 0.2; // 屏幕宽度的20%
+    double baseHeight = screenHeight * 0.08; // 屏幕高度的8%
+    
+    // 根据按钮类型调整基础大小
+    switch (widget.button.type) {
+      case 'operator':
+        baseWidth *= 0.9; // 运算符按钮稍小
+        baseHeight *= 1.1; // 但稍高
+        break;
+      case 'special':
+        baseWidth *= 1.2; // 特殊按钮稍大
+        baseHeight *= 0.9;
+        break;
+      case 'secondary':
+        baseWidth *= 0.8; // 次要按钮稍小
+        baseHeight *= 0.9;
+        break;
+    }
+    
+    // 如果启用自适应大小
+    if (widget.button.adaptiveSize == true) {
+      final sizeMode = widget.button.sizeMode ?? 'adaptive';
+      
+      switch (sizeMode) {
+        case 'content':
+          return _calculateContentBasedSize(baseWidth, baseHeight, theme);
+        case 'fill':
+          return _calculateFillSize(screenWidth, screenHeight);
+        case 'fixed':
+          return Size(
+            widget.button.width ?? baseWidth,
+            widget.button.height ?? baseHeight,
+          );
+        case 'adaptive':
+        default:
+          return _calculateAdaptiveBasedSize(baseWidth, baseHeight, theme);
+      }
+    }
+    
+    // 应用宽高倍数
+    final finalWidth = (widget.button.width ?? baseWidth) * widget.button.widthMultiplier;
+    final finalHeight = (widget.button.height ?? baseHeight) * widget.button.heightMultiplier;
+    
+    // 应用宽高比约束
+    if (widget.button.aspectRatio != null) {
+      final aspectRatio = widget.button.aspectRatio!;
+      if (finalWidth / finalHeight > aspectRatio) {
+        // 宽度过大，调整宽度
+        return Size(finalHeight * aspectRatio, finalHeight);
+      } else {
+        // 高度过大，调整高度
+        return Size(finalWidth, finalWidth / aspectRatio);
+      }
+    }
+    
+    return Size(finalWidth, finalHeight);
+  }
+
+  /// 基于内容计算大小
+  Size _calculateContentBasedSize(double baseWidth, double baseHeight, CalculatorTheme theme) {
+    final textPainter = TextPainter(
+      text: TextSpan(
+        text: widget.button.label,
+        style: TextStyle(
+          fontSize: widget.button.fontSize ?? theme.fontSize,
+          fontFamily: widget.button.fontFamily,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    );
+    
+    textPainter.layout();
+    
+    final contentPadding = _getContentPadding();
+    final textWidth = textPainter.width + contentPadding.horizontal;
+    final textHeight = textPainter.height + contentPadding.vertical;
+    
+    // 确保最小大小
+    final minWidth = widget.button.minWidth ?? baseWidth * 0.6;
+    final minHeight = widget.button.minHeight ?? baseHeight * 0.6;
+    
+    return Size(
+      math.max(textWidth, minWidth),
+      math.max(textHeight, minHeight),
+    );
+  }
+
+  /// 计算填充大小
+  Size _calculateFillSize(double screenWidth, double screenHeight) {
+    return Size(
+      widget.button.maxWidth ?? screenWidth * 0.8,
+      widget.button.maxHeight ?? screenHeight * 0.12,
+    );
+  }
+
+  /// 计算自适应大小
+  Size _calculateAdaptiveBasedSize(double baseWidth, double baseHeight, CalculatorTheme theme) {
+    // 结合内容和可用空间
+    final contentSize = _calculateContentBasedSize(baseWidth, baseHeight, theme);
+    
+    // 应用最小最大限制
+    final minWidth = widget.button.minWidth ?? baseWidth * 0.5;
+    final maxWidth = widget.button.maxWidth ?? baseWidth * 2.0;
+    final minHeight = widget.button.minHeight ?? baseHeight * 0.5;
+    final maxHeight = widget.button.maxHeight ?? baseHeight * 2.0;
+    
+    return Size(
+      contentSize.width.clamp(minWidth, maxWidth),
+      contentSize.height.clamp(minHeight, maxHeight),
+    );
+  }
+
+  /// 构建大小约束
+  BoxConstraints _buildSizeConstraints() {
+    return BoxConstraints(
+      minWidth: widget.button.minWidth ?? 0,
+      maxWidth: widget.button.maxWidth ?? double.infinity,
+      minHeight: widget.button.minHeight ?? 0,
+      maxHeight: widget.button.maxHeight ?? double.infinity,
+    );
+  }
+
+  /// 获取内容边距
+  EdgeInsets _getContentPadding() {
+    return widget.button.contentPadding ?? 
+           const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0);
   }
 
   /// 构建按钮装饰

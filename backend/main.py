@@ -123,6 +123,18 @@ class CalculatorButton(BaseModel):
     customIcon: Optional[str] = None  # 自定义图标URL或名称
     iconSize: Optional[float] = None  # 图标大小
     iconColor: Optional[str] = None  # 图标颜色
+    
+    # 新增：自适应大小相关属性
+    adaptiveSize: Optional[bool] = None  # 是否启用自适应大小
+    minWidth: Optional[float] = None  # 最小宽度
+    maxWidth: Optional[float] = None  # 最大宽度
+    minHeight: Optional[float] = None  # 最小高度
+    maxHeight: Optional[float] = None  # 最大高度
+    aspectRatio: Optional[float] = None  # 宽高比，null表示不限制
+    sizeMode: Optional[str] = None  # 'content', 'fill', 'fixed', 'adaptive'
+    contentPadding: Optional[Dict[str, float]] = None  # 内容边距 {"left": 8, "top": 4, "right": 8, "bottom": 4}
+    autoShrink: Optional[bool] = None  # 内容过长时是否自动缩小
+    textScaleFactor: Optional[float] = None  # 文字缩放因子
 
 class CalculatorTheme(BaseModel):
     name: str
@@ -219,10 +231,22 @@ SYSTEM_PROMPT = """你是专业的计算器功能设计大师。你的唯一任�
 - 运算符位置固定：
   * ÷: row=1,col=3  ×: row=2,col=3  -: row=3,col=3  +: row=4,col=3  =: row=5,col=2
 
+🎨 **自适应大小功能（新增）**：
+- 对于长文本按钮（如"sin", "cos", "sqrt"等），可设置 `"adaptiveSize": true`
+- 大小模式选项：
+  * `"sizeMode": "content"` - 根据文本内容调整大小
+  * `"sizeMode": "adaptive"` - 智能自适应大小
+  * `"sizeMode": "fill"` - 填充可用空间
+- 约束选项：
+  * `"minWidth": 数值` - 最小宽度
+  * `"maxWidth": 数值` - 最大宽度
+  * `"aspectRatio": 数值` - 宽高比（如1.5表示宽是高的1.5倍）
+- 内容边距：`"contentPadding": {"left": 8, "top": 4, "right": 8, "bottom": 4}`
+
 ➡️ 你的输出格式必须是：
 [
   { "id": "btn1", "label": "1", "action": {"type": "input", "value": "1"}, "gridPosition": {"row": 4, "column": 0}, "type": "primary" },
-  { "id": "btn2", "label": "+", "action": {"type": "operator", "value": "+"}, "gridPosition": {"row": 4, "column": 3}, "type": "operator" }
+  { "id": "btn_sin", "label": "sin", "action": {"type": "expression", "expression": "sin(x)"}, "gridPosition": {"row": 1, "column": 4}, "type": "special", "adaptiveSize": true, "sizeMode": "content", "minWidth": 45 }
 ]
 
 ⚠️ 严格禁止：
@@ -233,6 +257,7 @@ SYSTEM_PROMPT = """你是专业的计算器功能设计大师。你的唯一任�
 
 🎯 **新功能按钮添加规则**：
 - 优先使用column=4,5,6的科学计算区域
+- 对于长文本按钮，启用自适应大小功能
 - 如果需要替换现有按钮，选择最不常用的位置
 - 保持布局的逻辑性和易用性
 
