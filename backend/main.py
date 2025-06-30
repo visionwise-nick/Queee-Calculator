@@ -1330,13 +1330,20 @@ async def generate_text_image(request: TextImageRequest):
         # 获取对应风格的效果描述，默认为现代风格
         style_effect = style_effects.get(request.style, style_effects["modern"])
         
-        # 🚫 极简提示词：只包含必要信息，避免描述性文字出现在图片中
-        detailed_prompt = f"""
-Text: '{request.text}'
-Style: {style_effect}
+        # 🎨 智能提示词：保留用户创意需求，避免系统描述性文字
+        if request.prompt and request.prompt.strip():
+            # 有用户自定义需求时，融合创意需求和风格效果
+            detailed_prompt = f"""Create the text '{request.text}' using this creative concept: {request.prompt}
+
+Apply {style_effect} lighting effects.
 Background: {request.background}
-Quality: professional button graphics
-"""
+High quality digital art for button interface."""
+        else:
+            # 没有特殊需求时，使用标准光影效果
+            detailed_prompt = f"""Create the text '{request.text}' with {style_effect}.
+
+Background: {request.background}
+High quality digital art for button interface."""
 
         print(f"🚀 使用提示词: {detailed_prompt}")
 
