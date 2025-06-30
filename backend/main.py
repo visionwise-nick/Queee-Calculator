@@ -248,16 +248,21 @@ SYSTEM_PROMPT = """你是专业计算器设计师。必须返回完整的JSON配
 4. 多参数函数（pow，log，max等）- 高级功能
 
 ⚠️ 严格限制原则：
-- 只修改用户明确要求的功能或外观
-- 不得添加用户未要求的新功能
-- 不得更改用户未提及的颜色、布局、按钮
-- 如果用户只要求改颜色，就只改颜色
-- 如果用户只要求添加某个功能，就只添加该功能
-- 禁止"创新"或"改进"用户未要求的部分
+- 🚫 绝对禁止修改任何样式相关字段（backgroundImage、gradientColors、customColor等）
+- 🚫 绝对禁止删除或更改现有按钮的样式属性
+- ✅ 只能修改按钮的功能逻辑（action字段）
+- ✅ 只能添加新的功能按钮（不包含样式属性）
+- 🚫 禁止"创新"或"改进"用户未要求的部分
 
 🔄 继承性原则：
-- 如果有current_config，严格保持所有未提及的配置不变
-- 只在用户明确要求的基础上进行最小化修改
+- 如果有current_config，严格保持所有样式配置不变
+- 只修改用户直接要求的功能逻辑
+- 所有现有按钮的样式配置必须原样保留
+
+🎨 样式保护规则：
+- theme中的所有样式字段必须原样继承
+- 按钮的backgroundImage、gradientColors、customColor等样式字段必须保留
+- 只能在layout.buttons中添加纯功能按钮，不得包含样式属性
 
 必须返回包含theme和layout的完整JSON，确保layout有rows、columns、buttons字段。"""
 
@@ -445,6 +450,45 @@ async def customize_calculator(request: CustomizationRequest) -> CalculatorConfi
         # 🔍 AI二次校验和修复
         fixed_config = await fix_calculator_config(request.user_input, request.current_config, raw_config)
         
+        # 🎨 保留用户现有的样式配置（背景图、按键样式等）
+        if request.current_config:
+            current_theme = request.current_config.get('theme', {})
+            current_layout = request.current_config.get('layout', {})
+            
+            # 保留所有样式相关的字段
+            style_fields = [
+                'backgroundImage', 'backgroundGradient', 'displayBackgroundGradient',
+                'primaryButtonGradient', 'secondaryButtonGradient', 'operatorButtonGradient',
+                'buttonShadowColors', 'shadowColor', 'buttonElevation', 'hasGlowEffect'
+            ]
+            
+            for field in style_fields:
+                if field in current_theme and field not in fixed_config.get('theme', {}):
+                    if 'theme' not in fixed_config:
+                        fixed_config['theme'] = {}
+                    fixed_config['theme'][field] = current_theme[field]
+                    print(f"🎨 保留用户样式配置: {field}")
+            
+            # 保留现有按键的样式配置
+            if 'buttons' in current_layout and 'layout' in fixed_config and 'buttons' in fixed_config['layout']:
+                current_buttons = {btn['id']: btn for btn in current_layout['buttons']}
+                
+                for new_button in fixed_config['layout']['buttons']:
+                    button_id = new_button.get('id')
+                    if button_id in current_buttons:
+                        current_button = current_buttons[button_id]
+                        
+                        # 保留按键的样式配置
+                        style_button_fields = [
+                            'gradientColors', 'backgroundImage', 'customColor', 'backgroundColor',
+                            'textColor', 'borderColor', 'borderRadius', 'elevation', 'shadowColor'
+                        ]
+                        
+                        for field in style_button_fields:
+                            if field in current_button and field not in new_button:
+                                new_button[field] = current_button[field]
+                                print(f"🎨 保留按键 {button_id} 的样式: {field}")
+        
         # 基本数据验证和字段补充
         if 'theme' not in fixed_config:
             fixed_config['theme'] = {}
@@ -527,41 +571,80 @@ async def customize_calculator(request: CustomizationRequest) -> CalculatorConfi
                 col = i % layout['columns']
                 button['gridPosition'] = {'row': row, 'column': col}
         
-        # 确保所有按钮都有action字段
+        # 🔧 确保所有按钮都有正确的action字段
         print(f"🔍 开始修复按钮action，当前按钮数量: {len(layout.get('buttons', []))}")
         for button in layout.get('buttons', []):
             button_id = button.get('id', '')
+            button_label = button.get('label', '')
             current_action = button.get('action', {})
-            print(f"🔍 按钮 {button_id} 当前action: {current_action}")
+            print(f"🔍 按钮 {button_id} ('{button_label}') 当前action: {current_action}")
             
-            if 'action' not in button:
-                # 根据按钮类型和ID推断action
+            # 检查action是否有效
+            action_valid = (
+                'action' in button and 
+                isinstance(button['action'], dict) and
+                'type' in button['action'] and
+                button['action']['type'] != 'input' or (
+                    button['action']['type'] == 'input' and 
+                    'value' in button['action'] and 
+                    button['action']['value'] is not None
+                )
+            )
+            
+            if not action_valid:
+                print(f"⚠️ 按钮 {button_id} action无效，开始修复...")
+                
+                # 根据按钮ID和标签推断正确的action
                 if button_id in ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine']:
                     number_map = {'zero': '0', 'one': '1', 'two': '2', 'three': '3', 'four': '4', 
                                   'five': '5', 'six': '6', 'seven': '7', 'eight': '8', 'nine': '9'}
                     button['action'] = {'type': 'input', 'value': number_map.get(button_id, button_id)}
-                elif button_id == 'add':
+                elif button_label in ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']:
+                    button['action'] = {'type': 'input', 'value': button_label}
+                elif button_id == 'add' or button_label == '+':
                     button['action'] = {'type': 'operator', 'value': '+'}
-                elif button_id == 'subtract':
+                elif button_id == 'subtract' or button_label == '-':
                     button['action'] = {'type': 'operator', 'value': '-'}
-                elif button_id == 'multiply':
+                elif button_id == 'multiply' or button_label in ['×', '*', '×']:
                     button['action'] = {'type': 'operator', 'value': '*'}
-                elif button_id == 'divide':
+                elif button_id == 'divide' or button_label in ['÷', '/', '÷']:
                     button['action'] = {'type': 'operator', 'value': '/'}
-                elif button_id == 'equals':
+                elif button_id == 'equals' or button_label == '=':
                     button['action'] = {'type': 'equals'}
-                elif button_id == 'clear':
+                elif button_id in ['clear', 'clearAll'] or button_label in ['AC', 'C', '清除']:
                     button['action'] = {'type': 'clearAll'}
-                elif button_id == 'decimal':
+                elif button_id == 'decimal' or button_label == '.':
                     button['action'] = {'type': 'decimal'}
-                elif button_id == 'negate':
+                elif button_id == 'negate' or button_label in ['±', '+/-']:
                     button['action'] = {'type': 'negate'}
+                elif button_id == 'backspace' or button_label in ['⌫', '退格']:
+                    button['action'] = {'type': 'backspace'}
+                elif button_label == '%':
+                    button['action'] = {'type': 'operator', 'value': '%'}
+                elif 'sin' in button_label.lower():
+                    button['action'] = {'type': 'expression', 'expression': 'sin(x)'}
+                elif 'cos' in button_label.lower():
+                    button['action'] = {'type': 'expression', 'expression': 'cos(x)'}
+                elif 'tan' in button_label.lower():
+                    button['action'] = {'type': 'expression', 'expression': 'tan(x)'}
+                elif 'sqrt' in button_label.lower() or '√' in button_label:
+                    button['action'] = {'type': 'expression', 'expression': 'sqrt(x)'}
+                elif 'x²' in button_label or 'x^2' in button_label:
+                    button['action'] = {'type': 'expression', 'expression': 'x*x'}
+                elif 'log' in button_label.lower():
+                    button['action'] = {'type': 'expression', 'expression': 'log(x)'}
+                elif 'ln' in button_label.lower():
+                    button['action'] = {'type': 'expression', 'expression': 'ln(x)'}
+                elif '1/x' in button_label:
+                    button['action'] = {'type': 'expression', 'expression': '1/x'}
                 else:
-                    # 如果没有匹配的ID，根据标签推断
-                    button['action'] = {'type': 'input', 'value': button.get('label', '0')}
-                print(f"✅ 为按钮 {button_id} 添加了action: {button['action']}")
+                    # 默认为输入类型，使用标签作为值
+                    button['action'] = {'type': 'input', 'value': button_label or '0'}
+                    print(f"⚠️ 按钮 {button_id} 使用默认action: input")
+                
+                print(f"✅ 为按钮 {button_id} 修复了action: {button['action']}")
             else:
-                print(f"⚠️ 按钮 {button_id} 已有action，跳过自动添加")
+                print(f"✅ 按钮 {button_id} action有效，无需修复")
         
         # 🔧 修复所有按钮中的错误表达式格式
         for button in layout.get('buttons', []):
