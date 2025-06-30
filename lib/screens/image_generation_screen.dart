@@ -215,82 +215,85 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
               ],
             ),
           ),
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
+          Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 1,
-              childAspectRatio: 4,
-              mainAxisSpacing: 8,
-            ),
-            itemCount: quickPrompts.length,
-            itemBuilder: (context, index) {
-              final prompt = quickPrompts[index];
-              return Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: () {
-                    _appBgPromptController.text = prompt['prompt'] as String;
-                    _generateAppBackground();
-                  },
-                  borderRadius: BorderRadius.circular(12),
-                  child: Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: (prompt['color'] as Color).withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: (prompt['color'] as Color).withOpacity(0.3),
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 8,
-                          height: 40,
+            child: Column(
+              children: quickPrompts.asMap().entries.map((entry) {
+                final prompt = entry.value;
+                final isLast = entry.key == quickPrompts.length - 1;
+                
+                return Column(
+                  children: [
+                    Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: () {
+                          _appBgPromptController.text = prompt['prompt'] as String;
+                          _generateAppBackground();
+                        },
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(12),
+                          constraints: const BoxConstraints(minHeight: 60),
                           decoration: BoxDecoration(
-                            color: prompt['color'] as Color,
-                            borderRadius: BorderRadius.circular(4),
+                            color: (prompt['color'] as Color).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: (prompt['color'] as Color).withOpacity(0.3),
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisAlignment: MainAxisAlignment.center,
+                          child: Row(
                             children: [
-                              Text(
-                                prompt['title'] as String,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
+                              Container(
+                                width: 8,
+                                height: 40,
+                                decoration: BoxDecoration(
+                                  color: prompt['color'] as Color,
+                                  borderRadius: BorderRadius.circular(4),
                                 ),
                               ),
-                              const SizedBox(height: 2),
-                              Text(
-                                prompt['prompt'] as String,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey.shade600,
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                      prompt['title'] as String,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      prompt['prompt'] as String,
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.grey.shade600,
+                                      ),
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
                                 ),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
+                              ),
+                              Icon(
+                                Icons.arrow_forward_ios,
+                                size: 16,
+                                color: Colors.grey.shade400,
                               ),
                             ],
                           ),
                         ),
-                        Icon(
-                          Icons.arrow_forward_ios,
-                          size: 16,
-                          color: Colors.grey.shade400,
-                        ),
-                      ],
+                      ),
                     ),
-                  ),
-                ),
-              );
-            },
+                    if (!isLast) const SizedBox(height: 8),
+                  ],
+                );
+              }).toList(),
+            ),
           ),
           const SizedBox(height: 8),
         ],
@@ -759,7 +762,7 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                                    onPressed: _generateButtonText,
+                onPressed: _generateButtonText,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.deepPurple.shade600,
                   foregroundColor: Colors.white,
@@ -777,7 +780,7 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
                           valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                         ),
                       )
-                                          : const Text(
+                    : const Text(
                         '✨ 生成按键文字',
                         style: TextStyle(
                           fontSize: 16,
@@ -791,8 +794,6 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
       ),
     );
   }
-
-
 
   Future<void> _generateAppBackground() async {
     if (_appBgPromptController.text.trim().isEmpty) {

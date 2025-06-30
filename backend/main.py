@@ -165,6 +165,16 @@ class CalculatorTheme(BaseModel):
     buttonSpacing: Optional[float] = None  # 按钮间距
     adaptiveLayout: bool = True  # 是否启用自适应布局
 
+class AppBackground(BaseModel):
+    backgroundImageUrl: Optional[str] = None  # APP背景图片URL
+    backgroundType: Optional[str] = None  # 背景类型：image, gradient, solid
+    backgroundColor: Optional[str] = None  # 背景颜色
+    backgroundGradient: Optional[List[str]] = None  # 背景渐变色
+    backgroundOpacity: Optional[float] = None  # 背景透明度 (0.0-1.0)
+    backgroundBlendMode: Optional[str] = None  # 背景混合模式
+    parallaxEffect: Optional[bool] = None  # 是否启用视差效果
+    parallaxIntensity: Optional[float] = None  # 视差强度 (0.0-1.0)
+
 class CalculatorLayout(BaseModel):
     name: str
     rows: int
@@ -186,6 +196,7 @@ class CalculatorConfig(BaseModel):
     authorPrompt: Optional[str] = None
     thinkingProcess: Optional[str] = None  # AI的思考过程
     aiResponse: Optional[str] = None  # AI的回复消息
+    appBackground: Optional[AppBackground] = None
 
 class CustomizationRequest(BaseModel):
     user_input: str = Field(..., description="用户的自然语言描述")
@@ -401,8 +412,19 @@ async def customize_calculator(request: CustomizationRequest) -> CalculatorConfi
             # 检测图像生成工坊生成的内容
             theme = request.current_config.get('theme', {})
             layout = request.current_config.get('layout', {})
+            app_background = request.current_config.get('appBackground', {})
             
-            # 检查APP背景图
+            # 🎨 检查APP背景配置（优先级最高）
+            if app_background.get('backgroundImageUrl'):
+                protected_fields.extend([
+                    'appBackground.backgroundImageUrl',
+                    'appBackground.backgroundType',
+                    'appBackground.backgroundColor',
+                    'appBackground.backgroundGradient',
+                    'appBackground.backgroundOpacity'
+                ])
+            
+            # 检查主题背景图
             if theme.get('backgroundImage'):
                 protected_fields.extend(['theme.backgroundImage', 'theme.backgroundColor', 'theme.backgroundGradient'])
             
@@ -549,6 +571,14 @@ AI设计师只能修改按钮功能逻辑，不能覆盖工坊生成的图像内
                 final_config = copy.deepcopy(ai_generated_config)
                 current_theme = request.current_config.get('theme', {})
                 current_layout = request.current_config.get('layout', {})
+                current_app_background = request.current_config.get('appBackground', {})
+                
+                # 🎨 保护APP背景配置（优先级最高）
+                app_bg_fields = ['appBackground.backgroundImageUrl', 'appBackground.backgroundType', 
+                                'appBackground.backgroundColor', 'appBackground.backgroundGradient', 
+                                'appBackground.backgroundOpacity']
+                if any(field in protected_fields for field in app_bg_fields):
+                    final_config['appBackground'] = current_app_background
                 
                 # 保护主题中的图像字段
                 if 'theme.backgroundImage' in protected_fields:
@@ -620,6 +650,9 @@ AI设计师只能修改按钮功能逻辑，不能覆盖工坊生成的图像内
         print("✅ AI响应处理和样式保护完成")
         
         # 创建完整的配置对象
+        app_background_data = fixed_config.get('appBackground')
+        app_background = AppBackground(**app_background_data) if app_background_data else None
+        
         config = CalculatorConfig(
             id=f"calc_{int(time.time())}",
             name=fixed_config.get('name', '自定义计算器'),
@@ -631,6 +664,7 @@ AI设计师只能修改按钮功能逻辑，不能覆盖工坊生成的图像内
             authorPrompt=request.user_input,
             thinkingProcess=response_text if "思考过程" in response_text else None,
             aiResponse=f"✅ 成功修复计算器配置",
+            appBackground=app_background
         )
         
         return config
@@ -652,6 +686,20 @@ def remove_protected_fields_from_ai_output(config_dict: dict, protected_fields: 
     cleaned_config = copy.deepcopy(config_dict)
     
     print(f"🛡️ 开始清理AI输出中的受保护字段: {protected_fields}")
+    
+    # 🎨 清理APP背景中的受保护字段
+    app_bg_protected_fields = [
+        'backgroundImageUrl', 'backgroundType', 'backgroundColor',
+        'backgroundGradient', 'backgroundOpacity', 'backgroundBlendMode',
+        'parallaxEffect', 'parallaxIntensity'
+    ]
+    
+    if 'appBackground' in cleaned_config:
+        for field in app_bg_protected_fields:
+            if f'appBackground.{field}' in protected_fields or 'appBackground.*' in protected_fields:
+                if field in cleaned_config['appBackground']:
+                    print(f"🧹 移除AI输出中的APP背景字段: appBackground.{field}")
+                    del cleaned_config['appBackground'][field]
     
     # 清理主题中的受保护字段
     theme_protected_fields = [

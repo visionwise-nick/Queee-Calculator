@@ -37,6 +37,16 @@ class AIService {
       // 如果有当前配置，添加到请求中
       if (currentConfig != null) {
         requestBody['current_config'] = currentConfig.toJson();
+        
+        // 🛡️ 检测并添加图像生成工坊保护参数
+        final (hasWorkshopContent, protectedFields) = _detectWorkshopContent(currentConfig);
+        requestBody['has_image_workshop_content'] = hasWorkshopContent;
+        requestBody['workshop_protected_fields'] = protectedFields;
+        
+        if (hasWorkshopContent) {
+          print('🛡️ 检测到图像生成工坊内容，启用保护机制');
+          print('🛡️ 保护字段: $protectedFields');
+        }
       }
       
       final body = json.encode(requestBody);
@@ -485,5 +495,49 @@ class AIService {
       '抽象艺术背景，多彩几何图案',
       '夜空主题背景，深色带星点',
     ];
+  }
+
+  /// 🛡️ 检测图像生成工坊内容
+  static (bool, List<String>) _detectWorkshopContent(CalculatorConfig config) {
+    List<String> protectedFields = [];
+    
+    // 检查APP背景图（优先检查appBackground）
+    if (config.appBackground?.backgroundImageUrl != null) {
+      protectedFields.addAll([
+        'appBackground.backgroundImageUrl',
+        'appBackground.backgroundType',
+        'appBackground.backgroundColor',
+        'appBackground.backgroundGradient',
+        'appBackground.backgroundOpacity'
+      ]);
+    }
+    
+    // 检查主题背景图
+    if (config.theme.backgroundImage != null) {
+      protectedFields.addAll([
+        'theme.backgroundImage',
+        'theme.backgroundColor', 
+        'theme.backgroundGradient'
+      ]);
+    }
+    
+    // 检查按钮背景图和图案
+    for (final button in config.layout.buttons) {
+      if (button.backgroundImage != null) {
+        protectedFields.add('button.${button.id}.backgroundImage');
+      }
+      // 检查按钮背景图案
+      if (button.backgroundPattern != null) {
+        protectedFields.addAll([
+          'button.${button.id}.backgroundPattern',
+          'button.${button.id}.patternColor',
+          'button.${button.id}.patternOpacity'
+        ]);
+      }
+    }
+    
+    final hasWorkshopContent = protectedFields.isNotEmpty;
+    
+    return (hasWorkshopContent, protectedFields);
   }
 } 
