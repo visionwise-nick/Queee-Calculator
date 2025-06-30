@@ -1314,25 +1314,29 @@ async def generate_text_image(request: TextImageRequest):
         print(f"提示词: {request.prompt}")
         print(f"风格: {request.style}")
         
-        # 构建详细的图像生成提示词
-        detailed_prompt = f"""Create a stunning text image with lighting effects for the text '{request.text}'.
-
-Style: {request.style}
-Effects: {', '.join(request.effects) if request.effects else 'glow, shadow, depth'}
+        # 🎨 构建极简的图像生成提示词，只生成纯文字光影效果
+        # 根据风格选择不同的光影效果描述
+        style_effects = {
+            "modern": "sleek metallic chrome text with subtle glow",
+            "neon": "vibrant neon glowing text with electric blue/pink lighting",
+            "gold": "luxurious golden metallic text with warm highlights and shadows", 
+            "silver": "polished silver chrome text with mirror reflections",
+            "fire": "fiery text with orange/red flame-like glow effects",
+            "ice": "crystal ice text with blue/white transparent effects",
+            "galaxy": "cosmic text with starry sparkle and nebula colors",
+            "glass": "transparent glass text with light refractions and highlights"
+        }
+        
+        # 获取对应风格的效果描述，默认为现代风格
+        style_effect = style_effects.get(request.style, style_effects["modern"])
+        
+        # 🚫 极简提示词：只包含必要信息，避免描述性文字出现在图片中
+        detailed_prompt = f"""
+Text: '{request.text}'
+Style: {style_effect}
 Background: {request.background}
-Size: {request.size}
-
-Requirements:
-- Text '{request.text}' should be clearly readable and prominent
-- Apply beautiful lighting effects like glow, shadow, reflection, depth
-- Use high-quality typography with 3D dimension effects
-- Make it suitable for use as a button image in a calculator app
-- Professional and polished appearance
-- Text should have artistic lighting similar to logos like APPLE with metallic/glass effects
-- Add depth, emboss, and sophisticated visual effects
-- Ensure high contrast and readability
-
-Additional context: {request.prompt}"""
+Quality: professional button graphics
+"""
 
         print(f"🚀 使用提示词: {detailed_prompt}")
 
