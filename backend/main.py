@@ -530,6 +530,9 @@ AI设计师只能修改按钮功能逻辑，不能覆盖工坊生成的图像内
             if not isinstance(ai_generated_config, dict):
                 raise HTTPException(status_code=500, detail="AI未能生成有效的配置JSON")
             
+            # 🧹 清理AI生成的格式问题（如渐变色格式）
+            ai_generated_config = clean_gradient_format(ai_generated_config)
+            
             # 🛡️ 图像生成工坊保护：强制保持受保护的字段
             if request.current_config and protected_fields:
                 final_config = copy.deepcopy(ai_generated_config)
@@ -608,6 +611,51 @@ AI设计师只能修改按钮功能逻辑，不能覆盖工坊生成的图像内
     except Exception as e:
         print(f"修复计算器配置时出错: {str(e)}")
         raise HTTPException(status_code=500, detail=f"修复计算器配置失败: {str(e)}")
+
+def clean_gradient_format(config_dict: dict) -> dict:
+    """清理AI生成的渐变色格式，将对象格式转换为数组格式"""
+    def process_gradient(gradient_value):
+        if isinstance(gradient_value, dict):
+            # AI生成的格式：{"colors": ["#FF0000", "#800000"], "direction": "vertical"}
+            if "colors" in gradient_value:
+                return gradient_value["colors"]
+            # 其他对象格式，提取颜色数组
+            elif "type" in gradient_value and "colors" in gradient_value:
+                return gradient_value["colors"]
+        elif isinstance(gradient_value, list):
+            # 已经是正确格式
+            return gradient_value
+        return None
+    
+    # 处理主题中的渐变色字段
+    if "theme" in config_dict:
+        theme = config_dict["theme"]
+        gradient_fields = [
+            "backgroundGradient", "displayBackgroundGradient", 
+            "primaryButtonGradient", "secondaryButtonGradient", 
+            "operatorButtonGradient"
+        ]
+        
+        for field in gradient_fields:
+            if field in theme and theme[field] is not None:
+                cleaned_gradient = process_gradient(theme[field])
+                if cleaned_gradient is not None:
+                    theme[field] = cleaned_gradient
+                else:
+                    # 如果无法解析，移除该字段
+                    del theme[field]
+    
+    # 处理按钮中的渐变色字段
+    if "layout" in config_dict and "buttons" in config_dict["layout"]:
+        for button in config_dict["layout"]["buttons"]:
+            if "gradientColors" in button and button["gradientColors"] is not None:
+                cleaned_gradient = process_gradient(button["gradientColors"])
+                if cleaned_gradient is not None:
+                    button["gradientColors"] = cleaned_gradient
+                else:
+                    del button["gradientColors"]
+    
+    return config_dict
 
 async def fix_calculator_config(user_input: str, current_config: dict, generated_config: dict) -> dict:
     """AI二次校验和修复生成的计算器配置"""

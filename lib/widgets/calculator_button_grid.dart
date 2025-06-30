@@ -155,38 +155,25 @@ class CalculatorButtonGrid extends StatelessWidget {
             ? (sizing.baseButtonHeight * rows.length) + (sizing.gap * (rows.length - 1))
             : sizing.baseButtonHeight;
             
-        // 增强滚动支持，提供更好的用户体验
-        return Column(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.start,
-          children: [
-            if (totalHeight > constraints.maxHeight) ...[
-              // 如果内容超出高度，使用滚动视图
-              Expanded(
-                child: SingleChildScrollView(
-                  physics: const BouncingScrollPhysics(), // 弹性滚动效果
-                  padding: const EdgeInsets.symmetric(vertical: 8.0),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: rows,
-                  ),
-                ),
-              ),
-            ] else ...[
-              // 如果内容适合，仍然提供滚动能力以防万一
-              Expanded(
-                child: SingleChildScrollView(
-                  physics: const ClampingScrollPhysics(), // 限制滚动范围
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: rows,
-                  ),
-                ),
-              ),
-            ],
-          ],
-        );
+        // 修复布局问题：直接返回合适的布局，允许纵向扩展
+        if (totalHeight > constraints.maxHeight) {
+          // 如果内容超出高度，使用滚动视图
+          return SingleChildScrollView(
+            physics: const BouncingScrollPhysics(), // 弹性滚动效果
+            padding: const EdgeInsets.symmetric(vertical: 8.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: rows,
+            ),
+          );
+        } else {
+          // 如果内容适合，使用普通的Column，允许纵向扩展
+          return Column(
+            mainAxisSize: MainAxisSize.max, // 改为max，允许完全扩展
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly, // 均匀分布
+            children: rows,
+          );
+        }
       },
     );
   }
