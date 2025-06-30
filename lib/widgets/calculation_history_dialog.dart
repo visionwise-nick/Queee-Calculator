@@ -70,6 +70,186 @@ class _CalculationHistoryDialogState extends State<CalculationHistoryDialog>
 
   @override
   Widget build(BuildContext context) {
+    final screenSize = MediaQuery.of(context).size;
+    final isSmallScreen = screenSize.width < 600 || screenSize.height < 700;
+    
+    if (isSmallScreen) {
+      // 移动端：全屏模式
+      return _buildMobileLayout(context);
+    } else {
+      // 桌面端：对话框模式
+      return _buildDesktopLayout(context);
+    }
+  }
+
+  Widget _buildMobileLayout(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: FadeTransition(
+        opacity: _fadeAnimation,
+        child: SlideTransition(
+          position: _slideAnimation,
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Colors.blue.shade900,
+                  Colors.indigo.shade900,
+                  Colors.purple.shade900,
+                ],
+              ),
+            ),
+            child: SafeArea(
+              child: Column(
+                children: [
+                  // 移动端标题栏
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          Colors.orange.shade400,
+                          Colors.red.shade500,
+                        ],
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.history,
+                          color: Colors.white,
+                          size: 24,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            '运算过程',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          icon: Icon(Icons.close, color: Colors.white, size: 24),
+                          padding: EdgeInsets.all(8),
+                          constraints: BoxConstraints(minWidth: 40, minHeight: 40),
+                        ),
+                      ],
+                    ),
+                  ),
+                  
+                  // 内容区域
+                  Expanded(
+                    child: Column(
+                      children: [
+                        // 简化的说明
+                        Container(
+                          margin: const EdgeInsets.all(16),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.touch_app,
+                                color: Colors.orange,
+                                size: 16,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  '点击复制按钮可复制结果',
+                                  style: TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        
+                        // 运算步骤列表
+                        Expanded(
+                          child: widget.steps.isEmpty
+                              ? _buildEmptyState()
+                              : ListView.builder(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                                  itemCount: widget.steps.length,
+                                  itemBuilder: (context, index) {
+                                    final step = widget.steps[widget.steps.length - 1 - index];
+                                    return _buildMobileStepCard(step, index);
+                                  },
+                                ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  
+                  // 底部按钮栏
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.2),
+                      border: Border(
+                        top: BorderSide(
+                          color: Colors.white.withValues(alpha: 0.1),
+                          width: 0.5,
+                        ),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: widget.steps.isNotEmpty ? () {
+                              final historyText = widget.steps.map((step) =>
+                                '${step.description}: ${step.input} → ${step.result}'
+                              ).join('\n');
+                              
+                              Clipboard.setData(ClipboardData(text: historyText));
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('全部历史已复制'),
+                                  backgroundColor: Colors.green,
+                                  behavior: SnackBarBehavior.floating,
+                                ),
+                              );
+                            } : null,
+                            icon: Icon(Icons.copy_all, size: 18),
+                            label: Text('复制全部'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: widget.steps.isNotEmpty 
+                                  ? Colors.orange.shade600 
+                                  : Colors.grey,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDesktopLayout(BuildContext context) {
     return Dialog(
       backgroundColor: Colors.transparent,
       child: FadeTransition(
@@ -103,7 +283,7 @@ class _CalculationHistoryDialogState extends State<CalculationHistoryDialog>
             ),
             child: Column(
               children: [
-                // 标题栏
+                // 桌面端标题栏
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
@@ -156,7 +336,7 @@ class _CalculationHistoryDialogState extends State<CalculationHistoryDialog>
                   ),
                 ),
                 
-                // 运算步骤内容
+                // 桌面端内容
                 Expanded(
                   child: Container(
                     padding: const EdgeInsets.all(20),
@@ -200,7 +380,7 @@ class _CalculationHistoryDialogState extends State<CalculationHistoryDialog>
                                   itemCount: widget.steps.length,
                                   itemBuilder: (context, index) {
                                     final step = widget.steps[widget.steps.length - 1 - index];
-                                    return _buildStepCard(step, index);
+                                    return _buildDesktopStepCard(step, index);
                                   },
                                 ),
                         ),
@@ -209,7 +389,7 @@ class _CalculationHistoryDialogState extends State<CalculationHistoryDialog>
                   ),
                 ),
                 
-                // 底部按钮
+                // 桌面端底部按钮
                 Container(
                   padding: const EdgeInsets.all(20),
                   child: Row(
@@ -304,7 +484,177 @@ class _CalculationHistoryDialogState extends State<CalculationHistoryDialog>
     );
   }
 
-  Widget _buildStepCard(CalculationStep step, int index) {
+  // 移动端步骤卡片 - 紧凑设计
+  Widget _buildMobileStepCard(CalculationStep step, int index) {
+    return TweenAnimationBuilder<double>(
+      duration: Duration(milliseconds: 300 + (index * 100)),
+      tween: Tween(begin: 0.0, end: 1.0),
+      builder: (context, value, child) {
+        return Transform.translate(
+          offset: Offset(20 * (1 - value), 0),
+          child: Opacity(
+            opacity: value,
+            child: Container(
+              margin: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.1),
+                  width: 0.5,
+                ),
+              ),
+              child: Column(
+                children: [
+                  // 第一行：序号 + 描述 + 复制按钮
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          '#${widget.steps.length - index}',
+                          style: TextStyle(
+                            color: Colors.orange.shade200,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          step.description,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () {
+                          Clipboard.setData(ClipboardData(text: step.result.toString()));
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('已复制: ${step.result}'),
+                              backgroundColor: Colors.green,
+                              behavior: SnackBarBehavior.floating,
+                              duration: Duration(milliseconds: 1200),
+                            ),
+                          );
+                        },
+                        icon: Icon(
+                          Icons.copy,
+                          color: Colors.cyan.shade300,
+                          size: 16,
+                        ),
+                        constraints: BoxConstraints(minWidth: 32, minHeight: 32),
+                        padding: EdgeInsets.all(4),
+                      ),
+                    ],
+                  ),
+                  
+                  const SizedBox(height: 8),
+                  
+                  // 第二行：计算信息 - 极简设计
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Row(
+                      children: [
+                        // 输入
+                        Text(
+                          step.input.toString(),
+                          style: TextStyle(
+                            color: Colors.cyan.shade200,
+                            fontSize: 13,
+                            fontFamily: 'monospace',
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        
+                        // 箭头
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          child: Icon(
+                            Icons.arrow_forward,
+                            color: Colors.white.withValues(alpha: 0.6),
+                            size: 14,
+                          ),
+                        ),
+                        
+                        // 结果
+                        Expanded(
+                          child: Text(
+                            step.result.toString(),
+                            style: TextStyle(
+                              color: Colors.green.shade200,
+                              fontSize: 13,
+                              fontFamily: 'monospace',
+                              fontWeight: FontWeight.bold,
+                            ),
+                            textAlign: TextAlign.right,
+                          ),
+                        ),
+                        
+                        // 时间
+                        Padding(
+                          padding: const EdgeInsets.only(left: 8),
+                          child: Text(
+                            _formatTime(step.timestamp),
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.4),
+                              fontSize: 10,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  
+                  // 表达式（如果需要显示）
+                  if (step.expression.isNotEmpty && step.expression != step.input.toString()) ...[
+                    const SizedBox(height: 4),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.purple.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        step.expression,
+                        style: TextStyle(
+                          color: Colors.purple.shade200,
+                          fontSize: 11,
+                          fontFamily: 'monospace',
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  // 桌面端步骤卡片 - 保持原有设计
+  Widget _buildDesktopStepCard(CalculationStep step, int index) {
     return TweenAnimationBuilder<double>(
       duration: Duration(milliseconds: 300 + (index * 100)),
       tween: Tween(begin: 0.0, end: 1.0),
