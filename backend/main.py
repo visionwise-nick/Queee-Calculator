@@ -1298,45 +1298,45 @@ async def get_background_presets():
     }
 
 class TextImageRequest(BaseModel):
-    prompt: str = Field(..., description="光影文字生成提示词")
-    text: str = Field(..., description="要生成的文字内容")
-    style: Optional[str] = Field(default="modern", description="文字风格：modern, neon, gold, silver, fire, ice, galaxy等")
+    prompt: str = Field(..., description="创意字符生成描述，如'用橘猫身体组成数字'")
+    text: str = Field(..., description="要生成的字符/文字内容")
+    style: Optional[str] = Field(default="modern", description="视觉风格：modern, neon, gold, silver, fire, ice, galaxy等")
     size: Optional[str] = Field(default="512x512", description="图像尺寸")
     background: Optional[str] = Field(default="transparent", description="背景类型：transparent, dark, light, gradient")
-    effects: Optional[List[str]] = Field(default=[], description="特效列表：glow, shadow, reflect, emboss, outline等")
+    effects: Optional[List[str]] = Field(default=[], description="视觉效果列表")
 
 @app.post("/generate-text-image")
 async def generate_text_image(request: TextImageRequest):
-    """生成光影文字图片 - 专门用于按键文字"""
+    """生成创意字符图片 - 用指定元素构造字符形状"""
     try:
-        print(f"🎨 正在生成光影文字图片...")
-        print(f"文字内容: {request.text}")
-        print(f"提示词: {request.prompt}")
+        print(f"🎨 正在生成创意字符图片...")
+        print(f"字符内容: {request.text}")
+        print(f"创意描述: {request.prompt}")
         print(f"风格: {request.style}")
         
-        # 🎨 构建极简的图像生成提示词，只生成纯文字光影效果
-        # 根据风格选择不同的光影效果描述
+        # 🎨 构建创意字符生成提示词，用指定元素构造字符形状
+        # 根据风格选择不同的视觉风格描述
         style_effects = {
-            "modern": "sleek metallic chrome text with subtle glow",
-            "neon": "vibrant neon glowing text with electric blue/pink lighting",
-            "gold": "luxurious golden metallic text with warm highlights and shadows", 
-            "silver": "polished silver chrome text with mirror reflections",
-            "fire": "fiery text with orange/red flame-like glow effects",
-            "ice": "crystal ice text with blue/white transparent effects",
-            "galaxy": "cosmic text with starry sparkle and nebula colors",
-            "glass": "transparent glass text with light refractions and highlights"
+            "modern": "in sleek modern style",
+            "neon": "in vibrant neon style with bright colors",
+            "gold": "in luxurious golden metallic style", 
+            "silver": "in polished silver metallic style",
+            "fire": "in fiery red/orange style",
+            "ice": "in crystal clear ice style",
+            "galaxy": "in cosmic space style with stars",
+            "glass": "in transparent glass crystal style"
         }
         
         # 获取对应风格的效果描述，默认为现代风格
         style_effect = style_effects.get(request.style, style_effects["modern"])
         
-        # 🎨 精准创意指令：完全按照用户描述构造，零文字干扰
+        # 🎨 创意字符构造：用指定元素构成字符形状，完全去除光影概念
         if request.prompt and request.prompt.strip():
-            # 完全按照用户创意描述构造数字/字符
-            detailed_prompt = f"""Create number "{request.text}" where {request.prompt}. Apply {style_effect}. Background: {request.background}. CRITICAL: No text labels, no words, no descriptions in image - only the visual number/character made as described."""
+            # 完全按照用户创意描述构造字符
+            detailed_prompt = f"""Create the character/symbol "{request.text}" {request.prompt}. Background: {request.background}. The character must be formed/shaped using the described elements. No text overlays, no labels, no written words anywhere in the image. Pure visual art only."""
         else:
-            # 标准光影数字/字符，无文字干扰
-            detailed_prompt = f"""Create number "{request.text}" with {style_effect}. Background: {request.background}. CRITICAL: No text labels, no words, no descriptions in image - only the visual number/character."""
+            # 标准字符设计
+            detailed_prompt = f"""Create the character/symbol "{request.text}" with {style_effect}. Background: {request.background}. No text overlays, no labels, no written words anywhere in the image. Pure visual art only."""
 
         print(f"🚀 使用提示词: {detailed_prompt}")
 
@@ -1374,7 +1374,7 @@ async def generate_text_image(request: TextImageRequest):
                     # 将图像数据转换为base64 URL
                     text_image_base64 = f"data:{mime_type};base64,{text_image_base64_data}"
                     
-                    print(f"✅ 光影文字图片生成成功: '{request.text}'，MIME类型: {mime_type}")
+                    print(f"✅ 创意字符图片生成成功: '{request.text}'，MIME类型: {mime_type}")
                     
                     return {
                         "success": True,
@@ -1387,7 +1387,7 @@ async def generate_text_image(request: TextImageRequest):
                         "mime_type": mime_type,
                         "original_prompt": request.prompt,
                         "enhanced_prompt": detailed_prompt,
-                        "message": f"光影文字 '{request.text}' 生成成功"
+                        "message": f"创意字符 '{request.text}' 生成成功"
                     }
         
         # 检查是否有文本响应
@@ -1398,14 +1398,14 @@ async def generate_text_image(request: TextImageRequest):
         raise Exception("未找到生成的图像数据")
         
     except Exception as e:
-        print(f"❌ 光影文字图片生成失败: {str(e)}")
+        print(f"❌ 创意字符图片生成失败: {str(e)}")
         
         # 返回错误信息
         return {
             "success": False,
             "error": str(e),
             "text": request.text,
-            "message": f"生成光影文字 '{request.text}' 失败: {str(e)}"
+            "message": f"生成创意字符 '{request.text}' 失败: {str(e)}"
         }
 
 if __name__ == "__main__":
