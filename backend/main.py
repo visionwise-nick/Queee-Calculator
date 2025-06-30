@@ -191,15 +191,18 @@ class CustomizationRequest(BaseModel):
     user_input: str = Field(..., description="用户的自然语言描述")
     conversation_history: Optional[List[Dict[str, str]]] = Field(default=[], description="对话历史")
     current_config: Optional[Dict[str, Any]] = Field(default=None, description="当前计算器配置")
+    # 新增：图像生成工坊保护标识
+    has_image_workshop_content: Optional[bool] = Field(default=False, description="是否有图像生成工坊生成的内容")
+    workshop_protected_fields: Optional[List[str]] = Field(default=[], description="受图像生成工坊保护的字段列表")
 
-# 优化的AI系统提示 - 修复按键功能问题
-SYSTEM_PROMPT = """你是专业的计算器功能设计大师。你的唯一任务是根据用户的功能需求，修改计算器按钮布局。
+# 修复后的AI系统提示 - 解决矛盾问题
+SYSTEM_PROMPT = """你是专业的计算器功能设计大师。你专注于按钮布局和功能设计，不处理外观样式。
 
-🎯 你的任务：
-1. **只输出`"buttons"`数组**：你的输出必须是一个JSON数组，只包含`buttons`。不要输出包含`theme`或`layout`的完整JSON对象。
-2. **绝对禁止修改样式**：不要在任何按钮对象中包含颜色、字体、背景等样式字段。
-3. **保持现有按钮**：不要删除或修改现有按钮的`id`或`gridPosition`，除非用户明确要求。只添加新功能按钮。
-4. **确保功能完整**：所有按钮必须有正确的`action`定义。
+🎯 你的核心任务：
+1. **输出完整的计算器配置JSON**：包含theme、layout和buttons的完整配置
+2. **功能专精**：只负责按钮功能逻辑，不修改颜色、背景图、字体等外观样式
+3. **继承保护**：严格保持用户未要求修改的所有配置不变
+4. **功能增强**：根据用户需求添加或修改按钮功能
 
 📐 **标准按键布局规则（必须遵守）**：
 ```
@@ -231,7 +234,7 @@ SYSTEM_PROMPT = """你是专业的计算器功能设计大师。你的唯一任�
 - 运算符位置固定：
   * ÷: row=1,col=3  ×: row=2,col=3  -: row=3,col=3  +: row=4,col=3  =: row=5,col=2
 
-🎨 **自适应大小功能（新增）**：
+🎨 **自适应大小功能**：
 - 对于长文本按钮（如"sin", "cos", "sqrt"等），可设置 `"adaptiveSize": true`
 - 大小模式选项：
   * `"sizeMode": "content"` - 根据文本内容调整大小
@@ -241,19 +244,50 @@ SYSTEM_PROMPT = """你是专业的计算器功能设计大师。你的唯一任�
   * `"minWidth": 数值` - 最小宽度
   * `"maxWidth": 数值` - 最大宽度
   * `"aspectRatio": 数值` - 宽高比（如1.5表示宽是高的1.5倍）
-- 内容边距：`"contentPadding": {"left": 8, "top": 4, "right": 8, "bottom": 4}`
 
-➡️ 你的输出格式必须是：
-[
-  { "id": "btn1", "label": "1", "action": {"type": "input", "value": "1"}, "gridPosition": {"row": 4, "column": 0}, "type": "primary" },
-  { "id": "btn_sin", "label": "sin", "action": {"type": "expression", "expression": "sin(x)"}, "gridPosition": {"row": 1, "column": 4}, "type": "special", "adaptiveSize": true, "sizeMode": "content", "minWidth": 45 }
-]
+🛡️ **图像生成工坊保护规则**：
+如果配置中包含图像生成工坊生成的内容，严格禁止修改以下字段：
+- theme.backgroundImage (APP背景图)
+- theme.backgroundGradient, theme.backgroundColor (APP背景相关)
+- 任何button的backgroundImage (按钮背景图)
+- theme.backgroundPattern, theme.patternColor (背景图案)
 
-⚠️ 严格禁止：
-- 输出`theme`对象。
-- 输出`layout`对象。
-- 在按钮中包含任何样式字段 (`backgroundColor`, `fontSize`, `backgroundImage`, etc.)。
-- 改变基础数字和运算符的位置。
+⚠️ **严格禁止的样式字段**：
+除非用户明确要求修改样式，否则不要在输出中包含以下字段：
+- 颜色字段：backgroundColor, textColor, primaryButtonColor等
+- 字体字段：fontSize, fontFamily等
+- 图像字段：backgroundImage, customIcon等（受工坊保护时完全禁止）
+- 效果字段：hasGlowEffect, shadowColor, elevation等
+
+➡️ **输出格式**：
+```json
+{
+  "id": "calc_xxx",
+  "name": "计算器名称",
+  "description": "描述",
+  "theme": {
+    "name": "主题名称",
+    // 只包含用户要求修改的样式字段，其他字段将从现有配置继承
+  },
+  "layout": {
+    "name": "布局名称", 
+    "rows": 6,
+    "columns": 7,
+    "buttons": [
+      {
+        "id": "btn_1",
+        "label": "1", 
+        "action": {"type": "input", "value": "1"},
+        "gridPosition": {"row": 4, "column": 0},
+        "type": "primary"
+      }
+      // ... 更多按钮
+    ]
+  },
+  "version": "1.0.0",
+  "createdAt": "ISO时间戳"
+}
+```
 
 🎯 **新功能按钮添加规则**：
 - 优先使用column=4,5,6的科学计算区域
@@ -261,7 +295,7 @@ SYSTEM_PROMPT = """你是专业的计算器功能设计大师。你的唯一任�
 - 如果需要替换现有按钮，选择最不常用的位置
 - 保持布局的逻辑性和易用性
 
-只关注功能，忽略所有外观。基于`current_config`中的按钮进行修改。
+专注功能设计，让图像生成工坊处理外观。基于`current_config`进行功能增强或修改。
 """
 
 # AI二次校验和修复系统提示 - 增强布局规则
@@ -352,6 +386,38 @@ async def switch_model(model_key: str):
 @app.post("/customize")
 async def customize_calculator(request: CustomizationRequest) -> CalculatorConfig:
     try:
+        # 🛡️ 图像生成工坊保护检查
+        protected_fields = []
+        workshop_protection_info = ""
+        
+        if request.current_config and request.has_image_workshop_content:
+            # 检测图像生成工坊生成的内容
+            theme = request.current_config.get('theme', {})
+            layout = request.current_config.get('layout', {})
+            
+            # 检查APP背景图
+            if theme.get('backgroundImage'):
+                protected_fields.extend(['theme.backgroundImage', 'theme.backgroundColor', 'theme.backgroundGradient'])
+            
+            # 检查背景图案
+            if theme.get('backgroundPattern'):
+                protected_fields.extend(['theme.backgroundPattern', 'theme.patternColor', 'theme.patternOpacity'])
+            
+            # 检查按钮背景图
+            for button in layout.get('buttons', []):
+                if button.get('backgroundImage'):
+                    protected_fields.append(f'button.{button.get("id", "unknown")}.backgroundImage')
+            
+            if protected_fields:
+                workshop_protection_info = f"""
+🛡️ 【图像生成工坊保护】
+检测到以下内容由图像生成工坊生成，AI设计师严格禁止修改：
+{chr(10).join([f"- {field}" for field in protected_fields])}
+
+⚠️ 如需修改这些图像内容，请使用图像生成工坊，或开启全新对话重新设计。
+AI设计师只能修改按钮功能逻辑，不能覆盖工坊生成的图像内容。
+"""
+        
         # 分析对话历史和当前配置，确定设计继承策略
         conversation_context = ""
         current_config_info = ""
@@ -414,6 +480,8 @@ async def customize_calculator(request: CustomizationRequest) -> CalculatorConfi
 
 {current_config_info}
 
+{workshop_protection_info}
+
 🎯 【用户当前需求】
 {request.user_input}
 
@@ -424,6 +492,7 @@ async def customize_calculator(request: CustomizationRequest) -> CalculatorConfi
 4. 如果用户只要求改颜色，就只改颜色
 5. 如果用户只要求添加某个功能，就只添加该功能
 6. 严格保持所有未提及的配置不变
+7. 🛡️ 严格遵守图像生成工坊保护规则，不得修改受保护的图像字段
 
 请严格按照用户需求生成配置JSON，不得超出要求范围。
 """
@@ -456,24 +525,55 @@ async def customize_calculator(request: CustomizationRequest) -> CalculatorConfi
         print(f"🔍 JSON前100字符: {config_json[:100]}")
         
         try:
-            # AI现在应该只返回一个按钮数组
-            buttons_list = json.loads(config_json)
-            if not isinstance(buttons_list, list):
-                raise HTTPException(status_code=500, detail="AI未能生成有效的按钮列表JSON")
+            # AI现在应该返回完整的配置JSON
+            ai_generated_config = json.loads(config_json)
+            if not isinstance(ai_generated_config, dict):
+                raise HTTPException(status_code=500, detail="AI未能生成有效的配置JSON")
             
-            # 如果没有当前配置，无法继续
-            if not request.current_config:
-                raise HTTPException(status_code=400, detail="无法在没有当前配置的情况下进行纯功能修改")
+            # 🛡️ 图像生成工坊保护：强制保持受保护的字段
+            if request.current_config and protected_fields:
+                final_config = copy.deepcopy(ai_generated_config)
+                current_theme = request.current_config.get('theme', {})
+                current_layout = request.current_config.get('layout', {})
+                
+                # 保护主题中的图像字段
+                if 'theme.backgroundImage' in protected_fields:
+                    final_config.setdefault('theme', {})['backgroundImage'] = current_theme.get('backgroundImage')
+                if 'theme.backgroundColor' in protected_fields:
+                    final_config.setdefault('theme', {})['backgroundColor'] = current_theme.get('backgroundColor')
+                if 'theme.backgroundGradient' in protected_fields:
+                    final_config.setdefault('theme', {})['backgroundGradient'] = current_theme.get('backgroundGradient')
+                if 'theme.backgroundPattern' in protected_fields:
+                    final_config.setdefault('theme', {})['backgroundPattern'] = current_theme.get('backgroundPattern')
+                    final_config.setdefault('theme', {})['patternColor'] = current_theme.get('patternColor')
+                    final_config.setdefault('theme', {})['patternOpacity'] = current_theme.get('patternOpacity')
+                
+                # 保护按钮中的背景图
+                current_buttons = {btn.get('id'): btn for btn in current_layout.get('buttons', [])}
+                final_buttons = final_config.get('layout', {}).get('buttons', [])
+                for button in final_buttons:
+                    button_id = button.get('id')
+                    if f'button.{button_id}.backgroundImage' in protected_fields:
+                        current_button = current_buttons.get(button_id, {})
+                        if current_button.get('backgroundImage'):
+                            button['backgroundImage'] = current_button['backgroundImage']
+            else:
+                # 如果没有当前配置，直接使用AI生成的配置
+                if not request.current_config:
+                    final_config = ai_generated_config
+                else:
+                    # 有当前配置但没有保护字段，进行智能合并
+                    final_config = copy.deepcopy(request.current_config)
+                    
+                    # 合并AI生成的主题更改
+                    if 'theme' in ai_generated_config:
+                        final_config.setdefault('theme', {}).update(ai_generated_config['theme'])
+                    
+                    # 合并AI生成的布局更改
+                    if 'layout' in ai_generated_config:
+                        final_config.setdefault('layout', {}).update(ai_generated_config['layout'])
             
-            # 🛡️ 绝对样式保护：构建最终配置
-            # 1. 深度复制现有配置作为基础
-            final_config = copy.deepcopy(request.current_config)
-            
-            # 2. 用AI生成的按钮列表替换布局中的按钮
-            final_config['layout']['buttons'] = buttons_list
-            
-            # 3. 运行修复和验证程序
-            #    我们传入完整的final_config，让fixer能够修复其中的新按钮布局
+            # 运行修复和验证程序
             fixed_config = await fix_calculator_config(
                 request.user_input, 
                 request.current_config, # 传入旧配置以供参考
