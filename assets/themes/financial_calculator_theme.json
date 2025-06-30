@@ -1,0 +1,328 @@
+{
+  "theme": {
+    "name": "金融计算器",
+    "backgroundColor": "#1a1a2e",
+    "backgroundGradient": ["#16213e", "#0f3460"],
+    "displayBackgroundColor": "#16213e",
+    "displayTextColor": "#ffffff",
+    "displayBorderRadius": 12,
+    "displayHeightRatio": 0.35,
+    "buttonBackgroundColor": "#16213e",
+    "buttonTextColor": "#ffffff",
+    "buttonBorderRadius": 8,
+    "buttonBorderWidth": 1,
+    "buttonBorderColor": "#533483",
+    "hasGlowEffect": true,
+    "shadowColor": "#533483"
+  },
+  "layout": {
+    "rows": 8,
+    "columns": 5,
+    "buttons": [
+      {
+        "text": "C",
+        "row": 0,
+        "column": 0,
+        "action": {"type": "clearAll"},
+        "backgroundColor": "#e74c3c",
+        "textColor": "#ffffff"
+      },
+      {
+        "text": "⌫",
+        "row": 0,
+        "column": 1,
+        "action": {"type": "backspace"},
+        "backgroundColor": "#e67e22",
+        "textColor": "#ffffff"
+      },
+      {
+        "text": "±",
+        "row": 0,
+        "column": 2,
+        "action": {"type": "negate"},
+        "backgroundColor": "#f39c12",
+        "textColor": "#ffffff"
+      },
+      {
+        "text": "÷",
+        "row": 0,
+        "column": 3,
+        "action": {"type": "operator", "value": "/"},
+        "backgroundColor": "#9b59b6",
+        "textColor": "#ffffff"
+      },
+      {
+        "text": "×",
+        "row": 0,
+        "column": 4,
+        "action": {"type": "operator", "value": "*"},
+        "backgroundColor": "#9b59b6",
+        "textColor": "#ffffff"
+      },
+      
+      {
+        "text": "7",
+        "row": 1,
+        "column": 0,
+        "action": {"type": "input", "value": "7"}
+      },
+      {
+        "text": "8",
+        "row": 1,
+        "column": 1,
+        "action": {"type": "input", "value": "8"}
+      },
+      {
+        "text": "9",
+        "row": 1,
+        "column": 2,
+        "action": {"type": "input", "value": "9"}
+      },
+      {
+        "text": "-",
+        "row": 1,
+        "column": 3,
+        "action": {"type": "operator", "value": "-"},
+        "backgroundColor": "#9b59b6",
+        "textColor": "#ffffff"
+      },
+      {
+        "text": "复利",
+        "row": 1,
+        "column": 4,
+        "action": {"type": "multiParamFunction", "value": "复利计算"},
+        "backgroundColor": "#27ae60",
+        "textColor": "#ffffff",
+        "fontSize": 12
+      },
+      
+      {
+        "text": "4",
+        "row": 2,
+        "column": 0,
+        "action": {"type": "input", "value": "4"}
+      },
+      {
+        "text": "5",
+        "row": 2,
+        "column": 1,
+        "action": {"type": "input", "value": "5"}
+      },
+      {
+        "text": "6",
+        "row": 2,
+        "column": 2,
+        "action": {"type": "input", "value": "6"}
+      },
+      {
+        "text": "+",
+        "row": 2,
+        "column": 3,
+        "action": {"type": "operator", "value": "+"},
+        "backgroundColor": "#9b59b6",
+        "textColor": "#ffffff"
+      },
+      {
+        "text": "贷款",
+        "row": 2,
+        "column": 4,
+        "action": {"type": "multiParamFunction", "value": "贷款计算"},
+        "backgroundColor": "#e74c3c",
+        "textColor": "#ffffff",
+        "fontSize": 12
+      },
+      
+      {
+        "text": "1",
+        "row": 3,
+        "column": 0,
+        "action": {"type": "input", "value": "1"}
+      },
+      {
+        "text": "2",
+        "row": 3,
+        "column": 1,
+        "action": {"type": "input", "value": "2"}
+      },
+      {
+        "text": "3",
+        "row": 3,
+        "column": 2,
+        "action": {"type": "input", "value": "3"}
+      },
+      {
+        "text": "=",
+        "row": 3,
+        "column": 3,
+        "rowSpan": 2,
+        "action": {"type": "equals"},
+        "backgroundColor": "#3498db",
+        "textColor": "#ffffff"
+      },
+      {
+        "text": "投资",
+        "row": 3,
+        "column": 4,
+        "action": {"type": "multiParamFunction", "value": "投资回报"},
+        "backgroundColor": "#f39c12",
+        "textColor": "#ffffff",
+        "fontSize": 12
+      },
+      
+      {
+        "text": "0",
+        "row": 4,
+        "column": 0,
+        "columnSpan": 2,
+        "action": {"type": "input", "value": "0"}
+      },
+      {
+        "text": ".",
+        "row": 4,
+        "column": 2,
+        "action": {"type": "decimal"}
+      },
+      {
+        "text": "抵押",
+        "row": 4,
+        "column": 4,
+        "action": {"type": "multiParamFunction", "value": "抵押贷款"},
+        "backgroundColor": "#8e44ad",
+        "textColor": "#ffffff",
+        "fontSize": 12
+      },
+      
+      {
+        "text": ",",
+        "row": 5,
+        "column": 0,
+        "action": {"type": "parameterSeparator"},
+        "backgroundColor": "#34495e",
+        "textColor": "#ffffff"
+      },
+      {
+        "text": "汇率",
+        "row": 5,
+        "column": 1,
+        "action": {"type": "multiParamFunction", "value": "汇率转换"},
+        "backgroundColor": "#16a085",
+        "textColor": "#ffffff",
+        "fontSize": 12
+      },
+      {
+        "text": "年金",
+        "row": 5,
+        "column": 2,
+        "action": {"type": "multiParamFunction", "value": "年金计算"},
+        "backgroundColor": "#d35400",
+        "textColor": "#ffffff",
+        "fontSize": 12
+      },
+      {
+        "text": "通胀",
+        "row": 5,
+        "column": 3,
+        "action": {"type": "multiParamFunction", "value": "通胀调整"},
+        "backgroundColor": "#c0392b",
+        "textColor": "#ffffff",
+        "fontSize": 12
+      },
+      {
+        "text": "执行",
+        "row": 5,
+        "column": 4,
+        "action": {"type": "functionExecute"},
+        "backgroundColor": "#2ecc71",
+        "textColor": "#ffffff",
+        "fontSize": 12
+      },
+      
+      {
+        "text": "NPV",
+        "row": 6,
+        "column": 0,
+        "action": {"type": "multiParamFunction", "value": "净现值"},
+        "backgroundColor": "#2980b9",
+        "textColor": "#ffffff",
+        "fontSize": 11
+      },
+      {
+        "text": "IRR",
+        "row": 6,
+        "column": 1,
+        "action": {"type": "multiParamFunction", "value": "内部收益率"},
+        "backgroundColor": "#8e44ad",
+        "textColor": "#ffffff",
+        "fontSize": 11
+      },
+      {
+        "text": "债券",
+        "row": 6,
+        "column": 2,
+        "action": {"type": "multiParamFunction", "value": "债券价格"},
+        "backgroundColor": "#e67e22",
+        "textColor": "#ffffff",
+        "fontSize": 12
+      },
+      {
+        "text": "期权",
+        "row": 6,
+        "column": 3,
+        "action": {"type": "multiParamFunction", "value": "期权价值"},
+        "backgroundColor": "#95a5a6",
+        "textColor": "#ffffff",
+        "fontSize": 12
+      },
+      {
+        "text": "清除",
+        "row": 6,
+        "column": 4,
+        "action": {"type": "clear"},
+        "backgroundColor": "#7f8c8d",
+        "textColor": "#ffffff",
+        "fontSize": 12
+      },
+      
+      {
+        "text": "√",
+        "row": 7,
+        "column": 0,
+        "action": {"type": "expression", "expression": "sqrt(x)"},
+        "backgroundColor": "#34495e",
+        "textColor": "#ffffff"
+      },
+      {
+        "text": "x²",
+        "row": 7,
+        "column": 1,
+        "action": {"type": "expression", "expression": "x*x"},
+        "backgroundColor": "#34495e",
+        "textColor": "#ffffff"
+      },
+      {
+        "text": "1/x",
+        "row": 7,
+        "column": 2,
+        "action": {"type": "expression", "expression": "1/x"},
+        "backgroundColor": "#34495e",
+        "textColor": "#ffffff"
+      },
+      {
+        "text": "%",
+        "row": 7,
+        "column": 3,
+        "action": {"type": "expression", "expression": "x*0.01"},
+        "backgroundColor": "#34495e",
+        "textColor": "#ffffff"
+      },
+      {
+        "text": "π",
+        "row": 7,
+        "column": 4,
+        "action": {"type": "input", "value": "3.14159"},
+        "backgroundColor": "#34495e",
+        "textColor": "#ffffff"
+      }
+    ]
+  }
+} 

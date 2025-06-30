@@ -66,6 +66,9 @@ class CalculatorScreen extends StatelessWidget {
           child: CalculatorDisplay(
             state: provider.state,
             theme: provider.config.theme,
+            onParameterInput: (paramId) {
+              _handleParameterInput(context, provider, paramId);
+            },
           ),
         ),
         
@@ -337,6 +340,25 @@ class CalculatorScreen extends StatelessWidget {
     } else {
       return Colors.grey;
     }
+  }
+
+  /// 处理参数输入
+  void _handleParameterInput(BuildContext context, CalculatorProvider provider, String paramId) {
+    // 显示参数输入对话框
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) => AlertDialog(
+        title: Text('参数输入'),
+        content: Text('请使用计算器按钮输入参数值，然后按逗号(,)分隔参数，最后按等号(=)执行计算。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text('知道了'),
+          ),
+        ],
+      ),
+    );
   }
 
   /// 构建紧凑的图标按钮

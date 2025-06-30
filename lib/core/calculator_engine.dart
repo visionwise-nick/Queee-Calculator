@@ -971,7 +971,7 @@ class CalculatorEngine {
       
       case '投资回报':
       case 'roi':
-      case 'investmentreturn': // AI生成的英文名称
+      case 'investmentreturn':
         if (params.length == 2) {
           // 投资收益、投资成本
           double profit = params[0];
@@ -980,6 +980,157 @@ class CalculatorEngine {
           return (profit / cost) * 100; // 返回百分比
         }
         throw Exception('投资回报率需要2个参数：投资收益、投资成本');
+      
+      // 新增金融计算功能
+      case '抵押贷款':
+      case 'mortgage':
+        if (params.length == 4) {
+          // 房价、首付比例、贷款年数、年利率
+          double housePrice = params[0];
+          double downPaymentRate = params[1] / 100; // 转换为小数
+          double years = params[2];
+          double annualRate = params[3] / 100; // 转换为小数
+          
+          double downPayment = housePrice * downPaymentRate;
+          double loanAmount = housePrice - downPayment;
+          double monthlyRate = annualRate / 12;
+          double months = years * 12;
+          
+          if (monthlyRate == 0) {
+            return loanAmount / months; // 无利息情况
+          }
+          
+          // 等额本息月供计算公式
+          return loanAmount * (monthlyRate * math.pow(1 + monthlyRate, months)) / 
+                 (math.pow(1 + monthlyRate, months) - 1);
+        }
+        throw Exception('抵押贷款计算需要4个参数：房价、首付比例(%)、贷款年数、年利率(%)');
+      
+      case '年金计算':
+      case 'annuity':
+        if (params.length == 3) {
+          // 每期支付、年利率、期数
+          double payment = params[0];
+          double annualRate = params[1] / 100; // 转换为小数
+          double periods = params[2];
+          
+          if (annualRate == 0) {
+            return payment * periods; // 无利息情况
+          }
+          
+          // 年金现值计算公式
+          return payment * ((1 - math.pow(1 + annualRate, -periods)) / annualRate);
+        }
+        throw Exception('年金计算需要3个参数：每期支付、年利率(%)、期数');
+      
+      case '通胀调整':
+      case 'inflation':
+        if (params.length == 3) {
+          // 当前金额、通胀率、年数
+          double currentAmount = params[0];
+          double inflationRate = params[1] / 100; // 转换为小数
+          double years = params[2];
+          
+          // 通胀调整后的金额 = 当前金额 * (1 + 通胀率)^年数
+          return currentAmount * math.pow(1 + inflationRate, years);
+        }
+        throw Exception('通胀调整需要3个参数：当前金额、通胀率(%)、年数');
+      
+      case '净现值':
+      case 'npv':
+        if (params.length >= 2) {
+          // 第一个参数是折现率，后续参数是现金流
+          double discountRate = params[0] / 100; // 转换为小数
+          double npv = 0;
+          
+          for (int i = 1; i < params.length; i++) {
+            npv += params[i] / math.pow(1 + discountRate, i).toDouble();
+          }
+          
+          return npv;
+        }
+        throw Exception('净现值计算至少需要2个参数：折现率(%)、现金流...');
+      
+      case '内部收益率':
+      case 'irr':
+        if (params.length >= 2) {
+          // 使用牛顿迭代法计算IRR（简化版本）
+          double initialGuess = 0.1; // 初始猜测值10%
+          double tolerance = 0.0001;
+          int maxIterations = 100;
+          
+          for (int iter = 0; iter < maxIterations; iter++) {
+            double npv = 0;
+            double derivative = 0;
+            
+            for (int i = 0; i < params.length; i++) {
+              double factor = math.pow(1 + initialGuess, i).toDouble();
+              npv += params[i] / factor;
+              if (i > 0) {
+                derivative -= i * params[i] / (factor * (1 + initialGuess));
+              }
+            }
+            
+            if (npv.abs() < tolerance) {
+              return initialGuess * 100; // 返回百分比
+            }
+            
+            if (derivative.abs() < tolerance) {
+              break; // 避免除零
+            }
+            
+            initialGuess = initialGuess - npv / derivative;
+          }
+          
+          return initialGuess * 100; // 返回百分比
+        }
+        throw Exception('内部收益率计算至少需要2个现金流参数');
+      
+      case '债券价格':
+      case 'bond':
+        if (params.length == 4) {
+          // 面值、票面利率、市场利率、年数
+          double faceValue = params[0];
+          double couponRate = params[1] / 100; // 转换为小数
+          double marketRate = params[2] / 100; // 转换为小数
+          double years = params[3];
+          
+          double couponPayment = faceValue * couponRate;
+          double presentValueOfCoupons = 0;
+          
+          // 计算票息的现值
+          for (int i = 1; i <= years; i++) {
+            presentValueOfCoupons += couponPayment / math.pow(1 + marketRate, i).toDouble();
+          }
+          
+          // 计算面值的现值
+          double presentValueOfFace = faceValue / math.pow(1 + marketRate, years).toDouble();
+          
+          return presentValueOfCoupons + presentValueOfFace;
+        }
+        throw Exception('债券价格计算需要4个参数：面值、票面利率(%)、市场利率(%)、年数');
+      
+      case '期权价值':
+      case 'option':
+        if (params.length == 5) {
+          // 使用简化的Black-Scholes公式
+          // 标的价格、执行价格、无风险利率、波动率、到期时间
+          double stockPrice = params[0];
+          double strikePrice = params[1];
+          double riskFreeRate = params[2] / 100; // 转换为小数
+          double volatility = params[3] / 100; // 转换为小数
+          double timeToExpiry = params[4];
+          
+          // 简化计算（实际Black-Scholes需要正态分布函数）
+          double d1 = (math.log(stockPrice / strikePrice) + 
+                      (riskFreeRate + 0.5 * volatility * volatility) * timeToExpiry) /
+                     (volatility * math.sqrt(timeToExpiry));
+          
+          // 近似计算看涨期权价值
+          double callValue = stockPrice - strikePrice * math.exp(-riskFreeRate * timeToExpiry);
+          return math.max(0, callValue).toDouble();
+        }
+        throw Exception('期权价值计算需要5个参数：标的价格、执行价格、无风险利率(%)、波动率(%)、到期时间');
       
       default:
         throw Exception('未知的多参数函数：$functionName');
@@ -1058,6 +1209,34 @@ class CalculatorEngine {
       case 'roi':
       case 'investmentreturn':
         return '投资回报率 收益${params[0]}，成本${params[1]}';
+      
+      case '抵押贷款':
+      case 'mortgage':
+        return '抵押贷款 房价${params[0]}，首付比例${params[1]}%，贷款年数${params[2]}，年利率${params[3]}%';
+      
+      case '年金计算':
+      case 'annuity':
+        return '年金计算 每期支付${params[0]}，年利率${params[1]}%，期数${params[2]}';
+      
+      case '通胀调整':
+      case 'inflation':
+        return '通胀调整 当前金额${params[0]}，通胀率${params[1]}%，年数${params[2]}';
+      
+      case '净现值':
+      case 'npv':
+        return '净现值计算 折现率${params[0]}%，现金流...';
+      
+      case '内部收益率':
+      case 'irr':
+        return '内部收益率计算 现金流...';
+      
+      case '债券价格':
+      case 'bond':
+        return '债券价格计算 面值${params[0]}，票面利率${params[1]}%，市场利率${params[2]}%，年数${params[3]}';
+      
+      case '期权价值':
+      case 'option':
+        return '期权价值计算 标的价格${params[0]}，执行价格${params[1]}，无风险利率${params[2]}%，波动率${params[3]}%，到期时间${params[4]}';
       
       default:
         return '多参数函数 $functionName(${params.join(', ')})';

@@ -204,35 +204,37 @@ SYSTEM_PROMPT = """你是专业的计算器功能设计大师。你专注于按�
 3. **继承保护**：严格保持用户未要求修改的所有配置不变
 4. **功能增强**：根据用户需求添加或修改按钮功能
 
-📐 **标准按键布局规则（必须遵守）**：
+📐 **灵活布局规则（优化移动端体验）**：
 ```
-标准6行×4列布局：
-行0: [显示区域，不放按钮]
-行1: [AC/C] [±] [%] [÷]     - 功能行
-行2: [7] [8] [9] [×]         - 数字+运算符
-行3: [4] [5] [6] [-]         - 数字+运算符  
-行4: [1] [2] [3] [+]         - 数字+运算符
-行5: [0] [.] [=] [新功能]     - 底行
+基础布局（4-7列，6-10行）：
+- 核心数字区：数字0-9保持传统3×4网格位置
+- 运算符区：+,-,×,÷,=在右侧列
+- 功能扩展区：可灵活扩展到更多行和列
+- 移动端优化：充分利用纵向空间，减少横向滑动
 
-科学计算器扩展（6行×7列）：
-列4-6用于科学函数：sin, cos, tan, log, ln, sqrt, x², x³, x^y等
+布局扩展策略：
+1. 优先纵向扩展：增加第6、7、8、9行放置更多功能按钮
+2. 适度横向扩展：在第4、5、6列放置科学函数
+3. 空间最大化：手机端下方空间充分利用，避免空白区域
 ```
 
-🔧 **按钮类型和位置约束**：
-- **数字按钮(0-9)**：必须保持在传统位置，type="primary"
-- **基础运算符(+,-,×,÷,=)**：必须在右列，type="operator"  
-- **功能按钮(AC,±,%)**：通常在顶行，type="secondary"
-- **科学函数**：放在右侧扩展列，type="special"
+🔧 **按钮类型和位置建议**：
+- **数字按钮(0-9)**：保持传统3×4网格位置，type="primary"
+- **基础运算符(+,-,×,÷,=)**：右侧列，type="operator"  
+- **功能按钮(AC,±,%)**：顶行或功能区，type="secondary"
+- **科学函数**：扩展列或扩展行，type="special"
+- **新增功能**：优先使用第6-10行，充分利用纵向空间
 
-🚨 **gridPosition规则**：
-- row: 0-5 (第0行是显示区)
-- column: 0-6 (基础0-3，科学4-6)
-- 数字按钮位置固定：
+🚨 **gridPosition建议**：
+- row: 1-10 (可灵活扩展到10行以充分利用移动端空间)
+- column: 0-6 (基础0-3，扩展4-6)
+- 核心数字位置（建议保持）：
   * 0: row=5,col=0  1: row=4,col=0  2: row=4,col=1  3: row=4,col=2
   * 4: row=3,col=0  5: row=3,col=1  6: row=3,col=2
   * 7: row=2,col=0  8: row=2,col=1  9: row=2,col=2
-- 运算符位置固定：
+- 运算符位置（建议保持）：
   * ÷: row=1,col=3  ×: row=2,col=3  -: row=3,col=3  +: row=4,col=3  =: row=5,col=2
+- 功能扩展区：row=6-10可自由布局，充分利用移动端下方空间
 
 🎨 **自适应大小功能**：
 - 对于长文本按钮（如"sin", "cos", "sqrt"等），可设置 `"adaptiveSize": true`
@@ -253,11 +255,27 @@ SYSTEM_PROMPT = """你是专业的计算器功能设计大师。你专注于按�
 - theme.backgroundPattern, theme.patternColor (背景图案)
 
 ⚠️ **严格禁止的样式字段**：
-除非用户明确要求修改样式，否则不要在输出中包含以下字段：
-- 颜色字段：backgroundColor, textColor, primaryButtonColor等
-- 字体字段：fontSize, fontFamily等
-- 图像字段：backgroundImage, customIcon等（受工坊保护时完全禁止）
-- 效果字段：hasGlowEffect, shadowColor, elevation等
+除非用户明确要求修改样式，否则绝对不要在输出JSON中包含以下字段：
+
+🚫 **主题样式字段（禁止输出）**：
+- backgroundColor, backgroundGradient, backgroundImage
+- displayBackgroundColor, displayBackgroundGradient
+- primaryButtonColor, primaryButtonGradient, primaryButtonTextColor
+- secondaryButtonColor, secondaryButtonGradient, secondaryButtonTextColor  
+- operatorButtonColor, operatorButtonGradient, operatorButtonTextColor
+- fontSize, fontFamily, hasGlowEffect, shadowColor
+- buttonElevation, buttonShadowColors, backgroundPattern, patternColor
+
+🚫 **按钮样式字段（禁止输出）**：
+- backgroundColor, textColor, backgroundImage, customIcon
+- fontSize, borderRadius, elevation, shadowColor
+- gradientColors, backgroundPattern, patternColor, borderColor
+- borderWidth, opacity, rotation, scale
+
+💡 **正确做法**：
+- 只输出功能相关字段：id, label, action, gridPosition, type
+- 只输出布局相关字段：rows, columns, buttons
+- 样式继承：所有样式从current_config自动继承，无需重复输出
 
 ➡️ **输出格式**：
 ```json
@@ -266,13 +284,13 @@ SYSTEM_PROMPT = """你是专业的计算器功能设计大师。你专注于按�
   "name": "计算器名称",
   "description": "描述",
   "theme": {
-    "name": "主题名称",
-    // 只包含用户要求修改的样式字段，其他字段将从现有配置继承
+    "name": "主题名称"
+    // 🚫 不要输出任何样式字段！所有样式从current_config继承
   },
   "layout": {
     "name": "布局名称", 
-    "rows": 6,
-    "columns": 7,
+    "rows": 8,
+    "columns": 5,
     "buttons": [
       {
         "id": "btn_1",
@@ -280,8 +298,9 @@ SYSTEM_PROMPT = """你是专业的计算器功能设计大师。你专注于按�
         "action": {"type": "input", "value": "1"},
         "gridPosition": {"row": 4, "column": 0},
         "type": "primary"
+        // 🚫 不要输出backgroundColor, textColor等样式字段！
       }
-      // ... 更多按钮
+      // ... 更多按钮（纵向扩展到第6-10行充分利用移动端空间）
     ]
   },
   "version": "1.0.0",
@@ -314,17 +333,18 @@ VALIDATION_PROMPT = """你是配置修复专家。检查并修复生成的计算
 - gridPosition格式：{"row": 数字, "column": 数字}
 - action格式：{"type": "类型", "value": "值"} 或 {"type": "expression", "expression": "表达式"}
 
-📐 **强制布局规则**：
+📐 **灵活布局规则**：
 ```
-标准布局（必须遵守）：
+基础布局（可扩展到10行）：
 行1: [AC] [±] [%] [÷]      - 功能行
 行2: [7] [8] [9] [×]       - 数字+运算符
 行3: [4] [5] [6] [-]       - 数字+运算符  
 行4: [1] [2] [3] [+]       - 数字+运算符
-行5: [0] [.] [=] [其他]     - 底行
+行5: [0] [.] [=] [扩展]     - 底行
+行6-10: [自由扩展区域]      - 充分利用移动端纵向空间
 ```
 
-🔧 **固定位置约束**：
+🔧 **位置建议**：
 - 数字0: row=5,col=0 | 数字1: row=4,col=0 | 数字2: row=4,col=1 | 数字3: row=4,col=2
 - 数字4: row=3,col=0 | 数字5: row=3,col=1 | 数字6: row=3,col=2
 - 数字7: row=2,col=0 | 数字8: row=2,col=1 | 数字9: row=2,col=2
@@ -533,6 +553,10 @@ AI设计师只能修改按钮功能逻辑，不能覆盖工坊生成的图像内
             # 🧹 清理AI生成的格式问题（如渐变色格式）
             ai_generated_config = clean_gradient_format(ai_generated_config)
             
+            # 🛡️ 图像生成工坊保护：直接移除AI输出中的受保护字段
+            if request.has_image_workshop_content:
+                ai_generated_config = remove_protected_fields_from_ai_output(ai_generated_config, protected_fields)
+            
             # 🛡️ 图像生成工坊保护：强制保持受保护的字段
             if request.current_config and protected_fields:
                 final_config = copy.deepcopy(ai_generated_config)
@@ -611,6 +635,57 @@ AI设计师只能修改按钮功能逻辑，不能覆盖工坊生成的图像内
     except Exception as e:
         print(f"修复计算器配置时出错: {str(e)}")
         raise HTTPException(status_code=500, detail=f"修复计算器配置失败: {str(e)}")
+
+def remove_protected_fields_from_ai_output(config_dict: dict, protected_fields: list) -> dict:
+    """
+    直接从AI输出中移除受保护的字段，确保AI设计师无法影响图像生成工坊的内容
+    """
+    if not protected_fields:
+        return config_dict
+    
+    # 深拷贝配置以避免修改原始数据
+    cleaned_config = copy.deepcopy(config_dict)
+    
+    print(f"🛡️ 开始清理AI输出中的受保护字段: {protected_fields}")
+    
+    # 清理主题中的受保护字段
+    theme_protected_fields = [
+        'backgroundColor', 'backgroundGradient', 'backgroundImage',
+        'backgroundPattern', 'patternColor', 'patternOpacity',
+        'displayBackgroundColor', 'displayBackgroundGradient',
+        'primaryButtonColor', 'primaryButtonGradient', 'primaryButtonTextColor',
+        'secondaryButtonColor', 'secondaryButtonGradient', 'secondaryButtonTextColor',
+        'operatorButtonColor', 'operatorButtonGradient', 'operatorButtonTextColor',
+        'fontSize', 'fontFamily', 'hasGlowEffect', 'shadowColor',
+        'buttonElevation', 'buttonShadowColors'
+    ]
+    
+    if 'theme' in cleaned_config:
+        for field in theme_protected_fields:
+            if f'theme.{field}' in protected_fields or 'theme.*' in protected_fields:
+                if field in cleaned_config['theme']:
+                    print(f"🧹 移除AI输出中的主题字段: theme.{field}")
+                    del cleaned_config['theme'][field]
+    
+    # 清理按钮中的受保护字段
+    button_protected_fields = [
+        'backgroundColor', 'textColor', 'backgroundImage', 'customIcon',
+        'fontSize', 'borderRadius', 'elevation', 'shadowColor',
+        'gradientColors', 'backgroundPattern', 'patternColor'
+    ]
+    
+    if 'layout' in cleaned_config and 'buttons' in cleaned_config['layout']:
+        for button in cleaned_config['layout']['buttons']:
+            button_id = button.get('id', 'unknown')
+            for field in button_protected_fields:
+                field_path = f'button.{button_id}.{field}'
+                if field_path in protected_fields or f'button.*.{field}' in protected_fields:
+                    if field in button:
+                        print(f"🧹 移除AI输出中的按钮字段: {field_path}")
+                        del button[field]
+    
+    print(f"🛡️ 完成清理受保护字段")
+    return cleaned_config
 
 def clean_gradient_format(config_dict: dict) -> dict:
     """清理AI生成的渐变色格式，将对象格式转换为数组格式"""
