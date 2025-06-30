@@ -34,7 +34,7 @@ def initialize_genai():
     if _genai_initialized:
         return
         
-    api_key = os.getenv("GEMINI_API_KEY")
+    api_key = os.getenv("GEMINI_API_KEY", "AIzaSyDIfDrVDcLEi-RPS33mO0E_aaqnxBgu1U4")
     if not api_key:
         raise ValueError("未找到 GEMINI_API_KEY 环境变量")
     

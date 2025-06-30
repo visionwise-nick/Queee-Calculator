@@ -86,7 +86,7 @@ elif [ "$DEPLOY_PLATFORM" = "gcp" ]; then
         --platform managed \
         --region $REGION \
         --allow-unauthenticated \
-        --set-env-vars GEMINI_API_KEY="${GEMINI_API_KEY:-}",ENVIRONMENT=production \
+        --set-env-vars GEMINI_API_KEY="AIzaSyDIfDrVDcLEi-RPS33mO0E_aaqnxBgu1U4",ENVIRONMENT=production \
         --quiet
     
     # 获取应用URL
