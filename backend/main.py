@@ -1330,20 +1330,13 @@ async def generate_text_image(request: TextImageRequest):
         # 获取对应风格的效果描述，默认为现代风格
         style_effect = style_effects.get(request.style, style_effects["modern"])
         
-        # 🎨 智能提示词：保留用户创意需求，避免系统描述性文字
+        # 🎨 精准创意指令：完全按照用户描述构造，零文字干扰
         if request.prompt and request.prompt.strip():
-            # 有用户自定义需求时，融合创意需求和风格效果
-            detailed_prompt = f"""Create the text '{request.text}' using this creative concept: {request.prompt}
-
-Apply {style_effect} lighting effects.
-Background: {request.background}
-High quality digital art for button interface."""
+            # 完全按照用户创意描述构造数字/字符
+            detailed_prompt = f"""Create number "{request.text}" where {request.prompt}. Apply {style_effect}. Background: {request.background}. CRITICAL: No text labels, no words, no descriptions in image - only the visual number/character made as described."""
         else:
-            # 没有特殊需求时，使用标准光影效果
-            detailed_prompt = f"""Create the text '{request.text}' with {style_effect}.
-
-Background: {request.background}
-High quality digital art for button interface."""
+            # 标准光影数字/字符，无文字干扰
+            detailed_prompt = f"""Create number "{request.text}" with {style_effect}. Background: {request.background}. CRITICAL: No text labels, no words, no descriptions in image - only the visual number/character."""
 
         print(f"🚀 使用提示词: {detailed_prompt}")
 
