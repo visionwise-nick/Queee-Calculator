@@ -195,14 +195,13 @@ class CustomizationRequest(BaseModel):
     has_image_workshop_content: Optional[bool] = Field(default=False, description="是否有图像生成工坊生成的内容")
     workshop_protected_fields: Optional[List[str]] = Field(default=[], description="受图像生成工坊保护的字段列表")
 
-# 修复后的AI系统提示 - 解决矛盾问题
-SYSTEM_PROMPT = """你是专业的计算器功能设计大师。你专注于按钮布局和功能设计，不处理外观样式。
+# 修复后的AI系统提示 - 纯功能设计
+SYSTEM_PROMPT = """你是专业的计算器功能设计大师。你只负责按钮布局和功能逻辑设计。
 
 🎯 你的核心任务：
-1. **输出完整的计算器配置JSON**：包含theme、layout和buttons的完整配置
-2. **功能专精**：只负责按钮功能逻辑，不修改颜色、背景图、字体等外观样式
-3. **继承保护**：严格保持用户未要求修改的所有配置不变
-4. **功能增强**：根据用户需求添加或修改按钮功能
+1. **输出完整的计算器配置JSON**：包含theme、layout和buttons的功能配置
+2. **功能专精**：只负责按钮功能逻辑和布局结构
+3. **功能增强**：根据用户需求添加或修改按钮功能
 
 📐 **灵活布局规则（优化移动端体验）**：
 ```
@@ -247,35 +246,26 @@ SYSTEM_PROMPT = """你是专业的计算器功能设计大师。你专注于按�
   * `"maxWidth": 数值` - 最大宽度
   * `"aspectRatio": 数值` - 宽高比（如1.5表示宽是高的1.5倍）
 
-🛡️ **图像生成工坊保护规则**：
-如果配置中包含图像生成工坊生成的内容，严格禁止修改以下字段：
-- theme.backgroundImage (APP背景图)
-- theme.backgroundGradient, theme.backgroundColor (APP背景相关)
-- 任何button的backgroundImage (按钮背景图)
-- theme.backgroundPattern, theme.patternColor (背景图案)
 
-⚠️ **严格禁止的样式字段**：
-除非用户明确要求修改样式，否则绝对不要在输出JSON中包含以下字段：
 
-🚫 **主题样式字段（禁止输出）**：
-- backgroundColor, backgroundGradient, backgroundImage
-- displayBackgroundColor, displayBackgroundGradient
-- primaryButtonColor, primaryButtonGradient, primaryButtonTextColor
-- secondaryButtonColor, secondaryButtonGradient, secondaryButtonTextColor  
-- operatorButtonColor, operatorButtonGradient, operatorButtonTextColor
-- fontSize, fontFamily, hasGlowEffect, shadowColor
-- buttonElevation, buttonShadowColors, backgroundPattern, patternColor
+💡 **你只能输出的字段**：
+🎯 **主题字段（仅限功能）**：
+- name: 主题名称
 
-🚫 **按钮样式字段（禁止输出）**：
-- backgroundColor, textColor, backgroundImage, customIcon
-- fontSize, borderRadius, elevation, shadowColor
-- gradientColors, backgroundPattern, patternColor, borderColor
-- borderWidth, opacity, rotation, scale
+🎯 **按钮字段（仅限功能）**：
+- id: 按钮唯一标识
+- label: 按钮显示文本
+- action: 按钮功能定义 {"type": "类型", "value": "值"} 或 {"type": "expression", "expression": "表达式"}
+- gridPosition: 按钮位置 {"row": 数字, "column": 数字}
+- type: 按钮类型 ("primary", "secondary", "operator", "special")
 
-💡 **正确做法**：
-- 只输出功能相关字段：id, label, action, gridPosition, type
-- 只输出布局相关字段：rows, columns, buttons
-- 样式继承：所有样式从current_config自动继承，无需重复输出
+🎯 **布局字段（仅限结构）**：
+- name: 布局名称
+- rows: 行数
+- columns: 列数  
+- buttons: 按钮数组
+
+⚠️ **重要**：你不知道也不能输出任何颜色、字体、图像、效果相关的字段。专注于功能设计即可。
 
 ➡️ **输出格式**：
 ```json
@@ -285,7 +275,6 @@ SYSTEM_PROMPT = """你是专业的计算器功能设计大师。你专注于按�
   "description": "描述",
   "theme": {
     "name": "主题名称"
-    // 🚫 不要输出任何样式字段！所有样式从current_config继承
   },
   "layout": {
     "name": "布局名称", 
@@ -298,9 +287,7 @@ SYSTEM_PROMPT = """你是专业的计算器功能设计大师。你专注于按�
         "action": {"type": "input", "value": "1"},
         "gridPosition": {"row": 4, "column": 0},
         "type": "primary"
-        // 🚫 不要输出backgroundColor, textColor等样式字段！
       }
-      // ... 更多按钮（纵向扩展到第6-10行充分利用移动端空间）
     ]
   },
   "version": "1.0.0",
@@ -314,7 +301,7 @@ SYSTEM_PROMPT = """你是专业的计算器功能设计大师。你专注于按�
 - 如果需要替换现有按钮，选择最不常用的位置
 - 保持布局的逻辑性和易用性
 
-专注功能设计，让图像生成工坊处理外观。基于`current_config`进行功能增强或修改。
+专注功能设计。基于用户需求进行功能增强或修改。
 """
 
 # AI二次校验和修复系统提示 - 增强布局规则
