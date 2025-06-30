@@ -78,8 +78,8 @@ class _CalculationHistoryDialogState extends State<CalculationHistoryDialog>
           position: _slideAnimation,
           child: Container(
             constraints: const BoxConstraints(
-              maxWidth: 500,
-              maxHeight: 600,
+              maxWidth: 800,
+              maxHeight: 700,
             ),
             margin: const EdgeInsets.all(20),
             decoration: BoxDecoration(
@@ -164,29 +164,25 @@ class _CalculationHistoryDialogState extends State<CalculationHistoryDialog>
                       children: [
                         // 说明文字
                         Container(
-                          padding: const EdgeInsets.all(16),
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                           decoration: BoxDecoration(
                             color: Colors.white.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: Colors.orange.withValues(alpha: 0.3),
-                              width: 1,
-                            ),
+                            borderRadius: BorderRadius.circular(8),
                           ),
                           child: Row(
                             children: [
                               Icon(
                                 Icons.info_outline,
                                 color: Colors.orange,
-                                size: 20,
+                                size: 18,
                               ),
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
-                                  '每一步运算的详细过程，帮助理解计算逻辑',
+                                  '每一步运算的详细过程，点击复制按钮可复制单个结果',
                                   style: TextStyle(
                                     color: Colors.white70,
-                                    fontSize: 13,
+                                    fontSize: 12,
                                   ),
                                 ),
                               ),
@@ -222,20 +218,20 @@ class _CalculationHistoryDialogState extends State<CalculationHistoryDialog>
                         child: ElevatedButton.icon(
                           onPressed: widget.steps.isNotEmpty ? () {
                             final historyText = widget.steps.map((step) =>
-                              '${step.description}\n输入: ${step.input} → 结果: ${step.result}\n表达式: ${step.expression}\n时间: ${_formatTime(step.timestamp)}'
-                            ).join('\n\n');
+                              '${step.description}: ${step.input} → ${step.result}'
+                            ).join('\n');
                             
                             Clipboard.setData(ClipboardData(text: historyText));
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                content: Text('运算历史已复制到剪贴板'),
+                                content: Text('全部历史已复制'),
                                 backgroundColor: Colors.green,
                                 behavior: SnackBarBehavior.floating,
                               ),
                             );
                           } : null,
-                          icon: Icon(Icons.copy),
-                          label: Text('复制历史'),
+                          icon: Icon(Icons.copy_all),
+                          label: Text('复制全部'),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: widget.steps.isNotEmpty 
                                 ? Colors.orange.shade600 
@@ -321,23 +317,23 @@ class _CalculationHistoryDialogState extends State<CalculationHistoryDialog>
               margin: const EdgeInsets.only(bottom: 12),
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.1),
+                color: Colors.white.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.2),
-                  width: 1,
+                  color: Colors.white.withValues(alpha: 0.15),
+                  width: 0.5,
                 ),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 操作描述
+                  // 操作描述和复制按钮
                   Row(
                     children: [
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
-                          color: Colors.orange.withValues(alpha: 0.3),
+                          color: Colors.orange.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
@@ -360,6 +356,31 @@ class _CalculationHistoryDialogState extends State<CalculationHistoryDialog>
                           ),
                         ),
                       ),
+                      // 复制单个结果按钮
+                      IconButton(
+                        onPressed: () {
+                          Clipboard.setData(ClipboardData(text: step.result.toString()));
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('结果 ${step.result} 已复制'),
+                              backgroundColor: Colors.green,
+                              behavior: SnackBarBehavior.floating,
+                              duration: Duration(milliseconds: 1500),
+                            ),
+                          );
+                        },
+                        icon: Icon(
+                          Icons.copy,
+                          color: Colors.cyan.shade300,
+                          size: 18,
+                        ),
+                        tooltip: '复制结果',
+                        constraints: BoxConstraints(
+                          minWidth: 36,
+                          minHeight: 36,
+                        ),
+                        padding: EdgeInsets.all(4),
+                      ),
                       Text(
                         _formatTime(step.timestamp),
                         style: TextStyle(
@@ -372,137 +393,120 @@ class _CalculationHistoryDialogState extends State<CalculationHistoryDialog>
                   
                   const SizedBox(height: 12),
                   
-                  // 计算过程 - 优化布局，修复错位问题
+                  // 简化的计算信息 - 水平排列，提高显示效率
                   Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.3),
+                      color: Colors.black.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // 输入值
-                        Container(
-                          margin: const EdgeInsets.only(bottom: 8),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                '输入值',
-                                style: TextStyle(
-                                  color: Colors.cyan.shade300,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Container(
-                                width: double.infinity,
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                decoration: BoxDecoration(
-                                  color: Colors.cyan.withValues(alpha: 0.1),
-                                  borderRadius: BorderRadius.circular(6),
-                                  border: Border.all(
-                                    color: Colors.cyan.withValues(alpha: 0.3),
-                                    width: 1,
+                        // 第一行：输入值 → 结果
+                        Row(
+                          children: [
+                            // 输入值
+                            Expanded(
+                              flex: 2,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    '输入',
+                                    style: TextStyle(
+                                      color: Colors.cyan.shade300,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                    ),
                                   ),
-                                ),
-                                child: Text(
-                                  step.input.toString(),
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 14,
-                                    fontFamily: 'monospace',
-                                    fontWeight: FontWeight.w500,
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    step.input.toString(),
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 14,
+                                      fontFamily: 'monospace',
+                                      fontWeight: FontWeight.w500,
+                                    ),
                                   ),
-                                ),
+                                ],
                               ),
-                            ],
-                          ),
+                            ),
+                            
+                            // 箭头
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                              child: Icon(
+                                Icons.arrow_forward,
+                                color: Colors.white.withValues(alpha: 0.6),
+                                size: 16,
+                              ),
+                            ),
+                            
+                            // 结果
+                            Expanded(
+                              flex: 2,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    '结果',
+                                    style: TextStyle(
+                                      color: Colors.green.shade300,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    step.result.toString(),
+                                    style: TextStyle(
+                                      color: Colors.green.shade100,
+                                      fontSize: 14,
+                                      fontFamily: 'monospace',
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
                         
-                        // 表达式
-                        Container(
-                          margin: const EdgeInsets.only(bottom: 8),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                        // 第二行：表达式（如果不为空且与输入不同）
+                        if (step.expression.isNotEmpty && step.expression != step.input.toString()) ...[
+                          const SizedBox(height: 8),
+                          Divider(
+                            color: Colors.white.withValues(alpha: 0.1),
+                            height: 1,
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
                             children: [
                               Text(
-                                '运算表达式',
+                                '表达式: ',
                                 style: TextStyle(
                                   color: Colors.purple.shade300,
-                                  fontSize: 12,
+                                  fontSize: 11,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
-                              const SizedBox(height: 4),
-                              Container(
-                                width: double.infinity,
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                decoration: BoxDecoration(
-                                  color: Colors.purple.withValues(alpha: 0.1),
-                                  borderRadius: BorderRadius.circular(6),
-                                  border: Border.all(
-                                    color: Colors.purple.withValues(alpha: 0.3),
-                                    width: 1,
-                                  ),
-                                ),
+                              Expanded(
                                 child: Text(
                                   step.expression,
                                   style: TextStyle(
                                     color: Colors.white,
-                                    fontSize: 14,
+                                    fontSize: 12,
                                     fontFamily: 'monospace',
-                                    fontWeight: FontWeight.w500,
                                   ),
-                                  maxLines: 2,
+                                  maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               ),
                             ],
                           ),
-                        ),
-                        
-                        // 结果
-                        Container(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                '计算结果',
-                                style: TextStyle(
-                                  color: Colors.green.shade300,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Container(
-                                width: double.infinity,
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                decoration: BoxDecoration(
-                                  color: Colors.green.withValues(alpha: 0.1),
-                                  borderRadius: BorderRadius.circular(6),
-                                  border: Border.all(
-                                    color: Colors.green.withValues(alpha: 0.3),
-                                    width: 1,
-                                  ),
-                                ),
-                                child: Text(
-                                  step.result.toString(),
-                                  style: TextStyle(
-                                    color: Colors.green.shade100,
-                                    fontSize: 16,
-                                    fontFamily: 'monospace',
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
+                        ],
                       ],
                     ),
                   ),
