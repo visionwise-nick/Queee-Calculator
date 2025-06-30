@@ -7,6 +7,7 @@ import '../widgets/calculator_button_grid.dart';
 import '../widgets/calculation_history_dialog.dart';
 import '../widgets/multi_param_function_help_dialog.dart';
 import 'ai_customize_screen.dart';
+import 'image_generation_screen.dart';
 import 'dart:math' as math;
 import 'dart:convert';
 import 'dart:typed_data';
@@ -169,7 +170,7 @@ class CalculatorScreen extends StatelessWidget {
                 tooltip: '多参数函数帮助',
               ),
               const SizedBox(width: 4),
-              // AI助手按钮
+              // AI设计师按钮
               _buildCompactIconButton(
                 icon: Icons.chat_bubble_outline,
                 colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
@@ -182,7 +183,29 @@ class CalculatorScreen extends StatelessWidget {
                     ),
                   );
                 },
-                tooltip: 'AI 助手',
+                tooltip: 'AI设计师',
+              ),
+              const SizedBox(width: 4),
+              // 图像生成工坊按钮
+              _buildCompactIconButton(
+                icon: Icons.palette,
+                colors: [Color(0xFF8B5CF6), Color(0xFFEC4899)],
+                shadowColor: Colors.pink,
+                onPressed: () {
+                  final provider = Provider.of<CalculatorProvider>(context, listen: false);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ImageGenerationScreen(
+                        currentConfig: provider.config,
+                        onConfigUpdated: (config) {
+                          provider.applyConfig(config);
+                        },
+                      ),
+                    ),
+                  );
+                },
+                tooltip: '图像生成工坊',
               ),
 
             ],

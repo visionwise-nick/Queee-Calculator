@@ -821,6 +821,8 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
           setState(() {
             _generatedAppBgUrl = result['background_url'];
           });
+          // 生成成功后直接应用背景
+          _applyAppBackground();
         }
       } else {
         throw Exception(result['message'] ?? '生成失败');

@@ -6,7 +6,6 @@ import '../services/ai_service.dart';
 import '../services/conversation_service.dart';
 import '../models/calculator_dsl.dart';
 import '../widgets/thinking_process_dialog.dart';
-import 'image_generation_screen.dart';
 
 class AICustomizeScreen extends StatefulWidget {
   const AICustomizeScreen({super.key});
@@ -76,8 +75,8 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
 
   Future<void> _addWelcomeMessages() async {
     final welcomeMessages = [
-      '👋 你好！我是你的专属计算器设计师',
-              '✨ 我是专业计算器功能设计大师！我会在保留所有基础功能的前提下，为你增加强大的新功能！\n\n🚀 我擅长创造：\n• 丰富功能扩展（科学计算、金融工具、单位转换）\n• 智能计算功能（方程求解、数据分析、统计计算）\n• 实用工具集成（汇率换算、折扣计算、贷款计算）\n• 永远保留原有功能（绝不删除基础按钮）\n\n💡 点击灯泡查看功能案例，或者描述你需要的计算功能！',
+      '👋 你好！我是你的专属计算器功能设计师',
+              '✨ 我是专业计算器功能设计大师！我专注于为你设计和扩展计算器的功能逻辑！\n\n🚀 我专门负责：\n• 功能扩展（科学计算、金融工具、单位转换）\n• 智能计算（方程求解、数据分析、统计计算）\n• 实用工具（汇率换算、折扣计算、贷款计算）\n• 按键功能定义（添加新计算按钮和功能）\n\n⚠️ 注意：我只负责功能设计，不处理外观样式（背景图、颜色、字体等）。如需修改外观，请使用"图像生成工坊"！\n\n💡 点击灯泡查看功能案例，或者描述你需要的计算功能！',
     ];
 
     for (int i = 0; i < welcomeMessages.length; i++) {
@@ -555,20 +554,7 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
     );
   }
 
-  void _openImageGeneration() {
-    final provider = Provider.of<CalculatorProvider>(context, listen: false);
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => ImageGenerationScreen(
-          currentConfig: provider.config,
-          onConfigUpdated: (newConfig) {
-            provider.applyConfig(newConfig);
-          },
-        ),
-      ),
-    );
-  }
+
 
   Widget _buildMessageBubble(ConversationMessage message, int index) {
     final isUser = message.type == MessageType.user;
@@ -1050,11 +1036,7 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
             onPressed: _showQuickReplies,
             tooltip: '快速想法',
           ),
-          IconButton(
-            icon: Icon(Icons.palette, color: Colors.purple.shade600),
-            onPressed: _openImageGeneration,
-            tooltip: '图像生成工坊',
-          ),
+
           IconButton(
             icon: Icon(Icons.refresh, color: Colors.orange.shade600),
             onPressed: _clearConversation,
