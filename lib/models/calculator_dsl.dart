@@ -88,6 +88,7 @@ class CalculatorTheme {
   final String displayTextColor;
   final double? displayWidth;
   final double? displayHeight;
+  final double? displayHeightRatio; // AI可调节的显示区域高度比例
   final double? displayBorderRadius;
   final String primaryButtonColor;
   final List<String>? primaryButtonGradient; // 主按钮渐变
@@ -117,6 +118,7 @@ class CalculatorTheme {
     this.displayTextColor = '#FFFFFF',
     this.displayWidth,
     this.displayHeight,
+    this.displayHeightRatio,
     this.displayBorderRadius,
     this.primaryButtonColor = '#333333',
     this.primaryButtonGradient,
@@ -148,6 +150,7 @@ class CalculatorTheme {
       displayTextColor: json['displayTextColor'] as String? ?? '#FFFFFF',
       displayWidth: (json['displayWidth'] as num?)?.toDouble(),
       displayHeight: (json['displayHeight'] as num?)?.toDouble(),
+      displayHeightRatio: (json['displayHeightRatio'] as num?)?.toDouble(),
       displayBorderRadius: (json['displayBorderRadius'] as num?)?.toDouble(),
       primaryButtonColor: json['primaryButtonColor'] as String? ?? '#333333',
       primaryButtonGradient: (json['primaryButtonGradient'] as List<dynamic>?)?.cast<String>(),
@@ -180,6 +183,7 @@ class CalculatorTheme {
       'displayTextColor': displayTextColor,
       'displayWidth': displayWidth,
       'displayHeight': displayHeight,
+      'displayHeightRatio': displayHeightRatio,
       'displayBorderRadius': displayBorderRadius,
       'primaryButtonColor': primaryButtonColor,
       'primaryButtonGradient': primaryButtonGradient,

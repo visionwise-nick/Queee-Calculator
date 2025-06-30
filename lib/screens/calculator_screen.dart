@@ -66,7 +66,6 @@ class CalculatorScreen extends StatelessWidget {
           child: CalculatorDisplay(
             state: provider.state,
             theme: provider.config.theme,
-            calculationHistory: provider.calculationHistory,
           ),
         ),
         
@@ -87,32 +86,37 @@ class CalculatorScreen extends StatelessWidget {
     final theme = layout.buttons.isNotEmpty ? 
         Provider.of<CalculatorProvider>(context, listen: false).config.theme : null;
     
-    // 如果主题指定了显示区高度比例，使用它
+    // 如果主题指定了AI可调节的显示区高度比例，优先使用
+    if (theme?.displayHeightRatio != null) {
+      return screenHeight * theme!.displayHeightRatio!;
+    }
+    
+    // 如果主题指定了固定显示区高度比例，使用它
     if (theme?.displayHeight != null) {
       return screenHeight * theme!.displayHeight!;
     }
     
-    // 基础显示高度
-    double baseHeight = 80.0;
+    // 默认增加显示区域高度（增加一半）
+    double baseHeight = 120.0; // 从80增加到120
     
     // 根据布局复杂度调整，但限制最大高度
     final buttonCount = layout.buttons.length;
     final totalCells = layout.rows * layout.columns;
     final density = totalCells > 0 ? buttonCount / totalCells : 0.5;
     
-    // 按钮越多，显示区域相对越小，但不能太小
+    // 按钮越多，显示区域相对越小，但不能太小，增加基础比例
     if (density > 0.8 || buttonCount > 25) {
-      baseHeight = screenHeight * 0.12; // 高密度：12%
+      baseHeight = screenHeight * 0.18; // 高密度：从12%增加到18%
     } else if (density > 0.6 || buttonCount > 20) {
-      baseHeight = screenHeight * 0.15;  // 中密度：15%
+      baseHeight = screenHeight * 0.22;  // 中密度：从15%增加到22%
     } else {
-      baseHeight = screenHeight * 0.2; // 低密度：20%
+      baseHeight = screenHeight * 0.3; // 低密度：从20%增加到30%
     }
     
     // 确保最小和最大值，为按钮区域预留更多空间
     // 桌面端需要更多的显示空间
-    final minHeight = MediaQuery.of(context).size.width > 600 ? 80.0 : 60.0;
-    return baseHeight.clamp(minHeight, screenHeight * 0.25);
+    final minHeight = MediaQuery.of(context).size.width > 600 ? 120.0 : 90.0; // 增加最小高度
+    return baseHeight.clamp(minHeight, screenHeight * 0.4); // 增加最大比例到40%
   }
 
   /// 构建标题栏
