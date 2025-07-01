@@ -548,151 +548,236 @@ class CalculatorEngine {
 
   /// 科学计算表达式解析器
   double _evaluateScientificExpression(String expression, double x) {
-    print('🔧 计算表达式：$expression, 当前值：$x');
+    // 替换表达式中的x为实际值
+    String evalExpression = expression.replaceAll('x', x.toString());
+    print('🔢 替换后的表达式：$evalExpression');
     
-    // 直接匹配表达式模式（不需要替换变量）
-    switch (expression.toLowerCase().trim()) {
-      // 三角函数 (弧度)
-      case 'sin(x)':
-        return math.sin(x);
-      case 'cos(x)':
-        return math.cos(x);
-      case 'tan(x)':
-        return math.tan(x);
-      case 'asin(x)':
-        return math.asin(x);
-      case 'acos(x)':
-        return math.acos(x);
-      case 'atan(x)':
-        return math.atan(x);
-      
-      // 双曲函数
-      case 'sinh(x)':
-        return (math.exp(x) - math.exp(-x)) / 2;
-      case 'cosh(x)':
-        return (math.exp(x) + math.exp(-x)) / 2;
-      case 'tanh(x)':
-        return (math.exp(x) - math.exp(-x)) / (math.exp(x) + math.exp(-x));
-      
-      // 对数函数
-      case 'log(x)':
-      case 'ln(x)':
-        return math.log(x);
-      case 'log10(x)':
-        return math.log(x) / math.ln10;
-      case 'log2(x)':
-        return math.log(x) / math.log(2);
-      
-      // 指数函数
-      case 'exp(x)':
-      case 'e^x':
-        return math.exp(x);
-      
-      // 幂函数
-      case 'x*x':
-      case 'x^2':
-        return x * x;
-      case 'pow(x,3)':
-      case 'x^3':
-        return x * x * x;
-      case 'pow(x,4)':
-      case 'x^4':
-        return math.pow(x, 4).toDouble();
-      case 'pow(x,5)':
-      case 'x^5':
-        return math.pow(x, 5).toDouble();
-      case 'pow(2,x)':
-      case '2^x':
-        return math.pow(2, x).toDouble();
-      case 'pow(10,x)':
-      case '10^x':
-        return math.pow(10, x).toDouble();
-      
-      // 根号函数
-      case 'sqrt(x)':
-        return math.sqrt(x);
-      case 'pow(x,1/3)':
-      case 'cbrt(x)':
-        return math.pow(x, 1/3).toDouble();
-      
-      // 其他函数
-      case '1/x':
-        if (x == 0) throw Exception('Division by zero');
-        return 1 / x;
-      case 'abs(x)':
-        return x.abs();
-      case '1/sqrt(x)':
-        if (x <= 0) throw Exception('Invalid input for 1/sqrt(x)');
-        return 1 / math.sqrt(x);
-      
-      // 金融/百分比计算
-      case 'x*0.15':
-        return x * 0.15;
-      case 'x*0.20':
-        return x * 0.20;
-      case 'x*0.085':
-        return x * 0.085;
-      case 'x*1.13':
-        return x * 1.13;
-      case 'x*0.7':
-        return x * 0.7;
-      case 'x*2':
-        return x * 2;
-      
-      // 单位转换
-      case 'x*9/5+32':
-        return x * 9 / 5 + 32; // 摄氏度转华氏度
-      case '(x-32)*5/9':
-        return (x - 32) * 5 / 9; // 华氏度转摄氏度
-      case 'x*2.54':
-        return x * 2.54; // 英寸转厘米
-      case 'x/2.54':
-        return x / 2.54; // 厘米转英寸
-      case 'x*10.764':
-        return x * 10.764; // 平方米转平方英尺
-      case 'x/10.764':
-        return x / 10.764; // 平方英尺转平方米
-      
-      // 随机数生成
-      case 'random()':
-      case 'rand()':
-        return math.Random().nextDouble() * x;
-      
-      // 阶乘 (简化版本，只支持小整数)
-      case 'x!':
-      case 'factorial(x)':
-        if (x < 0 || x != x.toInt() || x > 20) {
-          throw Exception('Factorial only supports integers 0-20');
-        }
-        return _factorial(x.toInt()).toDouble();
-    }
-    
-    // 如果没有匹配的函数，尝试动态计算表达式
-    return _evaluateByReplacement(expression, x);
-  }
-
-  /// 计算阶乘
-  int _factorial(int n) {
-    if (n <= 1) return 1;
-    return n * _factorial(n - 1);
-  }
-
-  /// 动态替换变量并计算表达式
-  double _evaluateByReplacement(String expression, double x) {
     try {
-      // 替换变量
-      String processed = expression
-          .replaceAll('x', x.toString())
-          .replaceAll('input', x.toString())
-          .replaceAll('value', x.toString());
-
-      print('🔧 处理后的表达式：$processed');
-      
-      // 简单表达式计算
-      return _evaluateSimpleExpression(processed);
+      // 🔧 处理特殊的单参数函数
+      switch (expression.toLowerCase().trim()) {
+        // 三角函数（角度制）
+        case 'sin(x)':
+          return math.sin(x * math.pi / 180); // 转换为弧度
+        case 'cos(x)':
+          return math.cos(x * math.pi / 180);
+        case 'tan(x)':
+          return math.tan(x * math.pi / 180);
+        case 'asin(x)':
+          return math.asin(x) * 180 / math.pi; // 转换为角度
+        case 'acos(x)':
+          return math.acos(x) * 180 / math.pi;
+        case 'atan(x)':
+          return math.atan(x) * 180 / math.pi;
+        
+        // 双曲函数
+        case 'sinh(x)':
+          return (math.exp(x) - math.exp(-x)) / 2;
+        case 'cosh(x)':
+          return (math.exp(x) + math.exp(-x)) / 2;
+        case 'tanh(x)':
+          double expX = math.exp(x);
+          double expNegX = math.exp(-x);
+          return (expX - expNegX) / (expX + expNegX);
+        
+        // 对数函数
+        case 'log(x)':
+        case 'ln(x)':
+          if (x <= 0) throw Exception('对数函数的参数必须大于0');
+          return math.log(x);
+        case 'log10(x)':
+          if (x <= 0) throw Exception('对数函数的参数必须大于0');
+          return math.log(x) / math.log(10);
+        case 'log2(x)':
+          if (x <= 0) throw Exception('对数函数的参数必须大于0');
+          return math.log(x) / math.log(2);
+        
+        // 指数函数
+        case 'exp(x)':
+        case 'e^x':
+          return math.exp(x);
+        case 'pow(2,x)':
+        case '2^x':
+          return math.pow(2, x).toDouble();
+        case 'pow(10,x)':
+        case '10^x':
+          return math.pow(10, x).toDouble();
+        
+        // 幂函数
+        case 'x*x':
+        case 'x^2':
+          return x * x;
+        case 'pow(x,3)':
+        case 'x^3':
+          return math.pow(x, 3).toDouble();
+        case 'pow(x,4)':
+        case 'x^4':
+          return math.pow(x, 4).toDouble();
+        case 'pow(x,5)':
+        case 'x^5':
+          return math.pow(x, 5).toDouble();
+        
+        // 根函数
+        case 'sqrt(x)':
+          if (x < 0) throw Exception('平方根的参数不能为负数');
+          return math.sqrt(x);
+        case 'pow(x,1/3)':
+        case 'cbrt(x)':
+          // 立方根，支持负数
+          return x < 0 ? -math.pow(-x, 1/3).toDouble() : math.pow(x, 1/3).toDouble();
+        
+        // 其他函数
+        case '1/x':
+          if (x == 0) throw Exception('除数不能为零');
+          return 1 / x;
+        case 'abs(x)':
+          return x.abs();
+        case '1/sqrt(x)':
+          if (x <= 0) throw Exception('平方根的参数必须大于0');
+          return 1 / math.sqrt(x);
+        case 'x!':
+        case 'factorial(x)':
+          return _factorial(x.toInt()).toDouble();
+        
+        // 🔧 增强单位转换功能
+        // 温度转换
+        case 'x*9/5+32':
+          return x * 9 / 5 + 32; // 摄氏度→华氏度
+        case '(x-32)*5/9':
+          return (x - 32) * 5 / 9; // 华氏度→摄氏度
+        case 'x+273.15':
+          return x + 273.15; // 摄氏度→开尔文
+        case 'x-273.15':
+          return x - 273.15; // 开尔文→摄氏度
+        
+        // 长度转换
+        case 'x*2.54':
+          return x * 2.54; // 英寸→厘米
+        case 'x/2.54':
+          return x / 2.54; // 厘米→英寸
+        case 'x*0.3048':
+          return x * 0.3048; // 英尺→米
+        case 'x/0.3048':
+          return x / 0.3048; // 米→英尺
+        case 'x*1.60934':
+          return x * 1.60934; // 英里→公里
+        case 'x/1.60934':
+          return x / 1.60934; // 公里→英里
+        case 'x*1000':
+          return x * 1000; // 米→毫米
+        case 'x/1000':
+          return x / 1000; // 毫米→米
+        
+        // 重量转换
+        case 'x*0.453592':
+          return x * 0.453592; // 磅→公斤
+        case 'x/0.453592':
+          return x / 0.453592; // 公斤→磅
+        case 'x*28.3495':
+          return x * 28.3495; // 盎司→克
+        case 'x/28.3495':
+          return x / 28.3495; // 克→盎司
+        case 'x*1000':
+          return x * 1000; // 公斤→克（如果x本身是公斤）
+        case 'x/1000':
+          return x / 1000; // 克→公斤
+        
+        // 面积转换
+        case 'x*10.764':
+          return x * 10.764; // 平方米→平方英尺
+        case 'x/10.764':
+          return x / 10.764; // 平方英尺→平方米
+        case 'x*2.59':
+          return x * 2.59; // 平方英里→平方公里
+        case 'x/2.59':
+          return x / 2.59; // 平方公里→平方英里
+        
+        // 体积转换
+        case 'x*3.78541':
+          return x * 3.78541; // 加仑→升
+        case 'x/3.78541':
+          return x / 3.78541; // 升→加仑
+        case 'x*29.5735':
+          return x * 29.5735; // 盎司→毫升
+        case 'x/29.5735':
+          return x / 29.5735; // 毫升→盎司
+        
+        // 百分比和倍数运算
+        case 'x*0.01':
+          return x * 0.01; // 百分比转换
+        case 'x*0.15':
+          return x * 0.15; // 15%计算
+        case 'x*0.18':
+          return x * 0.18; // 18%计算
+        case 'x*0.20':
+          return x * 0.20; // 20%计算
+        case 'x*0.085':
+          return x * 0.085; // 8.5%计算
+        case 'x*1.13':
+          return x * 1.13; // 含税价格（13%）
+        case 'x*1.15':
+          return x * 1.15; // 含税价格（15%）
+        case 'x*0.85':
+          return x * 0.85; // 15%折扣
+        case 'x*0.7':
+          return x * 0.7; // 30%折扣
+        case 'x*0.8':
+          return x * 0.8; // 20%折扣
+        case 'x*2':
+          return x * 2; // 乘以2
+        
+        // 特殊函数
+        case 'random()':
+        case 'rand()':
+          return math.Random().nextDouble(); // 0到1之间的随机数
+        case 'pi':
+        case 'π':
+          return math.pi;
+        case 'e':
+          return math.e;
+        
+        default:
+          // 对于复杂表达式，使用表达式解析器
+          return _evaluateComplexExpression(expression, x);
+      }
     } catch (e) {
-      print('⚠️ 表达式解析失败：$e');
-      throw Exception('无法计算表达式');
+      print('❌ 科学计算错误：$e');
+      throw Exception('计算错误：$e');
+    }
+  }
+
+  /// 🔧 新增：复杂表达式计算器
+  double _evaluateComplexExpression(String expression, double x) {
+    try {
+      // 替换x为实际值
+      String evalExpression = expression.replaceAll('x', x.toString());
+      
+      // 处理特殊的数学函数
+      evalExpression = evalExpression
+          .replaceAll('sin(', 'sin(')
+          .replaceAll('cos(', 'cos(')
+          .replaceAll('tan(', 'tan(')
+          .replaceAll('sqrt(', 'sqrt(')
+          .replaceAll('log(', 'ln(')
+          .replaceAll('exp(', 'e^(')
+          .replaceAll('π', math.pi.toString())
+          .replaceAll('pi', math.pi.toString())
+          .replaceAll('e', math.e.toString());
+
+      // 使用math_expressions库解析
+      Parser p = Parser();
+      Expression exp = p.parse(evalExpression);
+      ContextModel cm = ContextModel();
+      
+      double result = exp.evaluate(EvaluationType.REAL, cm);
+      
+      if (result.isNaN || result.isInfinite) {
+        throw Exception('计算结果无效');
+      }
+      
+      return result;
+    } catch (e) {
+      // 如果表达式解析失败，尝试简单计算
+      return _evaluateSimpleExpression(expression.replaceAll('x', x.toString()));
     }
   }
 
@@ -703,7 +788,7 @@ class CalculatorEngine {
     
     try {
       // 尝试使用math_expressions库进行解析
-      Parser parser = ShuntingYardParser();
+      Parser parser = Parser();
       Expression exp = parser.parse(expression);
       ContextModel cm = ContextModel();
       double result = exp.evaluate(EvaluationType.REAL, cm);
@@ -827,26 +912,56 @@ class CalculatorEngine {
       case '1/sqrt(x)': return '平方根倒数 1/√x';
       
       // 百分比和倍数
+      case 'x*0.01': return '百分比转换';
       case 'x*0.15': return '计算15%';
+      case 'x*0.18': return '计算18%';
       case 'x*0.20': return '计算20%';
       case 'x*0.085': return '计算8.5%';
-      case 'x*1.13': return '增加13%';
-      case 'x*0.7': return '减少30%';
+      case 'x*1.13': return '含税价格（13%）';
+      case 'x*1.15': return '含税价格（15%）';
+      case 'x*0.85': return '15%折扣';
+      case 'x*0.7': return '30%折扣';
+      case 'x*0.8': return '20%折扣';
       case 'x*2': return '乘以2';
       
-      // 单位转换
-      case 'x*9/5+32': return '摄氏度转华氏度';
-      case '(x-32)*5/9': return '华氏度转摄氏度';
-      case 'x*2.54': return '英寸转厘米';
-      case 'x/2.54': return '厘米转英寸';
-      case 'x*10.764': return '平方米转平方英尺';
-      case 'x/10.764': return '平方英尺转平方米';
+      // 单位转换 - 温度
+      case 'x*9/5+32': return '摄氏度→华氏度';
+      case '(x-32)*5/9': return '华氏度→摄氏度';
+      case 'x+273.15': return '摄氏度→开尔文';
+      case 'x-273.15': return '开尔文→摄氏度';
+      
+      // 单位转换 - 长度
+      case 'x*2.54': return '英寸→厘米';
+      case 'x/2.54': return '厘米→英寸';
+      case 'x*0.3048': return '英尺→米';
+      case 'x/0.3048': return '米→英尺';
+      case 'x*1.60934': return '英里→公里';
+      case 'x/1.60934': return '公里→英里';
+      
+      // 单位转换 - 重量
+      case 'x*0.453592': return '磅→公斤';
+      case 'x/0.453592': return '公斤→磅';
+      case 'x*28.3495': return '盎司→克';
+      case 'x/28.3495': return '克→盎司';
+      
+      // 单位转换 - 面积
+      case 'x*10.764': return '平方米→平方英尺';
+      case 'x/10.764': return '平方英尺→平方米';
+      
+      // 单位转换 - 体积
+      case 'x*3.78541': return '加仑→升';
+      case 'x/3.78541': return '升→加仑';
+      case 'x*29.5735': return '盎司→毫升';
+      case 'x/29.5735': return '毫升→盎司';
       
       // 特殊函数
       case 'random()':
       case 'rand()': return '生成随机数';
       case 'x!':
       case 'factorial(x)': return '阶乘运算 x!';
+      case 'pi':
+      case 'π': return '圆周率 π';
+      case 'e': return '自然常数 e';
       
       default:
         // 如果是复杂表达式，尝试简化描述
@@ -856,6 +971,19 @@ class CalculatorEngine {
         if (expression.contains('-')) return '减法运算';
         return '数学表达式计算';
     }
+  }
+
+  /// 🔧 增强：阶乘计算
+  int _factorial(int n) {
+    if (n < 0) throw Exception('阶乘的参数不能为负数');
+    if (n > 20) throw Exception('阶乘参数过大（最大支持20）');
+    if (n <= 1) return 1;
+    
+    int result = 1;
+    for (int i = 2; i <= n; i++) {
+      result *= i;
+    }
+    return result;
   }
 
   /// 计算多参数函数
