@@ -1369,23 +1369,13 @@ async def generate_text_image(request: TextImageRequest):
         # 获取对应风格的效果描述，默认为现代风格
         style_effect = style_effects.get(request.style, style_effects["modern"])
         
-        # 🎨 创意字符构造：用指定元素构成字符形状，绝对禁止文字和杂乱背景
+        # 🎨 创意字符构造：极简提示词，避免AI误解指令为显示内容
         if cleaned_prompt and cleaned_prompt.strip():
-            # 完全按照清理后的创意描述构造字符，强制规则在前
-            detailed_prompt = f"""MANDATORY RULES - STRICTLY ENFORCE:
-1. ABSOLUTELY ZERO TEXT - No letters, no words, no labels, no descriptions, no captions anywhere
-2. CLEAN BACKGROUND - Pure {request.background} background, no patterns, no textures, no clutter
-3. VISUAL ONLY - Only show the character/symbol "{request.text}" made from {cleaned_prompt}
-
-Create visual art where the character/symbol "{request.text}" is formed/shaped using {cleaned_prompt}. The character must be constructed using these elements only. Background must be completely clean {request.background}. FORBIDDEN: Any text, words, letters, descriptions, busy backgrounds."""
+            # 极简直接指令，避免任何可能被误解的英文描述
+            detailed_prompt = f"""Show number "{request.text}" made from {cleaned_prompt}. Pure visual art only. No text anywhere. Clean {request.background} background."""
         else:
-            # 标准字符设计，同样强制规则
-            detailed_prompt = f"""MANDATORY RULES - STRICTLY ENFORCE:
-1. ABSOLUTELY ZERO TEXT - No letters, no words, no labels, no descriptions, no captions anywhere
-2. CLEAN BACKGROUND - Pure {request.background} background, no patterns, no textures, no clutter
-3. VISUAL ONLY - Only show the character/symbol "{request.text}" {style_effect}
-
-Create visual art showing the character/symbol "{request.text}" {style_effect}. Background must be completely clean {request.background}. FORBIDDEN: Any text, words, letters, descriptions, busy backgrounds."""
+            # 标准设计，同样极简
+            detailed_prompt = f"""Show number "{request.text}" {style_effect}. Pure visual art only. No text anywhere. Clean {request.background} background."""
 
         print(f"🚀 使用提示词: {detailed_prompt}")
 
