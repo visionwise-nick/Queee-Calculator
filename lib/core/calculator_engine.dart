@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:math' show Random;
 import 'package:math_expressions/math_expressions.dart';
 import '../widgets/calculation_history_dialog.dart';
 
@@ -16,6 +17,7 @@ enum CalculatorActionType {
   multiParamFunction, // 多参数函数
   parameterSeparator, // 参数分隔符 (逗号)
   functionExecute,    // 执行函数
+  customFunction,     // 自定义复合功能
 }
 
 /// 计算器操作定义
@@ -23,11 +25,13 @@ class CalculatorAction {
   final CalculatorActionType type;
   final String? value;
   final String? expression; // 新增：数学表达式
+  final Map<String, dynamic>? parameters; // 新增：自定义功能的预设参数
 
   const CalculatorAction({
     required this.type,
     this.value,
     this.expression,
+    this.parameters,
   });
 
   factory CalculatorAction.fromJson(Map<String, dynamic> json) {
@@ -46,6 +50,7 @@ class CalculatorAction {
       type: actionType,
       value: json['value']?.toString(),
       expression: expression,
+      parameters: json['parameters'] as Map<String, dynamic>?,
     );
   }
 
@@ -81,6 +86,8 @@ class CalculatorAction {
         return CalculatorActionType.parameterSeparator;
       case 'functionexecute':
         return CalculatorActionType.functionExecute;
+      case 'customfunction':
+        return CalculatorActionType.customFunction;
       // 处理特殊的类型别名
       case 'percentage':
       case 'percent':
@@ -103,6 +110,7 @@ class CalculatorAction {
       'type': type.toString().split('.').last,
       if (value != null) 'value': value,
       if (expression != null) 'expression': expression,
+      if (parameters != null) 'parameters': parameters,
     };
   }
 }
@@ -222,6 +230,8 @@ class CalculatorEngine {
           return _handleParameterSeparator();
         case CalculatorActionType.functionExecute:
           return _handleFunctionExecute();
+        case CalculatorActionType.customFunction:
+          return _handleCustomFunction(action.value!, action.parameters);
       }
     } catch (e) {
       print('❌ 计算器错误：$e');
@@ -543,6 +553,104 @@ class CalculatorEngine {
         currentParameterIndex: 0,
         isInputtingFunction: false,
       );
+    }
+  }
+
+  /// 处理自定义复合功能
+  CalculatorState _handleCustomFunction(String functionType, Map<String, dynamic>? parameters) {
+    if (_state.isError) return _state;
+    
+    try {
+      double inputValue = double.parse(_state.display);
+      double result;
+      String description;
+      
+      print('🚀 执行自定义功能：$functionType, 输入值：$inputValue, 参数：$parameters');
+      
+      // 根据功能类型执行相应的计算
+      switch (functionType.toLowerCase()) {
+        case 'mortgage_calculator':
+          // 房贷计算：从parameters中获取利率和年限
+          double annualRate = parameters?['annualRate']?.toDouble() ?? 3.5; // 年利率%
+          int years = parameters?['years']?.toInt() ?? 30; // 贷款年限
+          double loanAmount = inputValue; // 贷款金额
+          
+          double monthlyRate = annualRate / 100 / 12; // 月利率
+          int totalMonths = years * 12; // 总月数
+          
+          // 月供计算公式：M = P * [r(1+r)^n] / [(1+r)^n - 1]
+          double monthlyPayment = loanAmount * 
+              (monthlyRate * math.pow(1 + monthlyRate, totalMonths)) / 
+              (math.pow(1 + monthlyRate, totalMonths) - 1);
+          
+          result = monthlyPayment;
+          description = '房贷计算：¥$loanAmount，利率${annualRate}%，${years}年，月供';
+          break;
+          
+        case 'compound_calculator':
+          // 复利计算：从parameters中获取利率和年限
+          double rate = parameters?['rate']?.toDouble() ?? 4.0; // 年利率%
+          int years = parameters?['years']?.toInt() ?? 10; // 投资年限
+          double principal = inputValue; // 本金
+          
+          // 复利公式：A = P(1 + r)^t
+          result = principal * math.pow(1 + rate / 100, years);
+          description = '复利计算：本金¥$principal，利率${rate}%，${years}年后';
+          break;
+          
+        case 'currency_converter':
+          // 货币转换：从parameters中获取汇率和货币类型
+          double rate = parameters?['rate']?.toDouble() ?? 7.2; // 汇率
+          String fromCurrency = parameters?['fromCurrency']?.toString() ?? 'USD';
+          String toCurrency = parameters?['toCurrency']?.toString() ?? 'CNY';
+          result = inputValue * rate;
+          description = '货币转换：$inputValue $fromCurrency → $toCurrency，汇率$rate';
+          break;
+          
+        case 'discount_calculator':
+          // 折扣计算：从parameters中获取折扣率和税率
+          double discountRate = parameters?['discountRate']?.toDouble() ?? 25; // 折扣率%
+          double taxRate = parameters?['taxRate']?.toDouble() ?? 13; // 税率%
+          double discountedPrice = inputValue * (1 - discountRate / 100);
+          result = discountedPrice * (1 + taxRate / 100);
+          description = '折扣计算：原价¥$inputValue，${discountRate}%折扣，含${taxRate}%税';
+          break;
+          
+        case 'bmi_calculator':
+          // BMI计算：从parameters中获取身高
+          double height = parameters?['height']?.toDouble() ?? 175; // 身高cm
+          double weight = inputValue; // 体重kg
+          result = weight / math.pow(height / 100, 2);
+          description = 'BMI计算：体重${weight}kg，身高${height}cm';
+          break;
+          
+        default:
+          throw Exception('未知的自定义功能类型：$functionType');
+      }
+      
+      // 记录计算历史
+      _calculationHistory.add(CalculationStep(
+        expression: '$functionType($inputValue)',
+        description: description,
+        input: inputValue,
+        result: result,
+        timestamp: DateTime.now(),
+      ));
+      
+      // 限制历史记录数量
+      if (_calculationHistory.length > 100) {
+        _calculationHistory.removeAt(0);
+      }
+      
+      _state = _state.copyWith(
+        display: _formatResult(result),
+        waitingForOperand: true,
+      );
+      
+      return _state;
+    } catch (e) {
+      print('❌ 自定义功能执行错误：$e');
+      return _state.copyWith(display: 'Error', isError: true);
     }
   }
 
@@ -991,6 +1099,113 @@ class CalculatorEngine {
     print('🔧 计算多参数函数：$functionName, 参数：$params');
     
     switch (functionName.toLowerCase()) {
+      // 统计函数 - 中文名称映射
+      case '平均值':
+      case '平均数':
+        if (params.isEmpty) throw Exception('平均值函数至少需要1个参数');
+        return params.reduce((a, b) => a + b) / params.length;
+      
+      case '标准差':
+        if (params.isEmpty) throw Exception('标准差函数至少需要1个参数');
+        double mean = params.reduce((a, b) => a + b) / params.length;
+        double variance = params.map((x) => math.pow(x - mean, 2)).reduce((a, b) => a + b) / params.length;
+        return math.sqrt(variance);
+      
+      case '方差':
+        if (params.isEmpty) throw Exception('方差函数至少需要1个参数');
+        double mean = params.reduce((a, b) => a + b) / params.length;
+        return params.map((x) => math.pow(x - mean, 2)).reduce((a, b) => a + b) / params.length;
+      
+      case '中位数':
+        if (params.isEmpty) throw Exception('中位数函数至少需要1个参数');
+        List<double> sortedParams = List.from(params)..sort();
+        int n = sortedParams.length;
+        if (n % 2 == 1) {
+          return sortedParams[n ~/ 2];
+        } else {
+          return (sortedParams[n ~/ 2 - 1] + sortedParams[n ~/ 2]) / 2;
+        }
+      
+      case '最大值':
+        if (params.isEmpty) throw Exception('最大值函数至少需要1个参数');
+        return params.reduce(math.max);
+      
+      case '最小值':
+        if (params.isEmpty) throw Exception('最小值函数至少需要1个参数');
+        return params.reduce(math.min);
+      
+      case '求和':
+        if (params.isEmpty) throw Exception('求和函数至少需要1个参数');
+        return params.reduce((a, b) => a + b);
+      
+      case '组合':
+        if (params.length != 2) throw Exception('组合函数需要2个参数：n和r');
+        int n = params[0].toInt();
+        int r = params[1].toInt();
+        if (r > n || r < 0) throw Exception('组合计算参数无效');
+        return _factorial(n) / (_factorial(r) * _factorial(n - r));
+      
+      case '排列':
+        if (params.length != 2) throw Exception('排列函数需要2个参数：n和r');
+        int n = params[0].toInt();
+        int r = params[1].toInt();
+        if (r > n || r < 0) throw Exception('排列计算参数无效');
+        return _factorial(n) / _factorial(n - r);
+      
+      case '阶乘':
+        if (params.length != 1) throw Exception('阶乘函数需要1个参数');
+        int n = params[0].toInt();
+        if (n < 0) throw Exception('阶乘不能计算负数');
+        return _factorial(n).toDouble();
+      
+      case '随机数':
+        if (params.length == 0) {
+          return Random().nextDouble(); // 0-1之间的随机数
+        } else if (params.length == 1) {
+          return Random().nextInt(params[0].toInt()).toDouble();
+        } else if (params.length == 2) {
+          int min = params[0].toInt();
+          int max = params[1].toInt();
+          return (Random().nextInt(max - min + 1) + min).toDouble();
+        }
+        throw Exception('随机数函数需要0-2个参数');
+      
+      case '百分位数':
+        if (params.length < 2) throw Exception('百分位数函数至少需要2个参数：百分位数和数据');
+        double percentile = params[0];
+        List<double> data = params.sublist(1);
+        data.sort();
+        double index = (percentile / 100) * (data.length - 1);
+        int lowerIndex = index.floor();
+        int upperIndex = index.ceil();
+        if (lowerIndex == upperIndex) {
+          return data[lowerIndex];
+        } else {
+          double weight = index - lowerIndex;
+          return data[lowerIndex] * (1 - weight) + data[upperIndex] * weight;
+        }
+      
+      case '线性回归':
+        if (params.length < 4 || params.length % 2 != 0) {
+          throw Exception('线性回归函数需要偶数个参数：x1,y1,x2,y2,...');
+        }
+        List<double> xValues = [];
+        List<double> yValues = [];
+        for (int i = 0; i < params.length; i += 2) {
+          xValues.add(params[i]);
+          yValues.add(params[i + 1]);
+        }
+        int n = xValues.length;
+        double sumX = xValues.reduce((a, b) => a + b);
+        double sumY = yValues.reduce((a, b) => a + b);
+        double sumXY = 0;
+        double sumX2 = 0;
+        for (int i = 0; i < n; i++) {
+          sumXY += xValues[i] * yValues[i];
+          sumX2 += xValues[i] * xValues[i];
+        }
+        double slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+        return slope; // 返回斜率，可以扩展返回截距
       case 'pow':
         if (params.length != 2) throw Exception('pow函数需要2个参数');
         return math.pow(params[0], params[1]).toDouble();
@@ -1280,6 +1495,42 @@ class CalculatorEngine {
   /// 生成多参数函数的描述
   String _getDescriptionFromMultiParamFunction(String functionName, List<double> params) {
     switch (functionName.toLowerCase()) {
+      // 中文函数名描述
+      case '平均值':
+      case '平均数':
+        return '平均值 ${params.join(', ')}';
+      case '标准差':
+        return '标准差 ${params.join(', ')}';
+      case '方差':
+        return '方差 ${params.join(', ')}';
+      case '中位数':
+        return '中位数 ${params.join(', ')}';
+      case '最大值':
+        return '最大值 ${params.join(', ')}';
+      case '最小值':
+        return '最小值 ${params.join(', ')}';
+      case '求和':
+        return '求和 ${params.join(', ')}';
+      case '组合':
+        return '组合 C(${params[0].toInt()}, ${params[1].toInt()})';
+      case '排列':
+        return '排列 P(${params[0].toInt()}, ${params[1].toInt()})';
+      case '阶乘':
+        return '阶乘 ${params[0].toInt()}!';
+      case '随机数':
+        if (params.isEmpty) {
+          return '随机数 [0,1)';
+        } else if (params.length == 1) {
+          return '随机数 [0,${params[0].toInt()})';
+        } else {
+          return '随机数 [${params[0].toInt()},${params[1].toInt()}]';
+        }
+      case '百分位数':
+        return '百分位数 ${params[0]}% of ${params.sublist(1).join(', ')}';
+      case '线性回归':
+        return '线性回归 ${params.length ~/ 2}个数据点，斜率';
+      
+      // 英文函数名描述
       case 'pow':
         return '幂运算 ${params[0]}^${params[1]}';
       case 'log':

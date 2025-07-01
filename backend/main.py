@@ -83,9 +83,10 @@ class GridPosition(BaseModel):
     columnSpan: Optional[int] = None
 
 class CalculatorAction(BaseModel):
-    type: str  # input, operator, equals, clear, clearAll, backspace, decimal, negate, expression, multiParamFunction, parameterSeparator, functionExecute
+    type: str  # input, operator, equals, clear, clearAll, backspace, decimal, negate, expression, multiParamFunction, parameterSeparator, functionExecute, customFunction
     value: Optional[str] = None
     expression: Optional[str] = None  # 数学表达式，如 "x*x", "x*0.15", "sqrt(x)"
+    parameters: Optional[Dict[str, Any]] = None  # 自定义功能的预设参数，如 {"annualRate": 3.5, "years": 30}
 
 class CalculatorButton(BaseModel):
     id: str
@@ -213,6 +214,7 @@ SYSTEM_PROMPT = """你是专业的计算器功能设计大师。你只负责按�
 1. **输出完整的计算器配置JSON**：包含theme、layout和buttons的功能配置
 2. **功能专精**：只负责按钮功能逻辑和布局结构
 3. **功能增强**：根据用户需求添加或修改按钮功能
+4. **自定义复合功能**：能够根据用户具体需求生成预设参数的专用计算器
 
 🚨 **关键原则 - 禁止无效按键**：
 ```
@@ -318,11 +320,99 @@ SYSTEM_PROMPT = """你是专业的计算器功能设计大师。你只负责按�
 {"type": "multiParamFunction", "value": "年金计算"}      // 年金计算
 ```
 
-## 4. 多参数函数辅助按键
+## 4. ✨自定义复合功能（customFunction类型）
+当用户提出具体的计算需求时，你可以生成预设参数的专用计算器按键：
+
+```json
+// 🚀 房贷计算器示例
+{"type": "customFunction", "value": "mortgage_calculator", "parameters": {"annualRate": 3.5, "years": 30}}
+
+// 🚀 定制复利计算器
+{"type": "customFunction", "value": "compound_calculator", "parameters": {"rate": 4.2, "years": 10}}
+
+// 🚀 货币转换器
+{"type": "customFunction", "value": "currency_converter", "parameters": {"fromCurrency": "USD", "toCurrency": "CNY", "rate": 7.2}}
+
+// 🚀 折扣计算器
+{"type": "customFunction", "value": "discount_calculator", "parameters": {"discountRate": 25, "taxRate": 13}}
+
+// 🚀 工程计算器
+{"type": "customFunction", "value": "engineering_calculator", "parameters": {"unit": "metric", "precision": 4}}
+
+// 🚀 BMI计算器（身高固定）
+{"type": "customFunction", "value": "bmi_calculator", "parameters": {"height": 175}}
+
+// 🚀 燃油效率计算器
+{"type": "customFunction", "value": "fuel_efficiency", "parameters": {"unit": "L/100km", "pricePerLiter": 8.5}}
+```
+
+### 🎯 自定义功能按键标签规范
+```
+房贷计算：  "房贷(3.5%/30年)"
+复利计算：  "复利(4.2%/10年)"
+货币转换：  "USD→CNY(7.2)"
+折扣计算：  "折扣(25%+税13%)"
+工程换算：  "工程换算"
+BMI计算：   "BMI(身高175)"
+燃油计算：  "油耗(¥8.5/L)"
+```
+
+### 🎯 支持的自定义功能类型
+```
+✅ mortgage_calculator - 房贷计算器
+✅ compound_calculator - 复利计算器
+✅ currency_converter - 货币转换器
+✅ discount_calculator - 折扣计算器
+✅ loan_calculator - 贷款计算器
+✅ investment_calculator - 投资计算器
+✅ bmi_calculator - BMI计算器
+✅ tax_calculator - 税务计算器
+✅ tip_calculator - 小费计算器
+✅ fuel_efficiency - 燃油效率计算器
+✅ unit_converter - 单位转换器
+✅ percentage_calculator - 百分比计算器
+✅ engineering_calculator - 工程计算器
+```
+
+## 5. 多参数函数辅助按键
 ```json
 {"type": "parameterSeparator"}   // 逗号分隔符（用于多参数输入）
 {"type": "functionExecute"}      // 执行函数（完成多参数函数计算）
 ```
+
+🚨 **多参数函数强制规则 - 自动检测并添加必需按键**：
+**如果布局中包含任何多参数函数按键(multiParamFunction)，AI必须自动检测并添加以下辅助按键：**
+
+1️⃣ **逗号分隔符按键（强制必需）**：
+```json
+{"id": "btn_comma", "label": ",", "action": {"type": "parameterSeparator"}, "gridPosition": {"row": X, "column": Y}, "type": "secondary"}
+```
+
+2️⃣ **执行按键（强制必需）**：
+```json
+{"id": "btn_execute", "label": "执行", "action": {"type": "functionExecute"}, "gridPosition": {"row": X, "column": Y}, "type": "operator"}
+```
+或者
+```json
+{"id": "btn_equals_func", "label": "=", "action": {"type": "functionExecute"}, "gridPosition": {"row": X, "column": Y}, "type": "operator"}
+```
+
+💥 **无逗号=无法操作** - 多参数函数操作流程：
+1. 点击多参数函数按键（如"X^Y"、"最大值"）→ 开始函数模式
+2. 输入第1个参数（如输入"2"）→ 显示参数1
+3. 按逗号","键 → 分隔参数，进入参数2输入
+4. 输入第2个参数（如输入"3"）→ 显示参数2  
+5. 按执行"执行"或"="键 → 计算结果（如2^3=8）
+
+⚠️ **推荐布局位置**：
+- 逗号按键：放在右下角区域，如row=5或6, column=3或4
+- 执行按键：放在逗号右侧，如row=5或6, column=4或5
+- 优先使用扩展行（第6行以后）避免占用基础数字键位置
+
+⚠️ **自动添加规则**：
+- 检测到任何multiParamFunction类型按键时，AI必须自动添加逗号和执行按键
+- 即使用户没有明确要求，也要主动添加这两个关键按键
+- 如果空间不足，可以适当扩展布局行数来容纳这些必需按键
 
 🚨 **严禁使用的功能**：
 ```
@@ -347,7 +437,7 @@ SYSTEM_PROMPT = """你是专业的计算器功能设计大师。你只负责按�
 科学计算器（最多8行×6列）：
 在标准布局基础上添加科学函数：
 行1-5: [...] [sin/cos/tan/log/sqrt等科学函数]
-行6-8: 可选择性添加更多高级函数
+行6-8: 可选择性添加更多高级函数或自定义功能
 
 ⚠️ 关键：只在用户明确需要科学函数时才扩展布局！
 ⚠️ 禁止：为了填满空间而创建无用按键！
@@ -358,6 +448,7 @@ SYSTEM_PROMPT = """你是专业的计算器功能设计大师。你只负责按�
 - **基础运算符(+,-,×,÷,=)**：右侧列，type="operator"  
 - **功能按钮(AC,±,%)**：顶行或功能区，type="secondary"
 - **科学函数**：扩展列或扩展行，type="special"
+- **自定义功能**：优先使用第6-8行，充分利用纵向空间
 - **新增功能**：优先使用第6-10行，充分利用纵向空间
 
 🚨 **gridPosition精确定义**：
@@ -424,6 +515,11 @@ SYSTEM_PROMPT = """你是专业的计算器功能设计大师。你只负责按�
 {"id": "btn_pow", "label": "x^y", "action": {"type": "multiParamFunction", "value": "pow"}, "gridPosition": {"row": 5, "column": 4}, "type": "special"}
 {"id": "btn_comma", "label": ",", "action": {"type": "parameterSeparator"}, "gridPosition": {"row": 6, "column": 4}, "type": "secondary"}
 {"id": "btn_exec", "label": "执行", "action": {"type": "functionExecute"}, "gridPosition": {"row": 6, "column": 5}, "type": "operator"}
+
+// ✨自定义功能示例（新增）
+{"id": "btn_mortgage_3_5_30", "label": "房贷(3.5%/30年)", "action": {"type": "customFunction", "value": "mortgage_calculator", "parameters": {"annualRate": 3.5, "years": 30}}, "gridPosition": {"row": 6, "column": 0}, "type": "special"}
+{"id": "btn_compound_4_10", "label": "复利(4%/10年)", "action": {"type": "customFunction", "value": "compound_calculator", "parameters": {"rate": 4.0, "years": 10}}, "gridPosition": {"row": 6, "column": 1}, "type": "special"}
+{"id": "btn_usd_cny", "label": "USD→CNY(7.2)", "action": {"type": "customFunction", "value": "currency_converter", "parameters": {"fromCurrency": "USD", "toCurrency": "CNY", "rate": 7.2}}, "gridPosition": {"row": 6, "column": 2}, "type": "special"}
 ```
 
 ➡️ **输出格式**：
@@ -460,7 +556,29 @@ SYSTEM_PROMPT = """你是专业的计算器功能设计大师。你只负责按�
 - 如果需要替换现有按钮，选择最不常用的位置
 - 保持布局的逻辑性和易用性
 
-专注功能设计。基于用户需求进行功能增强或修改。严格确保所有生成的功能都能在底层计算引擎中可靠运行。
+🎯 **自定义功能生成规则**：
+1. **识别用户需求**：从用户描述中提取关键参数（利率、年限、汇率等）
+2. **选择合适的功能类型**：mortgage_calculator、compound_calculator等
+3. **生成描述性标签**：如"房贷(3.5%/30年)"、"复利(4%/10年)"
+4. **设置预设参数**：将用户提到的具体数值作为parameters
+5. **合理布局位置**：放在第6-8行，不影响基础功能
+
+🎯 **自定义功能示例场景**：
+```
+用户输入："利率3.5%，贷款30年，输入贷款金额，输出每个月应还房贷"
+AI生成：{"type": "customFunction", "value": "mortgage_calculator", "parameters": {"annualRate": 3.5, "years": 30}}
+按键标签："房贷(3.5%/30年)"
+
+用户输入："4%年利率复利计算，投资期10年"
+AI生成：{"type": "customFunction", "value": "compound_calculator", "parameters": {"rate": 4.0, "years": 10}}
+按键标签："复利(4%/10年)"
+
+用户输入："美元兑人民币汇率7.2，做货币转换"
+AI生成：{"type": "customFunction", "value": "currency_converter", "parameters": {"fromCurrency": "USD", "toCurrency": "CNY", "rate": 7.2}}
+按键标签："USD→CNY(7.2)"
+```
+
+专注功能设计。基于用户需求进行功能增强或修改。严格确保所有生成的功能都能在底层计算引擎中可靠运行。对于用户的具体计算需求，优先生成自定义功能按键。
 """
 
 # AI二次校验和修复系统提示 - 强化无效按键检测
@@ -488,6 +606,27 @@ VALIDATION_PROMPT = """你是配置修复专家。检查并修复生成的计算
 ✅ action: 正确的动作对象
 ✅ gridPosition: 在合理范围内的位置
 ✅ type: 有效的按键类型
+```
+
+🚨 **多参数函数必需按键检测与自动添加**：
+```
+自动检测规则（关键修复）：
+✅ 扫描所有按键，检查是否存在multiParamFunction类型按键
+✅ 如果发现多参数函数按键，检查是否同时存在：
+   - parameterSeparator类型的逗号按键（必需）
+   - functionExecute类型的执行按键（必需）
+✅ 如果缺少，立即自动添加到合适位置
+✅ 自动调整布局rows和columns以容纳新增按键
+
+自动添加的按键模板：
+逗号按键：{"id": "btn_comma_auto", "label": ",", "action": {"type": "parameterSeparator"}, "gridPosition": {"row": 6, "column": 3}, "type": "secondary"}
+执行按键：{"id": "btn_execute_auto", "label": "执行", "action": {"type": "functionExecute"}, "gridPosition": {"row": 6, "column": 4}, "type": "operator"}
+
+位置选择策略：
+1. 优先使用布局的最后一行右侧位置
+2. 如果最后一行已满，扩展到新行
+3. 确保逗号在执行键左侧（操作顺序逻辑）
+4. 自动更新layout.rows和layout.columns
 ```
 
 🚨 按钮字段规范：
@@ -1020,6 +1159,68 @@ def clean_invalid_buttons(config_dict: dict) -> dict:
         config_dict["layout"]["columns"] = max_col + 1  # column是0-based
     
     print(f"✅ 按键清理完成，有效按键数量: {len(valid_buttons)}")
+    
+    # 🚨 多参数函数必需按键检测与自动添加
+    has_multi_param_functions = any(
+        btn.get("action", {}).get("type") == "multiParamFunction" 
+        for btn in valid_buttons
+    )
+    
+    if has_multi_param_functions:
+        print("🔍 检测到多参数函数，检查是否需要添加逗号和执行按键")
+        
+        # 检查是否已存在逗号分隔符和执行按键
+        has_comma = any(
+            btn.get("action", {}).get("type") == "parameterSeparator"
+            for btn in valid_buttons
+        )
+        has_execute = any(
+            btn.get("action", {}).get("type") == "functionExecute"
+            for btn in valid_buttons
+        )
+        
+        # 计算下一个可用位置
+        if valid_buttons:
+            max_row = max(btn.get("gridPosition", {}).get("row", 1) for btn in valid_buttons)
+            max_col = max(btn.get("gridPosition", {}).get("column", 0) for btn in valid_buttons)
+        else:
+            max_row = 5
+            max_col = 3
+        
+        # 自动添加缺失的按键
+        if not has_comma:
+            comma_button = {
+                "id": "btn_comma_auto",
+                "label": ",",
+                "action": {"type": "parameterSeparator"},
+                "gridPosition": {"row": max_row + 1, "column": max_col},
+                "type": "secondary"
+            }
+            valid_buttons.append(comma_button)
+            print("✅ 自动添加逗号分隔符按键")
+            max_col += 1
+        
+        if not has_execute:
+            execute_button = {
+                "id": "btn_execute_auto", 
+                "label": "执行",
+                "action": {"type": "functionExecute"},
+                "gridPosition": {"row": max_row + 1, "column": max_col},
+                "type": "operator"
+            }
+            valid_buttons.append(execute_button)
+            print("✅ 自动添加执行按键")
+        
+        # 更新布局尺寸
+        if valid_buttons:
+            max_row = max(btn.get("gridPosition", {}).get("row", 1) for btn in valid_buttons)
+            max_col = max(btn.get("gridPosition", {}).get("column", 0) for btn in valid_buttons)
+            config_dict["layout"]["rows"] = max_row
+            config_dict["layout"]["columns"] = max_col + 1
+            print(f"📐 更新布局尺寸: {max_row}行 × {max_col + 1}列")
+    
+    # 更新最终按键列表
+    config_dict["layout"]["buttons"] = valid_buttons
     
     return config_dict
 
