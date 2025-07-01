@@ -281,101 +281,180 @@ class CalculatorDisplay extends StatelessWidget {
     }
   }
 
-  /// 构建多参数输入显示界面
+  /// 构建多参数输入显示界面 - 横向网格布局
   Widget _buildMultiParameterDisplay(BuildContext context, BoxConstraints constraints) {
     final functionName = state.currentFunction!;
     final params = state.functionParameters;
     final currentInput = state.display;
     
-    // 获取函数的参数配置 - 使用缓存减少重复计算
+    // 获取函数的参数配置
     final paramConfig = _getParameterConfig(functionName);
     final paramNames = paramConfig['paramNames'] as List<String>;
     final paramUnits = paramConfig['paramUnits'] as List<String>? ?? [];
     final minParams = paramConfig['minParams'] as int? ?? paramNames.length;
     
-    // 预计算颜色以避免重复解析
+    // 预计算颜色
     final displayTextColor = _parseColor(theme.displayTextColor);
-    final backgroundColor = displayTextColor.withValues(alpha: 0.05);
-    final currentBgColor = displayTextColor.withValues(alpha: 0.1);
+    final backgroundColor = displayTextColor.withValues(alpha: 0.08);
+    final currentBgColor = displayTextColor.withValues(alpha: 0.15);
     final borderColor = displayTextColor.withValues(alpha: 0.3);
     final hintColor = displayTextColor.withValues(alpha: 0.4);
     final subtitleColor = displayTextColor.withValues(alpha: 0.6);
     final normalColor = displayTextColor.withValues(alpha: 0.7);
     
-    return SingleChildScrollView(
-      physics: const BouncingScrollPhysics(),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // 精简的函数标题和进度 - 减少嵌套
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+    // 计算每行可显示的参数数量（根据屏幕宽度动态计算）
+    final screenWidth = constraints.maxWidth;
+    final paramWidth = 120.0; // 每个参数块的最小宽度
+    final spacing = 8.0;
+    final padding = 16.0;
+    final availableWidth = screenWidth - padding;
+    final itemsPerRow = math.max(1, (availableWidth / (paramWidth + spacing)).floor());
+    
+    // 准备显示的参数列表（当前参数+已输入参数）
+    final displayParams = <Widget>[];
+    final totalParamsToShow = math.min(paramNames.length, params.length + 1);
+    
+    for (int i = 0; i < totalParamsToShow; i++) {
+      final isCurrentParam = i == params.length;
+      final paramValue = i < params.length 
+          ? _formatParameterValue(params[i])
+          : (isCurrentParam ? currentInput : '');
+      final paramName = paramNames[i];
+      final paramUnit = paramUnits.length > i ? paramUnits[i] : '';
+      
+      displayParams.add(
+        Expanded(
+          child: Container(
+            margin: const EdgeInsets.all(2),
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
             decoration: BoxDecoration(
-              color: currentBgColor,
-              borderRadius: BorderRadius.circular(6),
+              color: isCurrentParam ? currentBgColor : backgroundColor,
+              borderRadius: BorderRadius.circular(8),
+              border: isCurrentParam ? Border.all(color: borderColor, width: 1.0) : null,
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
+                // 参数名称
                 Text(
+                  paramName,
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: subtitleColor,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 2),
+                // 参数值
+                Text(
+                  paramValue.isEmpty ? '待输入' : paramValue,
+                  style: TextStyle(
+                    fontSize: isCurrentParam ? 14 : 12,
+                    fontWeight: isCurrentParam ? FontWeight.w700 : FontWeight.w500,
+                    color: paramValue.isEmpty ? hintColor : displayTextColor,
+                    fontFamily: 'monospace',
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                // 单位
+                if (paramUnit.isNotEmpty)
+                  Text(
+                    paramUnit,
+                    style: TextStyle(
+                      fontSize: 8,
+                      color: subtitleColor,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+    
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // 函数标题和进度
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+          margin: const EdgeInsets.symmetric(horizontal: 4),
+          decoration: BoxDecoration(
+            color: currentBgColor,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
                   paramConfig['title'] ?? functionName,
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
                     color: displayTextColor,
                   ),
+                  overflow: TextOverflow.ellipsis,
                 ),
-                Text(
-                  '${params.length + 1}/${paramNames.length} ${_getStepIndicator(params.length, paramNames.length)}',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: subtitleColor,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          
-          const SizedBox(height: 6),
-          
-          // 优化的参数输入区域 - 只显示必要的参数
-          ...List.generate(
-            math.min(paramNames.length, params.length + 2), // 只显示当前参数前后2个
-            (index) => _buildParameterRow(
-              index,
-              paramNames[index],
-              paramUnits.length > index ? paramUnits[index] : '',
-              params,
-              currentInput,
-              backgroundColor,
-              currentBgColor,
-              borderColor,
-              hintColor,
-              displayTextColor,
-              subtitleColor,
-            ),
-          ),
-          
-          // 简化的预览结果 - 只在有足够参数时显示
-          if (params.length >= minParams) ...[
-            const SizedBox(height: 6),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: currentBgColor,
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: borderColor, width: 0.5),
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    '预览结果',
-                    style: TextStyle(fontSize: 11, color: normalColor),
-                  ),
-                  Text(
+              Text(
+                '${params.length + 1}/${paramNames.length} ${_getStepIndicator(params.length, paramNames.length)}',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: subtitleColor,
+                ),
+              ),
+            ],
+          ),
+        ),
+        
+        const SizedBox(height: 8),
+        
+        // 横向网格参数显示
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: Column(
+            children: [
+              // 将参数分组显示为多行
+              for (int i = 0; i < displayParams.length; i += itemsPerRow)
+                Row(
+                  children: displayParams
+                      .skip(i)
+                      .take(itemsPerRow)
+                      .toList(),
+                ),
+            ],
+          ),
+        ),
+        
+        // 预览结果
+        if (params.length >= minParams) ...[
+          const SizedBox(height: 8),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+            margin: const EdgeInsets.symmetric(horizontal: 4),
+            decoration: BoxDecoration(
+              color: currentBgColor,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: borderColor, width: 0.5),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  '预览结果',
+                  style: TextStyle(fontSize: 11, color: normalColor),
+                ),
+                Expanded(
+                  child: Text(
                     _calculatePreview(functionName, params),
                     style: TextStyle(
                       fontSize: 12,
@@ -383,15 +462,20 @@ class CalculatorDisplay extends StatelessWidget {
                       color: displayTextColor,
                       fontFamily: 'monospace',
                     ),
+                    textAlign: TextAlign.right,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
-          
-          // 精简的操作提示
-          const SizedBox(height: 4),
-          Text(
+          ),
+        ],
+        
+        // 简化的操作提示
+        const SizedBox(height: 6),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          child: Text(
             _getFunctionHint(functionName, params.length),
             style: TextStyle(
               fontSize: 9,
@@ -402,80 +486,12 @@ class CalculatorDisplay extends StatelessWidget {
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
-  /// 优化的参数行构建器 - 减少重复代码和嵌套
-  Widget _buildParameterRow(
-    int index,
-    String paramName,
-    String paramUnit,
-    List<double> params,
-    String currentInput,
-    Color backgroundColor,
-    Color currentBgColor,
-    Color borderColor,
-    Color hintColor,
-    Color displayTextColor,
-    Color subtitleColor,
-  ) {
-    final isCurrentParam = index == params.length;
-    final paramValue = index < params.length 
-        ? _formatParameterValue(params[index])
-        : (isCurrentParam ? currentInput : '');
-    
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.symmetric(vertical: 1),
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: isCurrentParam ? currentBgColor : backgroundColor,
-        borderRadius: BorderRadius.circular(4),
-        border: isCurrentParam ? Border.all(color: borderColor, width: 0.5) : null,
-      ),
-      child: Row(
-        children: [
-          // 参数名称 - 固定宽度
-          SizedBox(
-            width: 60,
-            child: Text(
-              paramName,
-              style: TextStyle(fontSize: 10, color: subtitleColor),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          
-          // 参数值 - 自适应宽度
-          Expanded(
-            child: Text(
-              paramValue.isEmpty ? '待输入' : paramValue,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: isCurrentParam ? FontWeight.w600 : FontWeight.normal,
-                color: paramValue.isEmpty ? hintColor : displayTextColor,
-                fontFamily: 'monospace',
-              ),
-              textAlign: TextAlign.right,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          
-          // 单位 - 固定小宽度
-          if (paramUnit.isNotEmpty)
-            Container(
-              width: 24,
-              alignment: Alignment.centerRight,
-              child: Text(
-                paramUnit,
-                style: TextStyle(fontSize: 9, color: subtitleColor),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
+
 
   /// 获取步骤指示器
   String _getStepIndicator(int current, int total) {

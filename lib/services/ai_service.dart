@@ -60,7 +60,7 @@ class AIService {
         url,
         headers: headers,
         body: body,
-      ).timeout(const Duration(seconds: 120)); // 增加超时到120秒
+      ).timeout(const Duration(seconds: 180)); // 增加超时到180秒
 
       print('📡 收到响应: ${response.statusCode}');
       
