@@ -316,6 +316,52 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
             ),
             const SizedBox(height: 16),
             
+            // 快速示例
+            Text(
+              '快速示例',
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: Colors.grey.shade700,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                '深蓝渐变 🌊💙',
+                '科技感 ⚡🔋',
+                '简约白色 ⚪🤍',
+                '夜空星辰 🌌⭐',
+                '温暖橙色 🍊🔥',
+                '森林绿 🌿🍃',
+                '紫色梦幻 💜🌈',
+                '金属质感 ⚙️✨',
+                '极简黑色 ⚫🖤',
+                '粉色温馨 🌸💕',
+              ].map((example) => 
+                ActionChip(
+                  label: Text(example, style: const TextStyle(fontSize: 11)),
+                  onPressed: () {
+                    String prompt = '';
+                    if (example.contains('深蓝渐变')) prompt = '深蓝色渐变背景，从深蓝到浅蓝的平滑过渡，现代简约风格';
+                    else if (example.contains('科技感')) prompt = '科技感背景，深色底配蓝色线条，未来主义设计风格';
+                    else if (example.contains('简约白色')) prompt = '简约白色背景，纯净素雅，带有微妙纹理';
+                    else if (example.contains('夜空星辰')) prompt = '夜空背景，深蓝色底配闪烁星点，浪漫神秘风格';
+                    else if (example.contains('温暖橙色')) prompt = '温暖的橙色渐变背景，充满活力的暖色调';
+                    else if (example.contains('森林绿')) prompt = '清新的绿色背景，自然森林风格，宁静舒适';
+                    else if (example.contains('紫色梦幻')) prompt = '紫色梦幻背景，神秘优雅的紫色渐变效果';
+                    else if (example.contains('金属质感')) prompt = '金属质感背景，银灰色金属纹理，工业现代风格';
+                    else if (example.contains('极简黑色')) prompt = '极简黑色背景，纯黑或深灰，现代高端风格';
+                    else if (example.contains('粉色温馨')) prompt = '温馨粉色背景，柔和的粉色调，甜美可爱风格';
+                    _appBgPromptController.text = prompt;
+                  },
+                  backgroundColor: Colors.grey.shade100,
+                ),
+              ).toList(),
+            ),
+            const SizedBox(height: 16),
+            
             // 提示词输入
             TextField(
               controller: _appBgPromptController,
@@ -712,6 +758,12 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
                 '抽象艺术 🎨🌈✨',
                 '金属质感 ⚙️🔧⚡',
                 '木纹材质 🌳🪵🍂',
+                '水晶质感 💎💠⚪',
+                '霓虹风格 🌈💫🔥',
+                '机械风格 ⚙️🔩🛠️',
+                '大理石纹 🗿🪨💎',
+                '渐变色彩 🌅🎨🌈',
+                '极简风格 ⚪⚫🔳',
               ].map((example) => 
                 ActionChip(
                   label: Text(example, style: const TextStyle(fontSize: 11)),
@@ -723,6 +775,12 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
                     else if (example.contains('抽象艺术')) prompt = '抽象艺术图案，色彩丰富的创意设计';
                     else if (example.contains('金属质感')) prompt = '金属质感纹理，工业风格的按键背景';
                     else if (example.contains('木纹材质')) prompt = '真实木纹纹理，自然温暖的木质感';
+                    else if (example.contains('水晶质感')) prompt = '透明水晶质感，带有光泽和折射效果的现代设计';
+                    else if (example.contains('霓虹风格')) prompt = '霓虹灯风格，充满活力的发光效果，适合动感按键';
+                    else if (example.contains('机械风格')) prompt = '机械工业风格，齿轮和螺丝纹理，精密感设计';
+                    else if (example.contains('大理石纹')) prompt = '优雅的大理石纹理，自然石材质感，高档奢华风格';
+                    else if (example.contains('渐变色彩')) prompt = '平滑的渐变色彩，现代时尚的色彩过渡效果';
+                    else if (example.contains('极简风格')) prompt = '极简主义设计，纯净的色彩和线条，现代简约风格';
                     _buttonPatternPromptController.text = prompt;
                   },
                   backgroundColor: Colors.grey.shade100,
