@@ -5,6 +5,30 @@ import '../models/calculator_dsl.dart';
 import 'dart:convert';
 import 'dart:math' as math;
 
+// 🔧 新增：全局图片缓存，避免重复解码base64导致闪烁
+class _ImageCache {
+  static final Map<String, MemoryImage> _cache = {};
+  
+  static MemoryImage getMemoryImage(String base64Data) {
+    if (_cache.containsKey(base64Data)) {
+      return _cache[base64Data]!;
+    }
+    
+    try {
+      final bytes = base64Decode(base64Data.split(',').last);
+      final memoryImage = MemoryImage(bytes);
+      _cache[base64Data] = memoryImage;
+      return memoryImage;
+    } catch (e) {
+      throw Exception('Failed to decode base64 image: $e');
+    }
+  }
+  
+  static void clearCache() {
+    _cache.clear();
+  }
+}
+
 class CalculatorButtonWidget extends StatefulWidget {
   final CalculatorButton button;
   final VoidCallback onPressed;
@@ -26,6 +50,10 @@ class _CalculatorButtonWidgetState extends State<CalculatorButtonWidget>
   late AnimationController _animationController;
   late Animation<double> _scaleAnimation;
   bool _isPressed = false;
+  
+  // 🔧 新增：缓存解码后的图片，避免重复解码
+  MemoryImage? _cachedMemoryImage;
+  String? _lastBackgroundImageData;
 
   @override
   void initState() {
@@ -41,6 +69,39 @@ class _CalculatorButtonWidgetState extends State<CalculatorButtonWidget>
       parent: _animationController,
       curve: Curves.easeInOut,
     ));
+    
+    // 🔧 预加载背景图片
+    _preloadBackgroundImage();
+  }
+
+  @override
+  void didUpdateWidget(CalculatorButtonWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    
+    // 🔧 检查背景图片是否发生变化，如有变化则重新加载
+    if (oldWidget.button.backgroundImage != widget.button.backgroundImage) {
+      _preloadBackgroundImage();
+    }
+  }
+
+  /// 🔧 预加载背景图片，避免重复解码
+  void _preloadBackgroundImage() {
+    final backgroundImage = widget.button.backgroundImage;
+    if (backgroundImage != null && backgroundImage.startsWith('data:image/')) {
+      if (_lastBackgroundImageData != backgroundImage) {
+        try {
+          _cachedMemoryImage = _ImageCache.getMemoryImage(backgroundImage);
+          _lastBackgroundImageData = backgroundImage;
+        } catch (e) {
+          print('Failed to preload background image: $e');
+          _cachedMemoryImage = null;
+          _lastBackgroundImageData = null;
+        }
+      }
+    } else {
+      _cachedMemoryImage = null;
+      _lastBackgroundImageData = null;
+    }
   }
 
   @override
@@ -386,7 +447,7 @@ class _CalculatorButtonWidgetState extends State<CalculatorButtonWidget>
     }
   }
 
-  /// 构建背景图像
+  /// 🔧 构建背景图像 - 使用缓存机制避免闪烁
   DecorationImage? _buildBackgroundImage(String? backgroundImage) {
     if (backgroundImage != null) {
       // 过滤掉明显无效的URL格式
@@ -397,16 +458,21 @@ class _CalculatorButtonWidgetState extends State<CalculatorButtonWidget>
       }
 
       if (backgroundImage.startsWith('data:image/')) {
-        // 处理base64格式
-        try {
-          final base64Data = backgroundImage.split(',').last;
-          final bytes = base64Decode(base64Data);
+        // 🔧 使用缓存的MemoryImage，避免重复解码导致闪烁
+        if (_cachedMemoryImage != null && _lastBackgroundImageData == backgroundImage) {
           return DecorationImage(
-            image: MemoryImage(bytes),
+            image: _cachedMemoryImage!,
             fit: BoxFit.cover,
           );
-        } catch (e) {
-          print('Failed to decode base64 button background image: $e');
+        } else {
+          // 如果缓存不匹配，重新加载
+          _preloadBackgroundImage();
+          if (_cachedMemoryImage != null) {
+            return DecorationImage(
+              image: _cachedMemoryImage!,
+              fit: BoxFit.cover,
+            );
+          }
           return null;
         }
       } else if (Uri.tryParse(backgroundImage)?.isAbsolute == true) {
