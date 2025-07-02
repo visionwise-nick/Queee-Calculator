@@ -341,8 +341,8 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
       
       // 💼 基础金融场景 - 简化版本
       '汇率换算器：美元、欧元、日元与人民币互换，支持常见汇率计算',
-      '存款利息计算器：计算存款利息收益，输入本金和利率自动计算',
-      '分期付款计算器：信用卡分期、花呗分期月供计算，支持常见分期期数',
+      '简单利息计算器：本金乘以利率计算利息，例如10000*0.05计算年利息',
+      '购物预算计算器：购物金额加减优惠券，计算实际支付金额',
     ];
 
     showModalBottomSheet(
@@ -466,8 +466,8 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
                           Icons.data_object,    // 进制转换
                           // 基础金融
                           Icons.currency_exchange, // 汇率
-                          Icons.savings,        // 利息
-                          Icons.credit_card,    // 分期
+                          Icons.calculate,      // 简单利息
+                          Icons.shopping_cart,  // 购物预算
                         ];
                         
                         final categories = [
