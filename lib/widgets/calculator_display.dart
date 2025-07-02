@@ -323,7 +323,7 @@ class CalculatorDisplay extends StatelessWidget {
           
           const SizedBox(height: 6),
           
-          // 精简的函数信息行
+          // 精简的进度指示器 - 不再重复显示函数名
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 8),
@@ -335,7 +335,7 @@ class CalculatorDisplay extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  paramConfig['title'] ?? functionName,
+                  '输入参数${params.length + 1}/${_getExpectedParamCount(functionName)}',
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
@@ -343,7 +343,7 @@ class CalculatorDisplay extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  '参数${params.length + 1}/${_getExpectedParamCount(functionName)} ${_getStepIndicator(params.length, _getExpectedParamCount(functionName))}',
+                  '${_getStepIndicator(params.length, _getExpectedParamCount(functionName))}',
                   style: TextStyle(
                     fontSize: 10,
                     color: subtitleColor,

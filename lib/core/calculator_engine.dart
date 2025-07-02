@@ -179,17 +179,15 @@ class CalculatorState {
     // 构建参数列表，用0填充未输入的参数
     List<String> paramStrings = [];
     
-    // 添加已输入的参数
+    // 添加已输入完成的参数
     for (double param in functionParameters) {
       paramStrings.add(_formatParameter(param));
     }
     
-    // 添加当前正在输入的参数（如果有的话）
-    if (display != '0' || functionParameters.isEmpty) {
-      paramStrings.add(display);
-    }
+    // 添加当前正在输入的参数
+    paramStrings.add(display);
     
-    // 根据函数类型确定总参数数量并用0填充
+    // 根据函数类型确定总参数数量并用0填充剩余位置
     int totalParams = _getExpectedParamCount(currentFunction!);
     while (paramStrings.length < totalParams) {
       paramStrings.add('0');
@@ -520,17 +518,14 @@ class CalculatorEngine {
       _state = const CalculatorState();
     }
     
-    // 获取当前显示的数值作为第一个参数
-    double firstParam = double.parse(_state.display);
-    
-    print('🔧 开始多参数函数：$functionName, 第一个参数：$firstParam');
+    print('🔧 开始多参数函数：$functionName，不读取屏幕数字，从空参数开始');
     
     _state = _state.copyWith(
       currentFunction: functionName,
-      functionParameters: [firstParam],
-      currentParameterIndex: 1,
+      functionParameters: [], // 空参数列表，不读取当前屏幕数字
+      currentParameterIndex: 0, // 从第0个参数开始
       isInputtingFunction: true,
-      display: '0',
+      display: '0', // 重置为0，让用户输入第一个参数
       waitingForOperand: false,
     );
     
