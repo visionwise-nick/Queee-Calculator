@@ -330,14 +330,25 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
 
   void _showQuickReplies() {
     final quickReplies = [
-      '设计一个完整的科学计算器：包含三角函数(sin/cos/tan)、对数运算(log/ln)、幂运算(x²/x³/x^y)、开根号、反三角函数、双曲函数等科学计算功能，支持度数和弧度模式切换',
-      '创建一个专业金融投资计算器：包含复利计算、贷款利率、投资回报率、小费计算(15%/18%/20%)、税率计算、汇率转换、抵押贷款计算等实用金融功能',
-      '我想要一个多功能单位转换计算器：包含基础运算、平方/立方计算、百分比计算、温度转换(华氏度/摄氏度)、长度转换(英寸/厘米/英尺/米)、重量转换等实用功能',
-      '设计一个极简高级科学计算器：包含基础四则运算、科学计算(sin/cos/log/sqrt)、工程计算(倒数/绝对值/阶乘)、内存存储功能、历史记录查看等高级功能',
-      '创建一个游戏开发者专用计算器：包含基础运算、游戏相关计算(伤害计算/概率计算/经验值计算)、进制转换(二进制/八进制/十六进制)、随机数生成、坐标计算等功能',
-      '我需要一个完整的工程师专用计算器：包含完整的三角函数、双曲函数、对数函数、指数函数、幂运算、根号运算、倒数、绝对值、阶乘、排列组合等数学函数',
-      '设计一个数学学习专用计算器：包含基础运算、分数计算、小数转分数、方程求解、统计计算(平均数/中位数/标准差)、几何计算(面积/体积)等学习功能',
-      '创建一个数据分析专用计算器：包含基础运算、统计函数、概率计算、线性回归、数据处理、百分位数计算、相关系数计算等数据分析专用功能',
+      // 🏦 金融计算专家级
+      '利率3.5%贷款30年房贷计算器：输入贷款金额，一键计算每月还款额，包含本息合计、利息总额、还款明细等专业房贷功能',
+      '年化收益率6%复利投资计算器：本金10万投资10年，自动计算复利增长，包含年度收益表、投资增长曲线、收益率对比等功能',
+      '美元兑人民币汇率7.20货币转换器：支持USD、CNY、EUR、JPY等主流货币互转，实时汇率计算，旅行购物必备工具',
+      
+      // 🔬 科学计算专业级
+      '完整科学计算器：三角函数(sin/cos/tan)、对数运算(log/ln/log2)、幂运算(x²/x³/x^y)、开根号(√/∛)、反三角函数、双曲函数，支持度数弧度切换',
+      '工程师专用计算器：精密计算工具，包含科学常数(π/e)、统计函数(均值/方差/标准差)、组合排列(C/P)、阶乘、倒数等高级数学函数',
+      '程序员进制转换器：支持二进制、八进制、十进制、十六进制互转，位运算(AND/OR/XOR)，编程开发必备工具',
+      
+      // 💼 实用工具专家级
+      'BMI健康指数计算器：输入身高体重自动计算BMI指数，提供健康评估建议，支持国际标准和亚洲标准对比分析',
+      '多功能单位转换器：长度(厘米↔英寸↔英尺)、重量(公斤↔磅↔盎司)、温度(摄氏度↔华氏度)、面积体积转换，生活工作全覆盖',
+      '智能折扣税费计算器：打8折+13%税费一键计算，支持优惠券叠加、会员折扣、税率计算，购物省钱神器',
+      
+      // 🎯 专业定制计算器
+      '餐厅小费计算器：15%/18%/20%小费标准，按人数平摊账单，支持自定义小费比例，聚餐必备工具',
+      '燃油效率计算器：油价8.5元/升，输入里程自动计算油费，支持百公里油耗、每公里成本分析，开车省钱助手',
+      '学生成绩统计器：输入各科分数自动计算平均分、总分、排名预估，支持加权平均、学分计算，学习成绩管理专家',
     ];
 
     showModalBottomSheet(
@@ -388,26 +399,48 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
                 itemBuilder: (context, index) {
                   final reply = quickReplies[index];
                   final colors = [
-                    [Colors.purple.shade100, Colors.purple.shade50],
+                    // 🏦 金融计算专家级 - 蓝色系
                     [Colors.blue.shade100, Colors.blue.shade50],
-                    [Colors.pink.shade100, Colors.pink.shade50],
-                    [Colors.grey.shade100, Colors.grey.shade50],
-                    [Colors.green.shade100, Colors.green.shade50],
-                    [Colors.orange.shade100, Colors.orange.shade50],
-                    [Colors.brown.shade100, Colors.brown.shade50],
                     [Colors.indigo.shade100, Colors.indigo.shade50],
+                    [Colors.cyan.shade100, Colors.cyan.shade50],
+                    
+                    // 🔬 科学计算专业级 - 紫色系
+                    [Colors.purple.shade100, Colors.purple.shade50],
+                    [Colors.deepPurple.shade100, Colors.deepPurple.shade50],
+                    [Colors.teal.shade100, Colors.teal.shade50],
+                    
+                    // 💼 实用工具专家级 - 绿色系
+                    [Colors.green.shade100, Colors.green.shade50],
+                    [Colors.lightGreen.shade100, Colors.lightGreen.shade50],
+                    [Colors.orange.shade100, Colors.orange.shade50],
+                    
+                    // 🎯 专业定制计算器 - 暖色系
+                    [Colors.pink.shade100, Colors.pink.shade50],
+                    [Colors.amber.shade100, Colors.amber.shade50],
+                    [Colors.red.shade100, Colors.red.shade50],
                   ];
                   
                   final colorPair = colors[index % colors.length];
                   final icons = [
-                    Icons.flash_on,
-                    Icons.account_balance,
-                    Icons.favorite,
-                    Icons.apple,
-                    Icons.games,
-                    Icons.engineering,
-                    Icons.nature,
-                    Icons.bedtime,
+                    // 🏦 金融计算专家级
+                    Icons.home_work,           // 房贷计算器
+                    Icons.trending_up,         // 复利投资计算器
+                    Icons.currency_exchange,   // 货币转换器
+                    
+                    // 🔬 科学计算专业级
+                    Icons.functions,           // 完整科学计算器
+                    Icons.engineering,         // 工程师专用计算器
+                    Icons.developer_mode,      // 程序员进制转换器
+                    
+                    // 💼 实用工具专家级
+                    Icons.health_and_safety,   // BMI健康指数计算器
+                    Icons.swap_horiz,          // 多功能单位转换器
+                    Icons.local_offer,         // 智能折扣税费计算器
+                    
+                    // 🎯 专业定制计算器
+                    Icons.restaurant,          // 餐厅小费计算器
+                    Icons.local_gas_station,   // 燃油效率计算器
+                    Icons.school,              // 学生成绩统计器
                   ];
                   
                   return Container(
