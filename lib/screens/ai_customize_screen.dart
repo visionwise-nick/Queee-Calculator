@@ -337,7 +337,7 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
       // 📊 学习工作场景 - 高频使用
       '百分比计算器：快速计算百分比、百分比增减、占比分析等常用百分比运算',
       '平均分计算器：输入多个成绩，自动计算平均分、总分、最高最低分',
-      '比例计算器：解决比例问题，如3:4=x:12，自动计算未知数',
+      '进制转换计算器：支持二进制、八进制、十进制、十六进制之间任意转换',
       
       // 💼 基础金融场景 - 简化版本
       '汇率换算器：美元、欧元、日元与人民币互换，支持常见汇率计算',
@@ -463,7 +463,7 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
                           // 学习工作  
                           Icons.percent,        // 百分比
                           Icons.calculate,      // 平均分
-                          Icons.compare_arrows, // 比例
+                          Icons.data_object,    // 进制转换
                           // 基础金融
                           Icons.currency_exchange, // 汇率
                           Icons.savings,        // 利息
