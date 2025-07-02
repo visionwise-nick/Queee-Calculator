@@ -801,20 +801,6 @@ class CalculatorEngine {
         case 'factorial(x)':
           return _factorial(x.toInt()).toDouble();
         
-        // 🔧 新增：进制转换功能 - 使用数学方法
-        case 'dec_to_bin(x)':  
-          return _convertToBase(x.toInt(), 2); // 十进制转二进制（以十进制数值表示）
-        case 'dec_to_oct(x)':
-          return _convertToBase(x.toInt(), 8); // 十进制转八进制（以十进制数值表示）
-        case 'dec_to_hex(x)':
-          return _convertToBase(x.toInt(), 16); // 十进制转十六进制（以十进制数值表示）
-        case 'bin_to_dec(x)':
-          return _convertFromBase(x.toInt(), 2); // 二进制转十进制
-        case 'oct_to_dec(x)':
-          return _convertFromBase(x.toInt(), 8); // 八进制转十进制
-        case 'hex_to_dec(x)':
-          return _convertFromBase(x.toInt(), 16); // 十六进制转十进制
-        
         // 🔧 增强单位转换功能
         // 温度转换
         case 'x*9/5+32':
@@ -1163,60 +1149,6 @@ class CalculatorEngine {
     return result;
   }
 
-  /// 🔧 新增：进制转换 - 十进制转任意进制
-  double _convertToBase(int number, int base) {
-    if (base < 2 || base > 36) throw Exception('进制必须在2-36之间');
-    if (number < 0) throw Exception('暂不支持负数进制转换');
-    
-    if (number == 0) return 0;
-    
-    List<int> digits = [];
-    int temp = number;
-    
-    while (temp > 0) {
-      digits.add(temp % base);
-      temp = temp ~/ base;
-    }
-    
-    // 将结果组合成一个数值（适用于2-10进制）
-    // 对于16进制以上，会用数字表示（例如：A=10, B=11等）
-    if (base <= 10) {
-      double result = 0;
-      for (int i = digits.length - 1; i >= 0; i--) {
-        result = result * 10 + digits[i];
-      }
-      return result;
-    } else {
-      // 对于16进制以上，使用特殊编码
-      // 例如十六进制FF会被表示为特殊数值
-      double result = 0;
-      for (int i = digits.length - 1; i >= 0; i--) {
-        result = result * 100 + digits[i]; // 用100进制来表示大于10的数字
-      }
-      return result;
-    }
-  }
-  
-  /// 🔧 新增：进制转换 - 任意进制转十进制
-  double _convertFromBase(int number, int base) {
-    if (base < 2 || base > 36) throw Exception('进制必须在2-36之间');
-    if (number < 0) throw Exception('暂不支持负数进制转换');
-    
-    String numStr = number.toString();
-    double result = 0;
-    int power = 0;
-    
-    // 从右到左处理每一位
-    for (int i = numStr.length - 1; i >= 0; i--) {
-      int digit = int.parse(numStr[i]);
-      if (digit >= base) throw Exception('数字 $digit 超出 $base 进制范围');
-      result += digit * math.pow(base, power);
-      power++;
-    }
-    
-    return result;
-  }
-
   /// 计算多参数函数
   double _evaluateMultiParamFunction(String functionName, List<double> params) {
     print('🔧 计算多参数函数：$functionName, 参数：$params');
@@ -1393,56 +1325,6 @@ class CalculatorEngine {
           return (params[0] * factor).round() / factor;
         }
         throw Exception('round函数需要1或2个参数');
-      
-      // 🔧 新增：进制转换多参数函数
-      case '进制转换':
-      case 'baseconvert':
-      case 'base_convert':
-        if (params.length == 2) {
-          // 默认从10进制转换到目标进制
-          int number = params[0].toInt();
-          int targetBase = params[1].toInt();
-          return _convertToBase(number, targetBase);
-        } else if (params.length == 3) {
-          // 从源进制转换到目标进制
-          int number = params[0].toInt();
-          int sourceBase = params[1].toInt();
-          int targetBase = params[2].toInt();
-          // 先转为十进制，再转为目标进制
-          double decimalValue = _convertFromBase(number, sourceBase);
-          return _convertToBase(decimalValue.toInt(), targetBase);
-        }
-        throw Exception('进制转换需要2个参数（数值,目标进制）或3个参数（数值,源进制,目标进制）');
-      
-      case '十进制转二进制':
-      case 'dec_to_bin':
-        if (params.length != 1) throw Exception('十进制转二进制需要1个参数');
-        return _convertToBase(params[0].toInt(), 2);
-      
-      case '十进制转八进制':
-      case 'dec_to_oct':
-        if (params.length != 1) throw Exception('十进制转八进制需要1个参数');
-        return _convertToBase(params[0].toInt(), 8);
-      
-      case '十进制转十六进制':
-      case 'dec_to_hex':
-        if (params.length != 1) throw Exception('十进制转十六进制需要1个参数');
-        return _convertToBase(params[0].toInt(), 16);
-      
-      case '二进制转十进制':
-      case 'bin_to_dec':
-        if (params.length != 1) throw Exception('二进制转十进制需要1个参数');
-        return _convertFromBase(params[0].toInt(), 2);
-      
-      case '八进制转十进制':
-      case 'oct_to_dec':
-        if (params.length != 1) throw Exception('八进制转十进制需要1个参数');
-        return _convertFromBase(params[0].toInt(), 8);
-      
-      case '十六进制转十进制':
-      case 'hex_to_dec':
-        if (params.length != 1) throw Exception('十六进制转十进制需要1个参数');
-        return _convertFromBase(params[0].toInt(), 16);
       
       // 金融和货币转换函数
       case '汇率转换':

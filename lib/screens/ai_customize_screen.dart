@@ -322,292 +322,209 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
     }
   }
 
+
+
+
+
+
+
   void _showQuickReplies() {
     final quickReplies = [
-      // 💰 日常购物场景 - 最高频实用
-      '购物折扣计算器：输入原价一键计算8折、9折价格，显示优惠金额，支持常见折扣比例',
-      '小费计算器：输入账单金额，自动计算15%、18%、20%小费，显示总金额',
-      '税费计算器：输入商品金额，自动加上13%增值税，显示含税价格',
+      // 🏦 金融计算专家级
+      '利率3.5%贷款30年房贷计算器：输入贷款金额，一键计算每月还款额，包含本息合计、利息总额、还款明细等专业房贷功能',
+      '年化收益率6%复利投资计算器：本金10万投资10年，自动计算复利增长，包含年度收益表、投资增长曲线、收益率对比等功能',
+      '美元兑人民币汇率7.20货币转换器：支持USD、CNY、EUR、JPY等主流货币互转，实时汇率计算，旅行购物必备工具',
       
-      // 🏠 生活实用场景 - 简单实用  
-      '单位换算计算器：支持常用单位转换，英寸转厘米、华氏度转摄氏度、磅转公斤',
-      '比例计算器：解决比例问题，如3:4=x:12求解未知数x',
-      '油耗计算器：输入里程和油费，计算每公里油耗成本',
+      // 🔬 科学计算专业级
+      '完整科学计算器：三角函数(sin/cos/tan)、对数运算(log/ln/log2)、幂运算(x²/x³/x^y)、开根号(√/∛)、反三角函数、双曲函数，支持度数弧度切换',
+      '工程师专用计算器：精密计算工具，包含科学常数(π/e)、统计函数(均值/方差/标准差)、组合排列(C/P)、阶乘、倒数等高级数学函数',
+      '程序员进制转换器：支持二进制、八进制、十进制、十六进制互转，位运算(AND/OR/XOR)，编程开发必备工具',
       
-      // 📊 学习工作场景 - 高频使用
-      '科学计算器：支持三角函数sin、cos、tan，对数log、ln，幂运算pow等科学计算',
-      '平均分计算器：输入多个成绩，自动计算平均分、总分、最高最低分',
-      '进制转换计算器：支持二进制、八进制、十进制、十六进制之间任意转换',
+      // 💼 实用工具专家级
+      'BMI健康指数计算器：输入身高体重自动计算BMI指数，提供健康评估建议，支持国际标准和亚洲标准对比分析',
+      '多功能单位转换器：长度(厘米↔英寸↔英尺)、重量(公斤↔磅↔盎司)、温度(摄氏度↔华氏度)、面积体积转换，生活工作全覆盖',
+      '智能折扣税费计算器：打8折+13%税费一键计算，支持优惠券叠加、会员折扣、税率计算，购物省钱神器',
       
-      // 💼 基础金融场景 - 简化版本
-      '汇率换算器：美元、欧元、日元与人民币互换，支持常见汇率计算',
-      '房贷利息计算器：计算房贷利息，如贷款100万30年，利息=100*30*0.05',
-      '复利投资计算器：计算复利投资收益，本金*(1+利率)^年数',
+      // 🎯 专业定制计算器
+      '餐厅小费计算器：15%/18%/20%小费标准，按人数平摊账单，支持自定义小费比例，聚餐必备工具',
+      '燃油效率计算器：油价8.5元/升，输入里程自动计算油费，支持百公里油耗、每公里成本分析，开车省钱助手',
+      '学生成绩统计器：输入各科分数自动计算平均分、总分、排名预估，支持加权平均、学分计算，学习成绩管理专家',
     ];
 
     showModalBottomSheet(
       context: context,
-      isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) {
-        return DraggableScrollableSheet(
-          initialChildSize: 0.7,
-          maxChildSize: 0.9,
-          minChildSize: 0.3,
-          builder: (context, scrollController) {
-            return Container(
+      isScrollControlled: true,
+      builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.8,
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.symmetric(vertical: 12),
               decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surface,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.1),
-                    blurRadius: 10,
-                    offset: const Offset(0, -2),
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.amber.shade100,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(Icons.palette, color: Colors.amber.shade700),
+                  ),
+                  const SizedBox(width: 12),
+                  const Text(
+                    '⚡ 功能案例库',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   ),
                 ],
               ),
-              child: Column(
-                children: [
-                  // 顶部拖拽指示器
-                  Container(
-                    margin: const EdgeInsets.only(top: 12, bottom: 8),
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade300,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
+            ),
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                itemCount: quickReplies.length,
+                itemBuilder: (context, index) {
+                  final reply = quickReplies[index];
+                  final colors = [
+                    // 🏦 金融计算专家级 - 蓝色系
+                    [Colors.blue.shade100, Colors.blue.shade50],
+                    [Colors.indigo.shade100, Colors.indigo.shade50],
+                    [Colors.cyan.shade100, Colors.cyan.shade50],
+                    
+                    // 🔬 科学计算专业级 - 紫色系
+                    [Colors.purple.shade100, Colors.purple.shade50],
+                    [Colors.deepPurple.shade100, Colors.deepPurple.shade50],
+                    [Colors.teal.shade100, Colors.teal.shade50],
+                    
+                    // 💼 实用工具专家级 - 绿色系
+                    [Colors.green.shade100, Colors.green.shade50],
+                    [Colors.lightGreen.shade100, Colors.lightGreen.shade50],
+                    [Colors.orange.shade100, Colors.orange.shade50],
+                    
+                    // 🎯 专业定制计算器 - 暖色系
+                    [Colors.pink.shade100, Colors.pink.shade50],
+                    [Colors.amber.shade100, Colors.amber.shade50],
+                    [Colors.red.shade100, Colors.red.shade50],
+                  ];
                   
-                  // 标题
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                    child: Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
+                  final colorPair = colors[index % colors.length];
+                  final icons = [
+                    // 🏦 金融计算专家级
+                    Icons.home_work,           // 房贷计算器
+                    Icons.trending_up,         // 复利投资计算器
+                    Icons.currency_exchange,   // 货币转换器
+                    
+                    // 🔬 科学计算专业级
+                    Icons.functions,           // 完整科学计算器
+                    Icons.engineering,         // 工程师专用计算器
+                    Icons.developer_mode,      // 程序员进制转换器
+                    
+                    // 💼 实用工具专家级
+                    Icons.health_and_safety,   // BMI健康指数计算器
+                    Icons.swap_horiz,          // 多功能单位转换器
+                    Icons.local_offer,         // 智能折扣税费计算器
+                    
+                    // 🎯 专业定制计算器
+                    Icons.restaurant,          // 餐厅小费计算器
+                    Icons.local_gas_station,   // 燃油效率计算器
+                    Icons.school,              // 学生成绩统计器
+                  ];
+                  
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: () {
+                          Navigator.pop(context);
+                          _sendMessage(reply);
+                        },
+                        borderRadius: BorderRadius.circular(16),
+                        child: Container(
+                          padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
-                              colors: [Colors.blue.shade400, Colors.purple.shade400],
+                              colors: colorPair,
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
                             ),
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: colorPair[0]),
                           ),
-                          child: const Icon(Icons.lightbulb, color: Colors.white, size: 20),
-                        ),
-                        const SizedBox(width: 12),
-                        const Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                          child: Row(
                             children: [
-                              Text(
-                                '实用计算案例库',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(12),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.1),
+                                      blurRadius: 4,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: Icon(
+                                  icons[index % icons.length],
+                                  color: colorPair[0],
+                                  size: 24,
                                 ),
                               ),
-                              Text(
-                                '精选12个日常高频计算场景',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey,
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Text(
+                                  reply,
+              style: TextStyle(
+                                    fontSize: 14,
+                                    height: 1.4,
+                                    color: Colors.grey.shade800,
+                                    fontWeight: FontWeight.w500,
+                                  ),
                                 ),
+                              ),
+                              Icon(
+                                Icons.arrow_forward_ios,
+                                size: 16,
+                                color: Colors.grey.shade400,
                               ),
                             ],
                           ),
                         ),
-                      ],
-                    ),
-                  ),
-                  
-                  // 案例列表
-                  Expanded(
-                    child: ListView.builder(
-                      controller: scrollController,
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      itemCount: quickReplies.length,
-                      itemBuilder: (context, index) {
-                        // 按类别分组的颜色和图标
-                        final colors = [
-                          // 购物场景 - 绿色系
-                          [Colors.green.shade100, Colors.green.shade50],
-                          [Colors.green.shade100, Colors.green.shade50], 
-                          [Colors.green.shade100, Colors.green.shade50],
-                          // 生活实用 - 蓝色系
-                          [Colors.blue.shade100, Colors.blue.shade50],
-                          [Colors.blue.shade100, Colors.blue.shade50],
-                          [Colors.blue.shade100, Colors.blue.shade50],
-                          // 学习工作 - 紫色系
-                          [Colors.purple.shade100, Colors.purple.shade50],
-                          [Colors.purple.shade100, Colors.purple.shade50],
-                          [Colors.purple.shade100, Colors.purple.shade50],
-                          // 基础金融 - 橙色系
-                          [Colors.orange.shade100, Colors.orange.shade50],
-                          [Colors.orange.shade100, Colors.orange.shade50],
-                          [Colors.orange.shade100, Colors.orange.shade50],
-                        ];
-                        
-                        final colorPair = colors[index % colors.length];
-                        final icons = [
-                          // 购物场景
-                          Icons.local_offer,    // 折扣
-                          Icons.restaurant,     // 小费  
-                          Icons.receipt_long,   // 税费
-                          // 生活实用
-                          Icons.straighten,     // 单位换算
-                          Icons.analytics,      // 比例
-                          Icons.local_gas_station, // 油耗
-                          // 学习工作  
-                          Icons.functions,      // 科学计算器
-                          Icons.calculate,      // 平均分
-                          Icons.data_object,    // 进制转换
-                          // 基础金融
-                          Icons.currency_exchange, // 汇率
-                          Icons.home,           // 房贷月供
-                          Icons.trending_up,    // 复利投资
-                        ];
-                        
-                        final categories = [
-                          '💰购物', '💰购物', '💰购物',
-                          '🏠生活', '🏠生活', '🏠生活', 
-                          '📊学习', '📊学习', '📊学习',
-                          '💼金融', '💼金融', '💼金融',
-                        ];
-                        
-                        return Container(
-                          margin: const EdgeInsets.only(bottom: 8),
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: colorPair,
-                              begin: Alignment.centerLeft,
-                              end: Alignment.centerRight,
-                            ),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: colorPair[0].withValues(alpha: 0.3),
-                              width: 1,
-                            ),
-                          ),
-                          child: Material(
-                            color: Colors.transparent,
-                            child: InkWell(
-                              borderRadius: BorderRadius.circular(12),
-                              onTap: () {
-                                Navigator.pop(context);
-                                _sendMessage(quickReplies[index]);
-                              },
-                              child: Padding(
-                                padding: const EdgeInsets.all(16),
-                                child: Row(
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.all(10),
-                                      decoration: BoxDecoration(
-                                        color: Colors.white.withValues(alpha: 0.8),
-                                        borderRadius: BorderRadius.circular(10),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: Colors.black.withValues(alpha: 0.1),
-                                            blurRadius: 4,
-                                            offset: const Offset(0, 2),
-                                          ),
-                                        ],
-                                      ),
-                                      child: Icon(
-                                        icons[index % icons.length],
-                                        color: colorPair[0],
-                                        size: 24,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 16),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Row(
-                                            children: [
-                                              Container(
-                                                padding: const EdgeInsets.symmetric(
-                                                  horizontal: 8, 
-                                                  vertical: 2
-                                                ),
-                                                decoration: BoxDecoration(
-                                                  color: colorPair[0].withValues(alpha: 0.6),
-                                                  borderRadius: BorderRadius.circular(10),
-                                                ),
-                                                child: Text(
-                                                  categories[index],
-                                                  style: const TextStyle(
-                                                    fontSize: 10,
-                                                    fontWeight: FontWeight.w600,
-                                                    color: Colors.white,
-                                                  ),
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                          const SizedBox(height: 6),
-                                          Text(
-                                            quickReplies[index].split('：')[0],
-                                            style: const TextStyle(
-                                              fontSize: 15,
-                                              fontWeight: FontWeight.w600,
-                                              color: Colors.black87,
-                                            ),
-                                          ),
-                                          const SizedBox(height: 4),
-                                          Text(
-                                            quickReplies[index].split('：').length > 1 
-                                                ? quickReplies[index].split('：')[1]
-                                                : quickReplies[index],
-                                            style: TextStyle(
-                                              fontSize: 12,
-                                              color: Colors.grey.shade600,
-                                              height: 1.3,
-                                            ),
-                                            maxLines: 2,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    Icon(
-                                      Icons.arrow_forward_ios,
-                                      size: 16,
-                                      color: Colors.grey.shade400,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                  
-                  // 底部提示
-                  Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Text(
-                      '💡 选择场景描述，AI将自动生成专用计算器',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Colors.grey.shade500,
-                        fontStyle: FontStyle.italic,
                       ),
                     ),
-                  ),
-                ],
+                  );
+                },
               ),
-            );
-          },
-        );
-      },
+            ),
+
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Text(
+                '💡 点击任意功能案例开始创建',
+              style: TextStyle(
+                  color: Colors.grey.shade600,
+                fontSize: 14,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -670,6 +587,8 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
       ),
     );
   }
+
+
 
   Widget _buildMessageBubble(ConversationMessage message, int index) {
     final isUser = message.type == MessageType.user;
