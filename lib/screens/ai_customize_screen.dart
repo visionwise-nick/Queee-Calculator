@@ -324,25 +324,27 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
 
   void _showQuickReplies() {
     final quickReplies = [
-      // 💰 日常购物场景 - 最高频实用
+      // 🎓 学生专用计算器 - 学业必备
+      '学生成绩分析器：输入各科成绩计算GPA、平均分、加权学分，支持4.0和百分制转换，显示学业状况和排名预估',
+      '高考志愿计算器：根据高考分数、省排名、历年分数线，计算录取概率，支持冲稳保梯度分析',
+      '考研分数计算器：政治英语数学专业课四科计算总分，预估录取线差距，包含国家线和院校线对比',
+      
+      // 🏠 房产投资专家 - 购房必备
+      '房贷专家计算器：商业贷款、公积金贷款、组合贷款月供计算，等额本息等额本金对比，提前还款收益分析',
+      '房产投资分析器：房价涨幅、租金收益率、投资回报周期计算，包含税费、装修、空置期等完整成本分析',
+      
+      // 💼 投资理财专家 - 财富管理
+      '复利投资计算器：定投收益、复合增长率计算，支持月定投年定投，可设置不同收益率和投资期限场景',
+      '基金股票分析器：买入卖出收益计算、持仓成本分析、止盈止损点设置，支持手续费和税费精确计算',
+      
+      // 🔬 工程师科学计算器 - 专业工具
+      '工程师专用计算器：完整三角函数、对数指数、统计函数，支持角度弧度转换、科学计数法、工程单位换算',
+      
+      // 💰 生活理财助手 - 日常必备
       '购物折扣计算器：输入原价一键计算8折、9折价格，显示优惠金额，支持常见折扣比例',
       '小费计算器：输入账单金额，自动计算15%、18%、20%小费，显示总金额',
       '税费计算器：输入商品金额，自动加上13%增值税，显示含税价格',
-      
-      // 🏠 生活实用场景 - 简单实用  
-      '单位换算计算器：支持常用单位转换，英寸转厘米、华氏度转摄氏度、磅转公斤',
-      'BMI计算器：输入身高体重，计算BMI指数，显示健康状态评估',
       '油耗计算器：输入里程和油费，计算每公里油耗成本',
-      
-      // 📊 学习工作场景 - 高频使用
-      '百分比计算器：快速计算百分比、百分比增减、占比分析等常用百分比运算',
-      '平均分计算器：输入多个成绩，自动计算平均分、总分、最高最低分',
-      '进制转换计算器：支持二进制、八进制、十进制、十六进制之间任意转换',
-      
-      // 💼 基础金融场景 - 简化版本
-      '汇率换算器：美元、欧元、日元与人民币互换，支持常见汇率计算',
-      '简单利息计算器：本金乘以利率计算利息，例如10000*0.05计算年利息',
-      '购物预算计算器：购物金额加减优惠券，计算实际支付金额',
     ];
 
     showModalBottomSheet(
@@ -403,14 +405,14 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                '实用计算案例库',
+                                '专业计算案例库',
                                 style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
                               Text(
-                                '精选12个日常高频计算场景',
+                                '针对不同人群的全面计算解决方案',
                                 style: TextStyle(
                                   fontSize: 12,
                                   color: Colors.grey,
@@ -432,19 +434,20 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
                       itemBuilder: (context, index) {
                         // 按类别分组的颜色和图标
                         final colors = [
-                          // 购物场景 - 绿色系
+                          // 学生专用计算器 - 蓝色系
+                          [Colors.blue.shade100, Colors.blue.shade50],
+                          [Colors.blue.shade100, Colors.blue.shade50],
+                          [Colors.blue.shade100, Colors.blue.shade50],
+                          // 房产投资专家 - 绿色系
                           [Colors.green.shade100, Colors.green.shade50],
-                          [Colors.green.shade100, Colors.green.shade50], 
                           [Colors.green.shade100, Colors.green.shade50],
-                          // 生活实用 - 蓝色系
-                          [Colors.blue.shade100, Colors.blue.shade50],
-                          [Colors.blue.shade100, Colors.blue.shade50],
-                          [Colors.blue.shade100, Colors.blue.shade50],
-                          // 学习工作 - 紫色系
+                          // 投资理财专家 - 紫色系
                           [Colors.purple.shade100, Colors.purple.shade50],
                           [Colors.purple.shade100, Colors.purple.shade50],
-                          [Colors.purple.shade100, Colors.purple.shade50],
-                          // 基础金融 - 橙色系
+                          // 工程师科学计算器 - 灰色系
+                          [Colors.grey.shade200, Colors.grey.shade100],
+                          // 生活理财助手 - 橙色系
+                          [Colors.orange.shade100, Colors.orange.shade50],
                           [Colors.orange.shade100, Colors.orange.shade50],
                           [Colors.orange.shade100, Colors.orange.shade50],
                           [Colors.orange.shade100, Colors.orange.shade50],
@@ -452,29 +455,31 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
                         
                         final colorPair = colors[index % colors.length];
                         final icons = [
-                          // 购物场景
-                          Icons.local_offer,    // 折扣
-                          Icons.restaurant,     // 小费  
-                          Icons.receipt_long,   // 税费
-                          // 生活实用
-                          Icons.straighten,     // 单位换算
-                          Icons.monitor_weight, // BMI
-                          Icons.local_gas_station, // 油耗
-                          // 学习工作  
-                          Icons.percent,        // 百分比
-                          Icons.calculate,      // 平均分
-                          Icons.data_object,    // 进制转换
-                          // 基础金融
-                          Icons.currency_exchange, // 汇率
-                          Icons.calculate,      // 简单利息
-                          Icons.shopping_cart,  // 购物预算
+                          // 学生专用计算器
+                          Icons.school,         // 学生成绩分析器
+                          Icons.assignment,     // 高考志愿计算器
+                          Icons.quiz,           // 考研分数计算器
+                          // 房产投资专家
+                          Icons.home,           // 房贷专家计算器
+                          Icons.trending_up,    // 房产投资分析器
+                          // 投资理财专家
+                          Icons.account_balance, // 复利投资计算器
+                          Icons.show_chart,     // 基金股票分析器
+                          // 工程师科学计算器
+                          Icons.functions,      // 工程师专用计算器
+                          // 生活理财助手
+                          Icons.local_offer,    // 购物折扣计算器
+                          Icons.restaurant,     // 小费计算器
+                          Icons.receipt_long,   // 税费计算器
+                          Icons.local_gas_station, // 油耗计算器
                         ];
                         
                         final categories = [
-                          '💰购物', '💰购物', '💰购物',
-                          '🏠生活', '🏠生活', '🏠生活', 
-                          '📊学习', '📊学习', '📊学习',
-                          '💼金融', '💼金融', '💼金融',
+                          '🎓学生', '🎓学生', '🎓学生',
+                          '🏠房产', '🏠房产',  
+                          '💼投资', '💼投资',
+                          '🔬工程',
+                          '💰生活', '💰生活', '💰生活', '💰生活',
                         ];
                         
                         return Container(
