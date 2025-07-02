@@ -289,31 +289,47 @@ class CalculatorDisplay extends StatelessWidget {
     
     // 获取函数的参数配置 - 使用缓存减少重复计算
     final paramConfig = _getParameterConfig(functionName);
-    final paramNames = paramConfig['paramNames'] as List<String>;
-    final paramUnits = paramConfig['paramUnits'] as List<String>? ?? [];
-    final minParams = paramConfig['minParams'] as int? ?? paramNames.length;
+    final minParams = paramConfig['minParams'] as int? ?? 2;
     
     // 预计算颜色以避免重复解析
     final displayTextColor = _parseColor(theme.displayTextColor);
     final backgroundColor = displayTextColor.withValues(alpha: 0.05);
     final currentBgColor = displayTextColor.withValues(alpha: 0.1);
     final borderColor = displayTextColor.withValues(alpha: 0.3);
-    final hintColor = displayTextColor.withValues(alpha: 0.4);
     final subtitleColor = displayTextColor.withValues(alpha: 0.6);
-    final normalColor = displayTextColor.withValues(alpha: 0.7);
     
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // 精简的函数标题和进度 - 减少嵌套
+          // 主显示区域 - 显示紧凑函数格式
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            child: Text(
+              state.getFunctionDisplayText(),
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w400,
+                color: displayTextColor,
+                fontFamily: 'monospace',
+              ),
+              textAlign: TextAlign.right,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          
+          const SizedBox(height: 6),
+          
+          // 精简的函数信息行
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 8),
             decoration: BoxDecoration(
-              color: currentBgColor,
-              borderRadius: BorderRadius.circular(6),
+              color: backgroundColor,
+              borderRadius: BorderRadius.circular(4),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -321,39 +337,19 @@ class CalculatorDisplay extends StatelessWidget {
                 Text(
                   paramConfig['title'] ?? functionName,
                   style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
                     color: displayTextColor,
                   ),
                 ),
                 Text(
-                  '${params.length + 1}/${paramNames.length} ${_getStepIndicator(params.length, paramNames.length)}',
+                  '参数${params.length + 1}/${_getExpectedParamCount(functionName)} ${_getStepIndicator(params.length, _getExpectedParamCount(functionName))}',
                   style: TextStyle(
-                    fontSize: 11,
+                    fontSize: 10,
                     color: subtitleColor,
                   ),
                 ),
               ],
-            ),
-          ),
-          
-          const SizedBox(height: 6),
-          
-          // 优化的参数输入区域 - 只显示必要的参数
-          ...List.generate(
-            math.min(paramNames.length, params.length + 2), // 只显示当前参数前后2个
-            (index) => _buildParameterRow(
-              index,
-              paramNames[index],
-              paramUnits.length > index ? paramUnits[index] : '',
-              params,
-              currentInput,
-              backgroundColor,
-              currentBgColor,
-              borderColor,
-              hintColor,
-              displayTextColor,
-              subtitleColor,
             ),
           ),
           
@@ -373,7 +369,7 @@ class CalculatorDisplay extends StatelessWidget {
                 children: [
                   Text(
                     '预览结果',
-                    style: TextStyle(fontSize: 11, color: normalColor),
+                    style: TextStyle(fontSize: 11, color: subtitleColor),
                   ),
                   Text(
                     _calculatePreview(functionName, params),
@@ -407,74 +403,50 @@ class CalculatorDisplay extends StatelessWidget {
     );
   }
 
-  /// 优化的参数行构建器 - 减少重复代码和嵌套
-  Widget _buildParameterRow(
-    int index,
-    String paramName,
-    String paramUnit,
-    List<double> params,
-    String currentInput,
-    Color backgroundColor,
-    Color currentBgColor,
-    Color borderColor,
-    Color hintColor,
-    Color displayTextColor,
-    Color subtitleColor,
-  ) {
-    final isCurrentParam = index == params.length;
-    final paramValue = index < params.length 
-        ? _formatParameterValue(params[index])
-        : (isCurrentParam ? currentInput : '');
-    
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.symmetric(vertical: 1),
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: isCurrentParam ? currentBgColor : backgroundColor,
-        borderRadius: BorderRadius.circular(4),
-        border: isCurrentParam ? Border.all(color: borderColor, width: 0.5) : null,
-      ),
-      child: Row(
-        children: [
-          // 参数名称 - 固定宽度
-          SizedBox(
-            width: 60,
-            child: Text(
-              paramName,
-              style: TextStyle(fontSize: 10, color: subtitleColor),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          
-          // 参数值 - 自适应宽度
-          Expanded(
-            child: Text(
-              paramValue.isEmpty ? '待输入' : paramValue,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: isCurrentParam ? FontWeight.w600 : FontWeight.normal,
-                color: paramValue.isEmpty ? hintColor : displayTextColor,
-                fontFamily: 'monospace',
-              ),
-              textAlign: TextAlign.right,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          
-          // 单位 - 固定小宽度
-          if (paramUnit.isNotEmpty)
-            Container(
-              width: 24,
-              alignment: Alignment.centerRight,
-              child: Text(
-                paramUnit,
-                style: TextStyle(fontSize: 9, color: subtitleColor),
-              ),
-            ),
-        ],
-      ),
-    );
+  /// 获取函数期望的参数数量
+  int _getExpectedParamCount(String functionName) {
+    switch (functionName.toLowerCase()) {
+      case 'pow':
+      case 'log':
+      case 'atan2':
+      case 'hypot':
+      case 'gcd':
+      case 'lcm':
+      case 'mod':
+      case '汇率转换':
+      case 'currency':
+      case 'exchange':
+      case 'exchangerate':
+      case '投资回报':
+      case 'roi':
+      case 'investmentreturn':
+        return 2;
+      
+      case '复利计算':
+      case 'compound':
+      case 'compoundinterest':
+      case '贷款计算':
+      case 'loan':
+      case 'loanpayment':
+      case '年金计算':
+      case 'annuity':
+      case '通胀调整':
+      case 'inflation':
+        return 3;
+      
+      case '抵押贷款':
+      case 'mortgage':
+      case '债券价格':
+      case 'bond':
+        return 4;
+      
+      case '期权价值':
+      case 'option':
+        return 5;
+      
+      default:
+        return 3; // 默认3个参数
+    }
   }
 
   /// 获取步骤指示器
@@ -715,25 +687,23 @@ class CalculatorDisplay extends StatelessWidget {
     }
   }
 
-  /// 格式化参数值显示
-  String _formatParameterValue(double value) {
-    if (value == value.toInt()) {
-      return value.toInt().toString();
-    } else {
-      return value.toStringAsFixed(2).replaceAll(RegExp(r'0*$'), '').replaceAll(RegExp(r'\.$'), '');
+  /// 格式化结果数字
+  String _formatResult(double result) {
+    // 检查是否为整数
+    if (result == result.toInt() && result.abs() < 1000000000000) {
+      return result.toInt().toString();
     }
-  }
-
-  /// 格式化结果显示
-  String _formatResult(double value) {
-    if (value.isInfinite) return '∞';
-    if (value.isNaN) return 'NaN';
     
-    if (value == value.toInt()) {
-      return value.toInt().toString();
-    } else {
-      return value.toStringAsFixed(6).replaceAll(RegExp(r'0*$'), '').replaceAll(RegExp(r'\.$'), '');
+    // 科学计数法判断
+    if (result.abs() >= 1e12 || (result.abs() < 1e-6 && result != 0)) {
+      return result.toStringAsExponential(6).replaceAll(RegExp(r'0*e'), 'e');
     }
+    
+    // 正常小数显示
+    String formatted = result.toStringAsFixed(10);
+    formatted = formatted.replaceAll(RegExp(r'0*$'), '').replaceAll(RegExp(r'\.$'), '');
+    
+    return formatted;
   }
 
   /// 计算最大公约数

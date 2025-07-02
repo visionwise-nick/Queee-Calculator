@@ -176,12 +176,26 @@ class CalculatorState {
   String getFunctionDisplayText() {
     if (currentFunction == null || !isInputtingFunction) return display;
     
-    String params = functionParameters.map((p) => _formatParameter(p)).join(', ');
-    if (functionParameters.length < currentParameterIndex + 1) {
-      params += params.isEmpty ? display : ', $display';
+    // 构建参数列表，用0填充未输入的参数
+    List<String> paramStrings = [];
+    
+    // 添加已输入的参数
+    for (double param in functionParameters) {
+      paramStrings.add(_formatParameter(param));
     }
     
-    return '$currentFunction($params)';
+    // 添加当前正在输入的参数（如果有的话）
+    if (display != '0' || functionParameters.isEmpty) {
+      paramStrings.add(display);
+    }
+    
+    // 根据函数类型确定总参数数量并用0填充
+    int totalParams = _getExpectedParamCount(currentFunction!);
+    while (paramStrings.length < totalParams) {
+      paramStrings.add('0');
+    }
+    
+    return '$currentFunction(${paramStrings.join(',')})';
   }
   
   String _formatParameter(double param) {
@@ -189,6 +203,52 @@ class CalculatorState {
       return param.toInt().toString();
     } else {
       return param.toStringAsFixed(6).replaceAll(RegExp(r'0*$'), '').replaceAll(RegExp(r'\.$'), '');
+    }
+  }
+  
+  /// 获取函数期望的参数数量
+  int _getExpectedParamCount(String functionName) {
+    switch (functionName.toLowerCase()) {
+      case 'pow':
+      case 'log':
+      case 'atan2':
+      case 'hypot':
+      case 'gcd':
+      case 'lcm':
+      case 'mod':
+      case '汇率转换':
+      case 'currency':
+      case 'exchange':
+      case 'exchangerate':
+      case '投资回报':
+      case 'roi':
+      case 'investmentreturn':
+        return 2;
+      
+      case '复利计算':
+      case 'compound':
+      case 'compoundinterest':
+      case '贷款计算':
+      case 'loan':
+      case 'loanpayment':
+      case '年金计算':
+      case 'annuity':
+      case '通胀调整':
+      case 'inflation':
+        return 3;
+      
+      case '抵押贷款':
+      case 'mortgage':
+      case '债券价格':
+      case 'bond':
+        return 4;
+      
+      case '期权价值':
+      case 'option':
+        return 5;
+      
+      default:
+        return 3; // 默认3个参数
     }
   }
 }

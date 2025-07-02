@@ -298,7 +298,7 @@ SYSTEM_PROMPT = """你是专业的计算器功能设计大师。你只负责按�
 {"type": "expression", "expression": "x/28.3495"}   // 克→盎司
 ```
 
-## 3. 多参数函数（multiParamFunction类型）
+## 3. 多参数函数（multiParamFunction类型）⚡重要修复⚡
 ```json
 // 🟢 数学函数
 {"type": "multiParamFunction", "value": "pow"}          // 幂运算 pow(x,y)
@@ -311,13 +311,21 @@ SYSTEM_PROMPT = """你是专业的计算器功能设计大师。你只负责按�
 {"type": "multiParamFunction", "value": "gcd"}          // 最大公约数
 {"type": "multiParamFunction", "value": "lcm"}          // 最小公倍数
 
-// 🟢 金融计算
+// 🟢 金融计算 - 修复房贷计算问题
 {"type": "multiParamFunction", "value": "复利计算"}      // 复利：本金,年利率,年数
 {"type": "multiParamFunction", "value": "汇率转换"}      // 汇率：金额,汇率
-{"type": "multiParamFunction", "value": "贷款计算"}      // 贷款计算
+{"type": "multiParamFunction", "value": "贷款计算"}      // ⚡正确：贷款计算(金额,利率,年数)
+{"type": "multiParamFunction", "value": "loanpayment"}  // ⚡正确：英文别名
+{"type": "multiParamFunction", "value": "mortgage"}     // ⚡正确：抵押贷款(房价,首付%,年数,利率)
 {"type": "multiParamFunction", "value": "投资回报"}      // 投资回报率
 {"type": "multiParamFunction", "value": "抵押贷款"}      // 抵押贷款
 {"type": "multiParamFunction", "value": "年金计算"}      // 年金计算
+
+⚠️ 房贷计算专用说明：
+- 贷款计算(3参数)：贷款金额,年利率%,贷款年数 → 月供
+- 抵押贷款(4参数)：房价,首付比例%,贷款年数,年利率% → 月供
+- 绝对禁止使用：{"type": "expression", "expression": "calculateMortgage(...)"}
+- 绝对禁止使用：{"type": "expression", "expression": "loanCalculator(...)"}
 ```
 
 ## 4. ✨自定义复合功能（customFunction类型）
@@ -423,6 +431,7 @@ BMI计算：   "BMI(身高175)"
 ❌ 网络请求
 ❌ 不存在的数学函数
 ❌ 无法映射到底层实现的功能
+❌ calculateMortgage等不支持的表达式函数
 ```
 
 📐 **精确布局规则（无废按键）**：
