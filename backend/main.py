@@ -311,6 +311,24 @@ SYSTEM_PROMPT = """你是专业的计算器功能设计大师。你只负责按�
 {"type": "multiParamFunction", "value": "gcd"}          // 最大公约数
 {"type": "multiParamFunction", "value": "lcm"}          // 最小公倍数
 
+// 🔢 进制转换函数 - 新增支持任意进制转换
+{"type": "multiParamFunction", "value": "进制转换"}      // 进制转换：数字,目标进制 或 数字,源进制,目标进制
+{"type": "multiParamFunction", "value": "进制转化"}      // 进制转化：数字,目标进制 或 数字,源进制,目标进制
+{"type": "multiParamFunction", "value": "baseconvert"}  // 英文别名：baseconvert(数字,目标进制)
+{"type": "multiParamFunction", "value": "baseconversion"} // 英文别名：baseconversion(数字,目标进制)
+{"type": "multiParamFunction", "value": "十进制转二进制"} // 十进制转二进制：数字
+{"type": "multiParamFunction", "value": "dec2bin"}      // 英文别名：dec2bin(数字)
+{"type": "multiParamFunction", "value": "十进制转八进制"} // 十进制转八进制：数字
+{"type": "multiParamFunction", "value": "dec2oct"}      // 英文别名：dec2oct(数字)
+{"type": "multiParamFunction", "value": "十进制转十六进制"} // 十进制转十六进制：数字
+{"type": "multiParamFunction", "value": "dec2hex"}      // 英文别名：dec2hex(数字)
+{"type": "multiParamFunction", "value": "二进制转十进制"} // 二进制转十进制：数字
+{"type": "multiParamFunction", "value": "bin2dec"}      // 英文别名：bin2dec(数字)
+{"type": "multiParamFunction", "value": "八进制转十进制"} // 八进制转十进制：数字
+{"type": "multiParamFunction", "value": "oct2dec"}      // 英文别名：oct2dec(数字)
+{"type": "multiParamFunction", "value": "十六进制转十进制"} // 十六进制转十进制：数字
+{"type": "multiParamFunction", "value": "hex2dec"}      // 英文别名：hex2dec(数字)
+
 // 🟢 金融计算 - 修复房贷计算问题
 {"type": "multiParamFunction", "value": "复利计算"}      // 复利：本金,年利率,年数
 {"type": "multiParamFunction", "value": "汇率转换"}      // 汇率：金额,汇率
@@ -363,6 +381,10 @@ SYSTEM_PROMPT = """你是专业的计算器功能设计大师。你只负责按�
 工程换算：  "工程换算"
 BMI计算：   "BMI(身高175)"
 燃油计算：  "油耗(¥8.5/L)"
+进制转换：  "进制转换器"
+程序员计算： "程序员计算器"
+二进制计算： "二进制计算器"
+十六进制计算："十六进制计算器"
 ```
 
 ### 🎯 支持的自定义功能类型
@@ -380,6 +402,10 @@ BMI计算：   "BMI(身高175)"
 ✅ unit_converter - 单位转换器
 ✅ percentage_calculator - 百分比计算器
 ✅ engineering_calculator - 工程计算器
+✅ base_converter - 进制转换器
+✅ programmer_calculator - 程序员计算器
+✅ binary_calculator - 二进制计算器
+✅ hex_calculator - 十六进制计算器
 ```
 
 ## 5. 多参数函数辅助按键
@@ -520,6 +546,14 @@ BMI计算：   "BMI(身高175)"
 {"id": "btn_f2c", "label": "°F→°C", "action": {"type": "expression", "expression": "(x-32)*5/9"}, "gridPosition": {"row": 6, "column": 0}, "type": "special"}
 {"id": "btn_in2cm", "label": "in→cm", "action": {"type": "expression", "expression": "x*2.54"}, "gridPosition": {"row": 6, "column": 1}, "type": "special"}
 
+// 🔢 进制转换表达式示例
+{"id": "btn_dec2bin", "label": "十→二", "action": {"type": "expression", "expression": "dec2bin(x)"}, "gridPosition": {"row": 7, "column": 0}, "type": "special"}
+{"id": "btn_dec2oct", "label": "十→八", "action": {"type": "expression", "expression": "dec2oct(x)"}, "gridPosition": {"row": 7, "column": 1}, "type": "special"}
+{"id": "btn_dec2hex", "label": "十→十六", "action": {"type": "expression", "expression": "dec2hex(x)"}, "gridPosition": {"row": 7, "column": 2}, "type": "special"}
+{"id": "btn_bin2dec", "label": "二→十", "action": {"type": "expression", "expression": "bin2dec(x)"}, "gridPosition": {"row": 8, "column": 0}, "type": "special"}
+{"id": "btn_oct2dec", "label": "八→十", "action": {"type": "expression", "expression": "oct2dec(x)"}, "gridPosition": {"row": 8, "column": 1}, "type": "special"}
+{"id": "btn_hex2dec", "label": "十六→十", "action": {"type": "expression", "expression": "hex2dec(x)"}, "gridPosition": {"row": 8, "column": 2}, "type": "special"}
+
 // 多参数函数示例
 {"id": "btn_pow", "label": "x^y", "action": {"type": "multiParamFunction", "value": "pow"}, "gridPosition": {"row": 5, "column": 4}, "type": "special"}
 {"id": "btn_comma", "label": ",", "action": {"type": "parameterSeparator"}, "gridPosition": {"row": 6, "column": 4}, "type": "secondary"}
@@ -529,6 +563,10 @@ BMI计算：   "BMI(身高175)"
 {"id": "btn_mortgage_3_5_30", "label": "房贷(3.5%/30年)", "action": {"type": "customFunction", "value": "mortgage_calculator", "parameters": {"annualRate": 3.5, "years": 30}}, "gridPosition": {"row": 6, "column": 0}, "type": "special"}
 {"id": "btn_compound_4_10", "label": "复利(4%/10年)", "action": {"type": "customFunction", "value": "compound_calculator", "parameters": {"rate": 4.0, "years": 10}}, "gridPosition": {"row": 6, "column": 1}, "type": "special"}
 {"id": "btn_usd_cny", "label": "USD→CNY(7.2)", "action": {"type": "customFunction", "value": "currency_converter", "parameters": {"fromCurrency": "USD", "toCurrency": "CNY", "rate": 7.2}}, "gridPosition": {"row": 6, "column": 2}, "type": "special"}
+
+// 🔢 进制转换自定义功能示例
+{"id": "btn_base_converter", "label": "进制转换器", "action": {"type": "customFunction", "value": "base_converter", "parameters": {"supportedBases": [2, 8, 10, 16]}}, "gridPosition": {"row": 7, "column": 0}, "type": "special"}
+{"id": "btn_programmer_calc", "label": "程序员计算器", "action": {"type": "customFunction", "value": "programmer_calculator", "parameters": {"defaultBase": 10, "showBinary": true, "showHex": true}}, "gridPosition": {"row": 7, "column": 1}, "type": "special"}
 ```
 
 ➡️ **输出格式**：
