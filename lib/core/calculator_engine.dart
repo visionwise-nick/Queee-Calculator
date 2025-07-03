@@ -129,6 +129,11 @@ class CalculatorState {
   final List<double> functionParameters; // 函数参数列表
   final int currentParameterIndex; // 当前参数索引
   final bool isInputtingFunction; // 是否正在输入函数参数
+  
+  // 新增：进制转换显示支持
+  final String? displayFormat; // 显示格式：'decimal', 'binary', 'octal', 'hex'
+  final String? rawResult; // 原始结果字符串（用于进制转换）
+  final double? numericValue; // 数值结果（用于继续计算）
 
   const CalculatorState({
     this.display = '0',
@@ -141,6 +146,9 @@ class CalculatorState {
     this.functionParameters = const [],
     this.currentParameterIndex = 0,
     this.isInputtingFunction = false,
+    this.displayFormat,
+    this.rawResult,
+    this.numericValue,
   });
 
   CalculatorState copyWith({
@@ -157,6 +165,10 @@ class CalculatorState {
     int? currentParameterIndex,
     bool? isInputtingFunction,
     bool clearFunction = false,
+    String? displayFormat,
+    String? rawResult,
+    double? numericValue,
+    bool clearDisplayFormat = false,
   }) {
     return CalculatorState(
       display: display ?? this.display,
@@ -169,6 +181,9 @@ class CalculatorState {
       functionParameters: functionParameters ?? this.functionParameters,
       currentParameterIndex: currentParameterIndex ?? this.currentParameterIndex,
       isInputtingFunction: isInputtingFunction ?? this.isInputtingFunction,
+      displayFormat: clearDisplayFormat ? null : (displayFormat ?? this.displayFormat),
+      rawResult: clearDisplayFormat ? null : (rawResult ?? this.rawResult),
+      numericValue: clearDisplayFormat ? null : (numericValue ?? this.numericValue),
     );
   }
   
@@ -336,11 +351,20 @@ class CalculatorEngine {
       _state = _state.copyWith(
         display: digit,
         waitingForOperand: false,
+        clearDisplayFormat: true, // 清除特殊显示格式
       );
     } else {
-      String newDisplay = _state.display == '0' ? digit : _state.display + digit;
-      if (newDisplay.length <= 15) { // 增加显示位数
-        _state = _state.copyWith(display: newDisplay);
+      // 如果当前显示的是特殊格式（如十六进制），替换为新输入
+      if (_state.displayFormat != null) {
+        _state = _state.copyWith(
+          display: digit,
+          clearDisplayFormat: true,
+        );
+      } else {
+        String newDisplay = _state.display == '0' ? digit : _state.display + digit;
+        if (newDisplay.length <= 15) { // 增加显示位数
+          _state = _state.copyWith(display: newDisplay);
+        }
       }
     }
     
@@ -352,10 +376,13 @@ class CalculatorEngine {
     if (_state.isError) return _state;
 
     if (_state.previousValue == null) {
+      // 如果当前显示的是特殊格式，使用数值
+      String displayValue = _state.numericValue?.toString() ?? _state.display;
       _state = _state.copyWith(
-        previousValue: _state.display,
+        previousValue: displayValue,
         operator: operator,
         waitingForOperand: true,
+        clearDisplayFormat: true, // 清除特殊显示格式
       );
     } else if (!_state.waitingForOperand) {
       String? result = _calculate();
@@ -365,6 +392,7 @@ class CalculatorEngine {
           previousValue: result,
           operator: operator,
           waitingForOperand: true,
+          clearDisplayFormat: true, // 清除特殊显示格式
         );
       }
     } else {
@@ -394,7 +422,8 @@ class CalculatorEngine {
     if (_state.previousValue == null || _state.operator == null) return null;
 
     double prev = double.parse(_state.previousValue!);
-    double current = double.parse(_state.display);
+    // 如果当前显示是特殊格式，使用数值
+    double current = _state.numericValue ?? double.parse(_state.display);
     double result;
 
     switch (_state.operator) {
@@ -527,10 +556,19 @@ class CalculatorEngine {
         _calculationHistory.removeAt(0);
       }
       
-      _state = _state.copyWith(
-        display: _formatResult(result),
-        waitingForOperand: true,
-      );
+      // 检查是否已经设置了特殊显示格式（如十六进制）
+      if (_state.displayFormat != null) {
+        // 如果已经设置了特殊显示格式，保持当前显示不变
+        _state = _state.copyWith(
+          waitingForOperand: true,
+        );
+      } else {
+        // 常规数值结果，使用标准格式化
+        _state = _state.copyWith(
+          display: _formatResult(result),
+          waitingForOperand: true,
+        );
+      }
       return _state;
     } catch (e) {
       print('❌ 表达式计算错误：$e');
@@ -738,11 +776,15 @@ class CalculatorEngine {
 
   /// 科学计算表达式解析器
   double _evaluateScientificExpression(String expression, double x) {
-    // 替换表达式中的x为实际值
-    String evalExpression = expression.replaceAll('x', x.toString());
+    // 智能替换表达式中的x为实际值，避免替换函数名中的x
+    String evalExpression = _smartReplaceX(expression, x);
     print('🔢 替换后的表达式：$evalExpression');
     
     try {
+      // 🔧 处理多参数函数表达式
+      if (evalExpression.contains('(') && evalExpression.contains(',')) {
+        return _evaluateMultiParamExpression(evalExpression, x);
+      }
       // 🔧 处理特殊的单参数函数
       switch (expression.toLowerCase().trim()) {
         // 三角函数（角度制）
@@ -831,15 +873,41 @@ class CalculatorEngine {
         // 🔢 快速进制转换功能
         case 'dec2bin(x)':
         case 'dectobin(x)':
-          return double.parse(_convertToBase(x.toInt(), 2));
+          // 二进制转换：返回原始数值但设置特殊显示格式
+          double numericValue = x.toInt().toDouble();
+          String binResult = _convertToBase(x.toInt(), 2);
+          _state = _state.copyWith(
+            display: '0b$binResult',
+            displayFormat: 'binary',
+            rawResult: binResult,
+            numericValue: numericValue,
+          );
+          return numericValue;
         case 'dec2oct(x)':
         case 'dectooct(x)':
-          return double.parse(_convertToBase(x.toInt(), 8));
+          // 八进制转换：返回原始数值但设置特殊显示格式
+          double numericValue = x.toInt().toDouble();
+          String octResult = _convertToBase(x.toInt(), 8);
+          _state = _state.copyWith(
+            display: '0o$octResult',
+            displayFormat: 'octal',
+            rawResult: octResult,
+            numericValue: numericValue,
+          );
+          return numericValue;
         case 'dec2hex(x)':
         case 'dectohex(x)':
-          // 十六进制结果可能包含字母，返回哈希值作为数字表示
+          // 十六进制转换：返回原始数值但设置特殊显示格式
+          double numericValue = x.toInt().toDouble();
           String hexResult = _convertToBase(x.toInt(), 16);
-          return hexResult.hashCode.toDouble();
+          // 设置特殊的显示状态
+          _state = _state.copyWith(
+            display: '0x$hexResult',
+            displayFormat: 'hex',
+            rawResult: hexResult,
+            numericValue: numericValue,
+          );
+          return numericValue;
         case 'bin2dec(x)':
         case 'bintodec(x)':
           return _convertFromBase(x.toInt().toString(), 2).toDouble();
@@ -990,6 +1058,119 @@ class CalculatorEngine {
     } catch (e) {
       // 如果表达式解析失败，尝试简单计算
       return _evaluateSimpleExpression(expression.replaceAll('x', x.toString()));
+    }
+  }
+
+  /// 智能替换变量x，避免替换函数名中的x
+  String _smartReplaceX(String expression, double x) {
+    // 使用正则表达式匹配独立的变量x（不是函数名中的x）
+    // 匹配：x 但不匹配 hex、exp、max 等函数名中的x
+    RegExp pattern = RegExp(r'\b[x]\b');
+    return expression.replaceAllMapped(pattern, (match) => x.toString());
+  }
+
+  /// 处理多参数函数表达式
+  double _evaluateMultiParamExpression(String expression, double x) {
+    // 解析函数名和参数
+    RegExp regExp = RegExp(r'(\w+)\((.*)\)');
+    Match? match = regExp.firstMatch(expression);
+    
+    if (match == null) {
+      throw Exception('无效的多参数函数表达式');
+    }
+    
+    String functionName = match.group(1)!.toLowerCase();
+    String paramString = match.group(2)!;
+    
+    // 解析参数
+    List<String> paramStrings = paramString.split(',').map((s) => s.trim()).toList();
+    List<double> params = paramStrings.map((s) => double.parse(s)).toList();
+    
+    print('🔧 多参数函数：$functionName，参数：$params');
+    
+    // 执行多参数函数
+    switch (functionName) {
+      case 'dec2any':
+      case 'baseconvert':
+        if (params.length == 2) {
+          int number = params[0].toInt();
+          int base = params[1].toInt();
+          
+          if (base < 2 || base > 36) {
+            throw Exception('进制范围必须在2-36之间');
+          }
+          
+          // 进制转换：返回原始数值但设置特殊显示格式
+          String result = _convertToBase(number, base);
+          String prefix = base == 2 ? '0b' : (base == 8 ? '0o' : (base == 16 ? '0x' : ''));
+          String displayFormat = base == 2 ? 'binary' : (base == 8 ? 'octal' : (base == 16 ? 'hex' : 'custom'));
+          
+          _state = _state.copyWith(
+            display: '$prefix$result',
+            displayFormat: displayFormat,
+            rawResult: result,
+            numericValue: number.toDouble(),
+          );
+          
+          return number.toDouble();
+        }
+        throw Exception('dec2any函数需要2个参数：数字和目标进制');
+        
+      case 'pow':
+        if (params.length == 2) {
+          return math.pow(params[0], params[1]).toDouble();
+        }
+        throw Exception('pow函数需要2个参数：底数和指数');
+        
+      case 'log':
+        if (params.length == 2) {
+          // log(x, base) = ln(x) / ln(base)
+          if (params[0] <= 0 || params[1] <= 0 || params[1] == 1) {
+            throw Exception('对数函数参数必须大于0，且底数不能为1');
+          }
+          return math.log(params[0]) / math.log(params[1]);
+        }
+        throw Exception('log函数需要2个参数：真数和底数');
+        
+      case 'max':
+        if (params.isEmpty) throw Exception('max函数至少需要1个参数');
+        return params.reduce(math.max);
+        
+      case 'min':
+        if (params.isEmpty) throw Exception('min函数至少需要1个参数');
+        return params.reduce(math.min);
+        
+      case 'avg':
+      case 'mean':
+        if (params.isEmpty) throw Exception('avg函数至少需要1个参数');
+        return params.reduce((a, b) => a + b) / params.length;
+        
+      case 'sum':
+        if (params.isEmpty) throw Exception('sum函数至少需要1个参数');
+        return params.reduce((a, b) => a + b);
+        
+      case 'mod':
+        if (params.length == 2) {
+          return params[0] % params[1];
+        }
+        throw Exception('mod函数需要2个参数：被除数和除数');
+        
+      case 'gcd':
+        if (params.length == 2) {
+          return _gcd(params[0].toInt(), params[1].toInt()).toDouble();
+        }
+        throw Exception('gcd函数需要2个参数');
+        
+      case 'lcm':
+        if (params.length == 2) {
+          int a = params[0].toInt();
+          int b = params[1].toInt();
+          return (a * b / _gcd(a, b)).toDouble();
+        }
+        throw Exception('lcm函数需要2个参数');
+        
+      default:
+        throw Exception('未知的多参数函数：$functionName');
     }
   }
 
