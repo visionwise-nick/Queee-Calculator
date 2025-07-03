@@ -322,33 +322,43 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
     }
   }
 
-
-
-
-
-
-
   void _showQuickReplies() {
     final quickReplies = [
-      // 🏦 金融计算专家级
-      '利率3.5%贷款30年房贷计算器：输入贷款金额，一键计算每月还款额，包含本息合计、利息总额、还款明细等专业房贷功能',
-      '年化收益率6%复利投资计算器：本金10万投资10年，自动计算复利增长，包含年度收益表、投资增长曲线、收益率对比等功能',
-      '美元兑人民币汇率7.20货币转换器：支持USD、CNY、EUR、JPY等主流货币互转，实时汇率计算，旅行购物必备工具',
+      // 🔢 Level 1：基础数学增强 - 在标准计算器基础上增加平方根和百分比
+      '基础计算器增强：在现有计算器基础上，添加√(开平方根)、x²(平方)、%(百分比)按键，让日常计算更便捷',
       
-      // 🔬 科学计算专业级
-      '完整科学计算器：三角函数(sin/cos/tan)、对数运算(log/ln/log2)、幂运算(x²/x³/x^y)、开根号(√/∛)、反三角函数、双曲函数，支持度数弧度切换',
-      '工程师专用计算器：精密计算工具，包含科学常数(π/e)、统计函数(均值/方差/标准差)、组合排列(C/P)、阶乘、倒数等高级数学函数',
-      '程序员进制转换器：支持二进制、八进制、十进制、十六进制互转，位运算(AND/OR/XOR)，编程开发必备工具',
+      // 🔬 Level 2：三角函数扩展 - 继续增加科学计算功能
+      '三角函数计算器：在已有功能基础上，增加sin、cos、tan三角函数按键，支持角度计算，适用于工程和学习',
       
-      // 💼 实用工具专家级
-      'BMI健康指数计算器：输入身高体重自动计算BMI指数，提供健康评估建议，支持国际标准和亚洲标准对比分析',
-      '多功能单位转换器：长度(厘米↔英寸↔英尺)、重量(公斤↔磅↔盎司)、温度(摄氏度↔华氏度)、面积体积转换，生活工作全覆盖',
-      '智能折扣税费计算器：打8折+13%税费一键计算，支持优惠券叠加、会员折扣、税率计算，购物省钱神器',
+      // 📐 Level 3：对数指数增强 - 进一步扩展科学计算
+      '对数指数计算器：继续添加ln(自然对数)、log(常用对数)、e^x(指数)、10^x(10的幂)按键，完善科学计算能力',
       
-      // 🎯 专业定制计算器
-      '餐厅小费计算器：15%/18%/20%小费标准，按人数平摊账单，支持自定义小费比例，聚餐必备工具',
-      '燃油效率计算器：油价8.5元/升，输入里程自动计算油费，支持百公里油耗、每公里成本分析，开车省钱助手',
-      '学生成绩统计器：输入各科分数自动计算平均分、总分、排名预估，支持加权平均、学分计算，学习成绩管理专家',
+      // 🔄 Level 4：进制转换功能 - 添加程序员常用功能
+      '进制转换计算器：新增二进制转换、八进制转换、十六进制转换按键，输入十进制数字一键转换其他进制',
+      
+      // 💰 Level 5：金融计算入门 - 添加基本金融功能
+      '基础金融计算器：增加复利计算(本金、利率、年数)和汇率转换(金额、汇率)按键，满足投资理财基本需求',
+      
+      // 🏠 Level 6：房贷专业计算 - 专业金融计算扩展
+      '房贷计算器专业版：添加房贷月供计算按键，输入贷款金额、年利率、贷款年限，一键计算每月还款额',
+      
+      // 📊 Level 7：统计分析功能 - 数据处理能力
+      '统计分析计算器：新增平均值、标准差、方差、最大值、最小值按键，支持多数字输入进行统计分析',
+      
+      // 🔀 Level 8：组合排列数学 - 高级数学功能
+      '组合排列计算器：添加组合C(n,r)、排列P(n,r)、阶乘n!按键，解决概率统计和数学问题',
+      
+      // 🏥 Level 9：生活实用工具 - 日常应用扩展
+      '生活实用计算器：增加BMI计算(身高、体重)、小费计算(账单、小费率)、折扣计算(原价、折扣率)按键',
+      
+      // 🌡️ Level 10：单位转换大全 - 全方位转换功能
+      '单位转换计算器：添加温度转换(摄氏度↔华氏度)、长度转换(厘米↔英寸)、重量转换(公斤↔磅)按键',
+      
+      // 🎯 Level 11：专业定制工具 - 行业专用功能
+      '专业工具计算器：新增燃油效率(里程、油价)、学生成绩(各科分数平均)、餐厅AA(总额、人数)专用按键',
+      
+      // 🚀 Level 12：全功能计算器 - 终极完整版
+      '全功能超级计算器：集成所有功能，包含基础运算+科学计算+金融工具+统计分析+单位转换+生活实用，打造专业计算平台',
     ];
 
     showModalBottomSheet(
@@ -356,7 +366,7 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.8,
+        height: MediaQuery.of(context).size.height * 0.85,
         decoration: const BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -379,15 +389,30 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: Colors.amber.shade100,
+                      gradient: LinearGradient(
+                        colors: [Colors.purple.shade400, Colors.blue.shade500],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Icon(Icons.palette, color: Colors.amber.shade700),
+                    child: const Icon(Icons.auto_awesome, color: Colors.white),
                   ),
                   const SizedBox(width: 12),
-                  const Text(
-                    '⚡ 功能案例库',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '🚀 功能递进案例库',
+                          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                        ),
+                        Text(
+                          '每个案例都在前面基础上增加新功能',
+                          style: TextStyle(fontSize: 12, color: Colors.grey),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -398,109 +423,144 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
                 itemCount: quickReplies.length,
                 itemBuilder: (context, index) {
                   final reply = quickReplies[index];
-                  final colors = [
-                    // 🏦 金融计算专家级 - 蓝色系
-                    [Colors.blue.shade100, Colors.blue.shade50],
-                    [Colors.indigo.shade100, Colors.indigo.shade50],
-                    [Colors.cyan.shade100, Colors.cyan.shade50],
+                  
+                  // 递进式色彩设计：从浅到深表示功能的递进
+                  final progressColors = [
+                    // Level 1-3: 基础功能 - 绿色系（简单到复杂）
+                    [const Color(0xFFE8F5E8), const Color(0xFFC8E6C9)], // 浅绿
+                    [const Color(0xFFDCEDC8), const Color(0xFFAED581)], // 中绿  
+                    [const Color(0xFFCDDC39), const Color(0xFF9E9D24)], // 深绿
                     
-                    // 🔬 科学计算专业级 - 紫色系
-                    [Colors.purple.shade100, Colors.purple.shade50],
-                    [Colors.deepPurple.shade100, Colors.deepPurple.shade50],
-                    [Colors.teal.shade100, Colors.teal.shade50],
+                    // Level 4-6: 专业功能 - 蓝色系（进阶功能）
+                    [const Color(0xFFE3F2FD), const Color(0xFFBBDEFB)], // 浅蓝
+                    [const Color(0xFF90CAF9), const Color(0xFF42A5F5)], // 中蓝
+                    [const Color(0xFF2196F3), const Color(0xFF1976D2)], // 深蓝
                     
-                    // 💼 实用工具专家级 - 绿色系
-                    [Colors.green.shade100, Colors.green.shade50],
-                    [Colors.lightGreen.shade100, Colors.lightGreen.shade50],
-                    [Colors.orange.shade100, Colors.orange.shade50],
+                    // Level 7-9: 高级功能 - 紫色系（高级功能）
+                    [const Color(0xFFF3E5F5), const Color(0xFFCE93D8)], // 浅紫
+                    [const Color(0xFFBA68C8), const Color(0xFF9C27B0)], // 中紫
+                    [const Color(0xFF8E24AA), const Color(0xFF6A1B9A)], // 深紫
                     
-                    // 🎯 专业定制计算器 - 暖色系
-                    [Colors.pink.shade100, Colors.pink.shade50],
-                    [Colors.amber.shade100, Colors.amber.shade50],
-                    [Colors.red.shade100, Colors.red.shade50],
+                    // Level 10-12: 终极功能 - 橙色系（专家级）
+                    [const Color(0xFFFFF3E0), const Color(0xFFFFCC02)], // 浅橙
+                    [const Color(0xFFFFB74D), const Color(0xFFFF9800)], // 中橙
+                    [const Color(0xFFFF6F00), const Color(0xFFE65100)], // 深橙
                   ];
                   
-                  final colorPair = colors[index % colors.length];
-                  final icons = [
-                    // 🏦 金融计算专家级
-                    Icons.home_work,           // 房贷计算器
-                    Icons.trending_up,         // 复利投资计算器
-                    Icons.currency_exchange,   // 货币转换器
+                  final colorPair = progressColors[index % progressColors.length];
+                  
+                  // 递进式图标设计
+                  final progressIcons = [
+                    // Level 1-3: 基础功能图标
+                    Icons.calculate_outlined,        // 基础增强
+                    Icons.functions,                 // 三角函数
+                    Icons.science,                   // 对数指数
                     
-                    // 🔬 科学计算专业级
-                    Icons.functions,           // 完整科学计算器
-                    Icons.engineering,         // 工程师专用计算器
-                    Icons.developer_mode,      // 程序员进制转换器
+                    // Level 4-6: 专业功能图标  
+                    Icons.developer_mode,            // 进制转换
+                    Icons.account_balance,           // 基础金融
+                    Icons.home_work,                 // 房贷专业
                     
-                    // 💼 实用工具专家级
-                    Icons.health_and_safety,   // BMI健康指数计算器
-                    Icons.swap_horiz,          // 多功能单位转换器
-                    Icons.local_offer,         // 智能折扣税费计算器
+                    // Level 7-9: 高级功能图标
+                    Icons.analytics,                 // 统计分析
+                    Icons.scatter_plot,              // 组合排列
+                    Icons.healing,                   // 生活实用
                     
-                    // 🎯 专业定制计算器
-                    Icons.restaurant,          // 餐厅小费计算器
-                    Icons.local_gas_station,   // 燃油效率计算器
-                    Icons.school,              // 学生成绩统计器
+                    // Level 10-12: 终极功能图标
+                    Icons.swap_horiz,                // 单位转换
+                    Icons.precision_manufacturing,   // 专业工具
+                    Icons.rocket_launch,             // 全功能超级
+                  ];
+                  
+                  final icon = progressIcons[index % progressIcons.length];
+                  
+                  // 递进式级别标签
+                  final levelLabels = [
+                    'Level 1', 'Level 2', 'Level 3', 'Level 4', 
+                    'Level 5', 'Level 6', 'Level 7', 'Level 8',
+                    'Level 9', 'Level 10', 'Level 11', 'Level 12'
                   ];
                   
                   return Container(
                     margin: const EdgeInsets.only(bottom: 12),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: colorPair,
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: colorPair[1].withOpacity(0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
                     child: Material(
                       color: Colors.transparent,
                       child: InkWell(
+                        borderRadius: BorderRadius.circular(16),
                         onTap: () {
                           Navigator.pop(context);
                           _sendMessage(reply);
                         },
-                        borderRadius: BorderRadius.circular(16),
-                        child: Container(
+                        child: Padding(
                           padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: colorPair,
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: colorPair[0]),
-                          ),
                           child: Row(
                             children: [
+                              // 级别标签
                               Container(
-                                padding: const EdgeInsets.all(12),
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                 decoration: BoxDecoration(
-                                  color: Colors.white,
+                                  color: Colors.white.withOpacity(0.9),
                                   borderRadius: BorderRadius.circular(12),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.1),
-                                      blurRadius: 4,
-                                      offset: const Offset(0, 2),
-                                    ),
-                                  ],
                                 ),
-                                child: Icon(
-                                  icons[index % icons.length],
-                                  color: colorPair[0],
-                                  size: 24,
-                                ),
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
                                 child: Text(
-                                  reply,
-              style: TextStyle(
-                                    fontSize: 14,
-                                    height: 1.4,
-                                    color: Colors.grey.shade800,
-                                    fontWeight: FontWeight.w500,
+                                  levelLabels[index],
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: colorPair[1],
                                   ),
                                 ),
                               ),
-                              Icon(
-                                Icons.arrow_forward_ios,
-                                size: 16,
-                                color: Colors.grey.shade400,
+                              const SizedBox(width: 12),
+                              // 功能图标
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.9),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Icon(
+                                  icon,
+                                  color: colorPair[1],
+                                  size: 20,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              // 案例描述
+                              Expanded(
+                                child: Text(
+                                  reply,
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.white,
+                                    height: 1.3,
+                                  ),
+                                ),
+                              ),
+                              // 进度指示器
+                              Container(
+                                width: 4,
+                                height: 40,
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.8),
+                                  borderRadius: BorderRadius.circular(2),
+                                ),
                               ),
                             ],
                           ),
@@ -511,14 +571,42 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
                 },
               ),
             ),
-
             Padding(
               padding: const EdgeInsets.all(20),
-              child: Text(
-                '💡 点击任意功能案例开始创建',
-              style: TextStyle(
-                  color: Colors.grey.shade600,
-                fontSize: 14,
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Colors.blue.shade50, Colors.purple.shade50],
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.blue.shade100),
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.lightbulb_outline, color: Colors.blue.shade600),
+                        const SizedBox(width: 8),
+                        const Text(
+                          '💡 递进式设计理念',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      '每个级别都在前面基础上增加新功能，Level 1→Level 12 逐步构建功能完整的专业计算器',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey,
+                        height: 1.3,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -587,8 +675,6 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
       ),
     );
   }
-
-
 
   Widget _buildMessageBubble(ConversationMessage message, int index) {
     final isUser = message.type == MessageType.user;
