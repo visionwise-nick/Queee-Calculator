@@ -405,7 +405,7 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
                       children: [
                         Text(
                           '🚀 功能递进案例库',
-                          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                         ),
                         Text(
                           '每个案例都在前面基础上增加新功能',
@@ -483,19 +483,19 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
                   
                   return Container(
                     margin: const EdgeInsets.only(bottom: 12),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: colorPair,
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(16),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: colorPair,
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
                           color: colorPair[1].withOpacity(0.3),
                           blurRadius: 8,
                           offset: const Offset(0, 4),
-                        ),
+                          ),
                       ],
                     ),
                     child: Material(
@@ -590,9 +590,9 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
                         const SizedBox(width: 8),
                         const Text(
                           '💡 递进式设计理念',
-                          style: TextStyle(
+              style: TextStyle(
                             fontWeight: FontWeight.bold,
-                            fontSize: 14,
+                fontSize: 14,
                           ),
                         ),
                       ],
