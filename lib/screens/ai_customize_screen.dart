@@ -324,41 +324,41 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
 
   void _showQuickReplies() {
     final quickReplies = [
-      // 🔢 Level 1：基础数学增强 - 在标准计算器基础上增加平方根和百分比
-      '在现有计算器基础上，添加√(开平方根)、x²(平方)、%(百分比)按键，让日常计算更便捷',
+      // 🛒 Level 1：购物满减神器 - 多步骤优惠计算
+      '添加购物满减按键：输入商品原价 → 检查满减条件(满300减50) → 应用优惠券(9折) → 计算最终价格，让购物省钱更轻松',
       
-      // 🔬 Level 2：三角函数扩展 - 继续增加科学计算功能
-      '在已有功能基础上，增加sin、cos、tan三角函数按键，支持角度计算，适用于工程和学习',
+      // 🎂 Level 2：年龄精算器 - 多步骤年龄计算  
+      '新增精确年龄计算按键：输入出生年份 → 输入出生月份 → 对比当前日期 → 计算精确年龄(年+月)，生日聚会必备',
       
-      // 📐 Level 3：对数指数增强 - 进一步扩展科学计算
-      '继续添加ln(自然对数)、log(常用对数)、e^x(指数)、10^x(10的幂)按键，完善科学计算能力',
+      // ⛽ Level 3：油耗成本计算 - 出行费用神器
+      '增加油耗成本按键：输入行驶里程 → 输入车辆油耗(升/百公里) → 输入当前油价 → 计算总油费，自驾游必备工具',
       
-      // 🔄 Level 4：进制转换功能 - 添加程序员常用功能
-      '新增二进制转换、八进制转换、十六进制转换按键，输入十进制数字一键转换其他进制',
+      // 💰 Level 4：存钱目标达成 - 理财规划助手
+      '添加存钱计划按键：输入目标金额 → 输入每月存款 → 计算需要几个月 → 显示达成时间，让存钱更有目标感',
       
-      // 💰 Level 5：金融计算入门 - 添加基本金融功能
-      '增加复利计算(本金、利率、年数)和汇率转换(金额、汇率)按键，满足投资理财基本需求',
+      // ⏰ Level 5：工资时薪计算 - 职场实用工具
+      '新增时薪计算按键：输入月薪 → 输入工作天数 → 输入每天工作小时 → 计算实际时薪，了解时间价值',
       
-      // 🏠 Level 6：房贷专业计算 - 专业金融计算扩展
+      // 🔢 Level 6：基础数学增强
+      '在现有功能基础上，添加√(开平方根)、x²(平方)、%(百分比)按键，让日常计算更便捷',
+      
+      // 🏠 Level 7：房贷专业计算
       '添加一个计算房贷的功能，利率3.5%，贷款30年，输入贷款金额，一键计算每月等额本息还款额',
       
-      // 📊 Level 7：统计分析功能 - 数据处理能力
-      '新增平均值、标准差、方差、最大值、最小值按键，支持多数字输入进行统计分析',
-      
-      // 🔀 Level 8：组合排列数学 - 高级数学功能
-      '添加组合C(n,r)、排列P(n,r)、阶乘n!按键，解决概率统计和数学问题',
-      
-      // 🏥 Level 9：生活实用工具 - 日常应用扩展
+      // 🏥 Level 8：生活实用工具
       '增加BMI计算(身高、体重)、小费计算(账单、小费率)、折扣计算(原价、折扣率)按键',
       
-      // 🌡️ Level 10：单位转换大全 - 全方位转换功能
+      // 🌡️ Level 9：单位转换实用版
       '添加温度转换(摄氏度↔华氏度)、长度转换(厘米↔英寸)、重量转换(公斤↔磅)按键',
       
-      // 🎯 Level 11：专业定制工具 - 行业专用功能
-      '新增燃油效率(里程、油价)、学生成绩(各科分数平均)、餐厅AA(总额、人数)专用按键',
+      // 📊 Level 10：简单统计功能
+      '新增平均值、最大值、最小值按键，支持多数字输入进行基础统计分析',
       
-      // 🚀 Level 12：全功能计算器 - 终极完整版
-      '集成所有功能，包含基础运算+科学计算+金融工具+统计分析+单位转换+生活实用，打造专业计算平台',
+      // 🎯 Level 11：餐厅AA神器
+      '新增餐厅AA按键：输入总金额 → 输入用餐人数 → 自动计算每人应付金额，聚餐必备',
+      
+      // 🚀 Level 12：全功能生活计算器
+      '集成所有实用功能，包含购物计算+年龄计算+油耗计算+存钱规划+工资分析+房贷计算+生活工具，打造全能生活助手',
     ];
 
     showModalBottomSheet(
@@ -451,25 +451,25 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
                   
                   // 递进式图标设计
                   final progressIcons = [
-                    // Level 1-3: 基础功能图标
-                    Icons.calculate_outlined,        // 基础增强
-                    Icons.functions,                 // 三角函数
-                    Icons.science,                   // 对数指数
+                    // Level 1-5: 有趣生活场景图标
+                    Icons.shopping_cart,             // 购物满减
+                    Icons.cake,                      // 年龄计算
+                    Icons.local_gas_station,        // 油耗成本
+                    Icons.savings,                   // 存钱目标
+                    Icons.access_time,               // 工资时薪
                     
-                    // Level 4-6: 专业功能图标  
-                    Icons.developer_mode,            // 进制转换
-                    Icons.account_balance,           // 基础金融
-                    Icons.home_work,                 // 房贷专业
-                    
-                    // Level 7-9: 高级功能图标
-                    Icons.analytics,                 // 统计分析
-                    Icons.scatter_plot,              // 组合排列
+                    // Level 6-8: 基础功能图标  
+                    Icons.calculate_outlined,        // 基础数学
+                    Icons.home_work,                 // 房贷计算
                     Icons.healing,                   // 生活实用
                     
-                    // Level 10-12: 终极功能图标
+                    // Level 9-11: 转换和统计图标
                     Icons.swap_horiz,                // 单位转换
-                    Icons.precision_manufacturing,   // 专业工具
-                    Icons.rocket_launch,             // 全功能超级
+                    Icons.analytics,                 // 简单统计
+                    Icons.restaurant,                // 餐厅AA
+                    
+                    // Level 12: 终极功能图标
+                    Icons.rocket_launch,             // 全功能生活助手
                   ];
                   
                   final icon = progressIcons[index % progressIcons.length];

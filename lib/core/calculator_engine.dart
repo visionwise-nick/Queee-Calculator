@@ -690,9 +690,9 @@ class CalculatorEngine {
       // 根据功能类型执行相应的计算
       switch (functionType.toLowerCase()) {
         case 'mortgage_calculator':
-          // 房贷计算：从parameters中获取利率和年限
-          double annualRate = parameters?['annualRate']?.toDouble() ?? 3.5; // 年利率%
-          int years = parameters?['years']?.toInt() ?? 30; // 贷款年限
+          // 房贷计算：固定利率3.5%，30年
+          double annualRate = 3.5; // 年利率%
+          int years = 30; // 贷款年限
           double loanAmount = inputValue; // 贷款金额
           
           double monthlyRate = annualRate / 100 / 12; // 月利率
@@ -704,7 +704,7 @@ class CalculatorEngine {
               (math.pow(1 + monthlyRate, totalMonths) - 1);
           
           result = monthlyPayment;
-          description = '房贷计算：¥$loanAmount，利率${annualRate}%，${years}年，月供';
+          description = '房贷计算：¥${loanAmount.toStringAsFixed(0)}，利率${annualRate}%，${years}年，月供';
           break;
           
         case 'compound_calculator':

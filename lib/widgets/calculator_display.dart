@@ -353,37 +353,7 @@ class CalculatorDisplay extends StatelessWidget {
             ),
           ),
           
-          // 简化的预览结果 - 只在有足够参数时显示
-          if (params.length >= minParams) ...[
-            const SizedBox(height: 6),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: currentBgColor,
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: borderColor, width: 0.5),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    '预览结果',
-                    style: TextStyle(fontSize: 11, color: subtitleColor),
-                  ),
-                  Text(
-                    _calculatePreview(functionName, params),
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: displayTextColor,
-                      fontFamily: 'monospace',
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
+          // 预览功能已删除 - 用户反馈不需要
           
           // 精简的操作提示
           const SizedBox(height: 4),
