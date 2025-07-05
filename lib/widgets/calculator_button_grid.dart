@@ -130,30 +130,39 @@ class CalculatorButtonGrid extends StatelessWidget {
     final availableButtonWidth = availableWidth - totalButtonGaps;
     final baseButtonWidth = availableButtonWidth / layout.columns;
     
-    // 创建完整的网格行
+    // 🔧 修复：重新设计行布局逻辑，正确处理跨列按键和间距
     List<Widget> rowWidgets = [];
     
-    for (int col = 0; col < layout.columns; col++) {
-      // 查找当前列的按钮
-      CalculatorButton? button;
-      for (final btn in rowButtons) {
-        if (btn.gridPosition.column == col) {
-          button = btn;
-          break;
-        }
+    // 创建按键映射表，方便查找
+    Map<int, CalculatorButton> buttonMap = {};
+    for (final btn in rowButtons) {
+      buttonMap[btn.gridPosition.column] = btn;
+    }
+    
+    int currentColumn = 0;
+    bool isFirstWidget = true;
+    
+    while (currentColumn < layout.columns) {
+      final button = buttonMap[currentColumn];
+      
+      // 添加间距（除了第一个元素）
+      if (!isFirstWidget) {
+        rowWidgets.add(SizedBox(width: buttonGap));
       }
       
       if (button != null) {
-        // 🔧 修复：正确计算跨列按键的宽度，包含间隙
-        double buttonWidth;
+        // 计算按键宽度
         final columnSpan = button.gridPosition.columnSpan ?? 1;
+        final widthMultiplier = button.widthMultiplier;
+        
+        double buttonWidth;
         
         if (columnSpan > 1) {
-          // 跨列按键：基础宽度×列数 + 间隙×(列数-1)
+          // 跨列按键：基础宽度×列数 + 被跨越的间隙
           buttonWidth = baseButtonWidth * columnSpan + buttonGap * (columnSpan - 1);
         } else {
           // 普通按键：使用宽度倍数
-          buttonWidth = baseButtonWidth * button.widthMultiplier;
+          buttonWidth = baseButtonWidth * widthMultiplier;
         }
         
         rowWidgets.add(
@@ -168,24 +177,20 @@ class CalculatorButtonGrid extends StatelessWidget {
           ),
         );
         
-        // 🔧 跨列按键跳过被占用的列位置
-        if (columnSpan > 1) {
-          col += columnSpan - 1; // 跳过被占用的列
-        }
+        // 跳过被跨列按键占用的列
+        currentColumn += columnSpan;
       } else {
-        // 空位置
+        // 空位置：添加空白占位符
         rowWidgets.add(
           SizedBox(
             width: baseButtonWidth,
             height: rowHeight,
           ),
         );
+        currentColumn++;
       }
       
-      // 添加列间距（除了最后一列）
-      if (col < layout.columns - 1) {
-        rowWidgets.add(SizedBox(width: buttonGap));
-      }
+      isFirstWidget = false;
     }
     
     return Row(

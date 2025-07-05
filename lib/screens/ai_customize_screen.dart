@@ -451,7 +451,7 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
                 itemBuilder: (context, index) {
                   final reply = quickReplies[index];
                   
-                  // 递进式色彩设计：从浅到深表示功能的递进
+                  // 递进式色彩设计：从浅到深表示功能的递进（扩展到20个）
                   final progressColors = [
                     // Level 1-3: 基础功能 - 绿色系（简单到复杂）
                     [const Color(0xFFE8F5E8), const Color(0xFFC8E6C9)], // 浅绿
@@ -472,6 +472,20 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
                     [const Color(0xFFFFF3E0), const Color(0xFFFFCC02)], // 浅橙
                     [const Color(0xFFFFB74D), const Color(0xFFFF9800)], // 中橙
                     [const Color(0xFFFF6F00), const Color(0xFFE65100)], // 深橙
+                    
+                    // Level 13-15: 高阶分析 - 红色系（深度计算）
+                    [const Color(0xFFFFEBEE), const Color(0xFFEF9A9A)], // 浅红
+                    [const Color(0xFFE57373), const Color(0xFFE53935)], // 中红
+                    [const Color(0xFFD32F2F), const Color(0xFFB71C1C)], // 深红
+                    
+                    // Level 16-18: 终极功能 - 青色系（专业分析）
+                    [const Color(0xFFE0F2F1), const Color(0xFF80CBC4)], // 浅青
+                    [const Color(0xFF4DB6AC), const Color(0xFF00695C)], // 中青
+                    [const Color(0xFF004D40), const Color(0xFF00251A)], // 深青
+                    
+                    // Level 19-20: 巅峰功能 - 金色系（大师级）
+                    [const Color(0xFFFFF8E1), const Color(0xFFFFD54F)], // 浅金
+                    [const Color(0xFFFFB300), const Color(0xFFFF8F00)], // 深金
                   ];
                   
                   final colorPair = progressColors[index % progressColors.length];
@@ -511,11 +525,13 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
                   
                   final icon = progressIcons[index % progressIcons.length];
                   
-                  // 递进式级别标签
+                  // 递进式级别标签（扩展到20个）
                   final levelLabels = [
                     'Level 1', 'Level 2', 'Level 3', 'Level 4', 
                     'Level 5', 'Level 6', 'Level 7', 'Level 8',
-                    'Level 9', 'Level 10', 'Level 11', 'Level 12'
+                    'Level 9', 'Level 10', 'Level 11', 'Level 12',
+                    'Level 13', 'Level 14', 'Level 15', 'Level 16',
+                    'Level 17', 'Level 18', 'Level 19', 'Level 20'
                   ];
                   
                   return Container(
@@ -555,7 +571,7 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: Text(
-                                  levelLabels[index],
+                                  levelLabels[index % levelLabels.length],
                                   style: TextStyle(
                                     fontSize: 10,
                                     fontWeight: FontWeight.bold,
