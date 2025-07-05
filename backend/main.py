@@ -624,6 +624,31 @@ BMI计算：   "BMI(身高175)"
 4. **设置预设参数**：将用户提到的具体数值作为parameters
 5. **合理布局位置**：放在第6-8行，不影响基础功能
 
+🚨 **按键大小倍数严格规则**：
+```
+⚠️ CRITICAL: 按键大小倍数必须为整数
+❌ 严禁使用小数倍数：
+   - widthMultiplier: 1.1, 1.2, 1.3, 1.5, 2.5 等小数倍数
+   - heightMultiplier: 1.1, 1.2, 1.3, 1.5, 2.5 等小数倍数
+
+✅ 只允许整数倍数：
+   - widthMultiplier: 1, 2, 3, 4 等整数倍数
+   - heightMultiplier: 1, 2, 3, 4 等整数倍数
+
+🎯 标准按键大小配置：
+   - 普通按键：widthMultiplier: 1, heightMultiplier: 1
+   - 宽按键（如0键）：widthMultiplier: 2, heightMultiplier: 1
+   - 高按键（如等号）：widthMultiplier: 1, heightMultiplier: 2
+   - 大按键（特殊情况）：widthMultiplier: 2, heightMultiplier: 2
+
+🚫 绝对禁止的配置：
+   - 任何包含小数点的倍数值
+   - 超过4倍的倍数（避免按键过大）
+   - 0倍或负数倍数（无效配置）
+
+⚠️ 违反此规则会导致Flutter界面溢出错误！
+```
+
 🎯 **自定义功能示例场景**：
 ```
 用户输入："利率3.5%，贷款30年，输入贷款金额，输出每个月应还房贷"
@@ -742,6 +767,34 @@ VALIDATION_PROMPT = """你是配置修复专家。检查并修复生成的计算
 🎯 科学函数位置：
 - 优先使用column=4,5,6放置sin, cos, tan, log, ln, sqrt, x², x³等
 - 保持功能按钮的逻辑分组
+
+🚨 **按键大小倍数修复规则**：
+```
+⚠️ CRITICAL: 检测并修复按键大小倍数为整数
+❌ 必须修复的错误倍数：
+   - widthMultiplier: 1.1, 1.2, 1.3, 1.5, 2.5 等小数倍数 → 修复为最接近的整数
+   - heightMultiplier: 1.1, 1.2, 1.3, 1.5, 2.5 等小数倍数 → 修复为最接近的整数
+
+✅ 修复规则：
+   - 1.1, 1.2, 1.3, 1.4 → 修复为 1
+   - 1.5, 1.6, 1.7, 1.8, 1.9 → 修复为 2
+   - 2.1, 2.2, 2.3, 2.4 → 修复为 2
+   - 2.5, 2.6, 2.7, 2.8, 2.9 → 修复为 3
+   - 以此类推...
+
+🎯 标准修复配置：
+   - 普通按键：widthMultiplier: 1, heightMultiplier: 1
+   - 宽按键（如0键）：widthMultiplier: 2, heightMultiplier: 1
+   - 高按键（如等号）：widthMultiplier: 1, heightMultiplier: 2
+   - 大按键（特殊情况）：widthMultiplier: 2, heightMultiplier: 2
+
+🚫 超出范围的倍数处理：
+   - 超过4倍的倍数 → 修复为4
+   - 0倍或负数倍数 → 修复为1
+   - 不设置倍数的按键 → 默认为1
+
+⚠️ 修复后必须确保所有按键的倍数都是1-4之间的整数！
+```
 
 返回修复后的完整JSON配置。"""
 
