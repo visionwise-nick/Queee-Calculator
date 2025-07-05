@@ -60,9 +60,9 @@ AVAILABLE_MODELS = {
         "description": "最强推理模型，复杂任务专用，响应时间较长"
     },
     "flash": {
-        "name": "gemini-2.0-flash", 
-        "display_name": "Gemini 2.0 Flash",
-        "description": "快速响应模型，均衡性能，推荐日常使用"
+        "name": "gemini-2.5-flash", 
+        "display_name": "Gemini 2.5 Flash",
+        "description": "最新快速响应模型，均衡性能，推荐日常使用"
     },
     "flash-thinking": {
         "name": "gemini-2.0-flash-thinking-exp",
