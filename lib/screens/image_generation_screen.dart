@@ -668,7 +668,7 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
     );
   }
 
-  List<Widget> _buildRowButtons(List<CalculatorButton> rowButtons, int totalColumns, double buttonSize) {
+  List<Widget> _buildRowButtons(List<CalculatorButton> rowButtons, int totalColumns, double baseButtonSize) {
     List<Widget> rowWidgets = [];
     
     for (int col = 0; col < totalColumns; col++) {
@@ -683,14 +683,22 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
       
       if (button != null) {
         final isSelected = _selectedButtonBgIds.contains(button.id);
-        final width = button.widthMultiplier > 1 ? 
-            (buttonSize * button.widthMultiplier) + (6.0 * (button.widthMultiplier - 1)) : buttonSize;
+        
+        // 根据按键类型和功能设置不同的大小
+        final buttonSizes = _getButtonSizes(button, baseButtonSize);
+        final width = buttonSizes['width']!;
+        final height = buttonSizes['height']!;
+        final fontSize = buttonSizes['fontSize']!;
+        final iconSize = buttonSizes['iconSize']!;
+        
+        // 获取按键类型对应的颜色和样式
+        final buttonStyle = _getButtonStyle(button.type, isSelected);
         
         rowWidgets.add(
           Container(
             width: width,
-            height: buttonSize,
-            margin: const EdgeInsets.symmetric(horizontal: 3),
+            height: height,
+            margin: const EdgeInsets.symmetric(horizontal: 2),
             child: Material(
               color: Colors.transparent,
               child: InkWell(
@@ -704,19 +712,26 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
                     _selectAllBg = _selectedButtonBgIds.length == widget.currentConfig.layout.buttons.length;
                   });
                 },
-                borderRadius: BorderRadius.circular(6),
+                borderRadius: BorderRadius.circular(buttonStyle['borderRadius']!),
                 child: Container(
                   decoration: BoxDecoration(
                     color: isSelected
-                        ? Colors.orange.withOpacity(0.1)
-                        : Colors.grey.shade50,
-                    borderRadius: BorderRadius.circular(6),
+                        ? buttonStyle['selectedColor']
+                        : buttonStyle['backgroundColor'],
+                    borderRadius: BorderRadius.circular(buttonStyle['borderRadius']!),
                     border: Border.all(
                       color: isSelected
-                          ? Colors.orange
-                          : Colors.grey.shade300,
+                          ? buttonStyle['selectedBorderColor']!
+                          : buttonStyle['borderColor']!,
                       width: isSelected ? 2 : 1,
                     ),
+                    boxShadow: button.type == 'operator' || button.type == 'special' ? [
+                      BoxShadow(
+                        color: buttonStyle['shadowColor']!.withOpacity(0.3),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ] : null,
                   ),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -724,18 +739,18 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
                       if (isSelected)
                         Icon(
                           Icons.check_circle,
-                          color: Colors.orange,
-                          size: 12,
+                          color: buttonStyle['selectedTextColor'],
+                          size: iconSize * 0.8,
                         ),
                       Flexible(
                         child: Text(
                           button.label,
                           style: TextStyle(
-                            fontWeight: FontWeight.bold,
+                            fontWeight: _getButtonFontWeight(button.type),
                             color: isSelected
-                                ? Colors.orange
-                                : Colors.grey.shade700,
-                            fontSize: 10,
+                                ? buttonStyle['selectedTextColor']
+                                : buttonStyle['textColor'],
+                            fontSize: fontSize,
                           ),
                           textAlign: TextAlign.center,
                           overflow: TextOverflow.ellipsis,
@@ -746,8 +761,8 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
                         Text(
                           '已选择',
                           style: TextStyle(
-                            fontSize: 6,
-                            color: Colors.orange,
+                            fontSize: fontSize * 0.5,
+                            color: buttonStyle['selectedTextColor'],
                           ),
                         ),
                     ],
@@ -766,13 +781,13 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
         // 空位置
         rowWidgets.add(
           Container(
-            width: buttonSize,
-            height: buttonSize,
-            margin: const EdgeInsets.symmetric(horizontal: 3),
+            width: baseButtonSize,
+            height: baseButtonSize,
+            margin: const EdgeInsets.symmetric(horizontal: 2),
             child: Container(
               decoration: BoxDecoration(
                 color: Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(6),
+                borderRadius: BorderRadius.circular(4),
                 border: Border.all(
                   color: Colors.grey.shade300,
                   width: 1,
@@ -785,6 +800,145 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
     }
     
     return rowWidgets;
+  }
+
+  // 根据按键类型和功能获取尺寸
+  Map<String, double> _getButtonSizes(CalculatorButton button, double baseSize) {
+    double widthMultiplier = button.widthMultiplier;
+    double heightMultiplier = button.heightMultiplier;
+    
+    // 根据按键类型调整基础大小
+    double sizeMultiplier;
+    switch (button.type) {
+      case 'primary': // 数字按键
+        sizeMultiplier = 1.0;
+        break;
+      case 'operator': // 运算符按键 - 更大更突出
+        sizeMultiplier = 1.15;
+        break;
+      case 'secondary': // 功能按键 - 中等大小
+        sizeMultiplier = 1.05;
+        break;
+      case 'special': // 特殊按键 - 根据功能调整
+        sizeMultiplier = 1.1;
+        break;
+      default:
+        sizeMultiplier = 1.0;
+    }
+    
+    // 特殊按键的个性化调整
+    if (button.label == '=' || button.label.contains('等于')) {
+      sizeMultiplier = 1.2; // 等号按键更大
+      heightMultiplier = 1.3;
+    } else if (button.label == 'AC' || button.label.contains('清除')) {
+      sizeMultiplier = 1.1; // 清除按键稍大
+    } else if (button.label == '0' || button.isWide) {
+      // 0按键或宽按键保持宽度倍数
+      widthMultiplier = button.widthMultiplier;
+    }
+    
+    final adjustedSize = baseSize * sizeMultiplier;
+    final width = adjustedSize * widthMultiplier + (6.0 * (widthMultiplier - 1));
+    final height = adjustedSize * heightMultiplier;
+    
+    return {
+      'width': width,
+      'height': height,
+      'fontSize': _getFontSize(button.type, adjustedSize),
+      'iconSize': adjustedSize * 0.3,
+    };
+  }
+
+  // 根据按键类型获取字体大小
+  double _getFontSize(String buttonType, double buttonSize) {
+    switch (buttonType) {
+      case 'primary':
+        return buttonSize * 0.25; // 数字按键字体适中
+      case 'operator':
+        return buttonSize * 0.28; // 运算符字体稍大
+      case 'secondary':
+        return buttonSize * 0.22; // 功能按键字体稍小
+      case 'special':
+        return buttonSize * 0.20; // 特殊按键字体最小（通常文字较多）
+      default:
+        return buttonSize * 0.25;
+    }
+  }
+
+  // 根据按键类型获取字体粗细
+  FontWeight _getButtonFontWeight(String buttonType) {
+    switch (buttonType) {
+      case 'operator':
+        return FontWeight.w700; // 运算符最粗
+      case 'special':
+        return FontWeight.w600; // 特殊按键较粗
+      case 'secondary':
+        return FontWeight.w500; // 功能按键中等
+      case 'primary':
+      default:
+        return FontWeight.w400; // 数字按键正常
+    }
+  }
+
+  // 根据按键类型获取样式
+  Map<String, dynamic> _getButtonStyle(String buttonType, bool isSelected) {
+    switch (buttonType) {
+      case 'primary': // 数字按键 - 浅灰色调
+        return {
+          'backgroundColor': Colors.grey.shade50,
+          'borderColor': Colors.grey.shade300,
+          'textColor': Colors.grey.shade800,
+          'selectedColor': Colors.blue.withOpacity(0.1),
+          'selectedBorderColor': Colors.blue,
+          'selectedTextColor': Colors.blue,
+          'shadowColor': Colors.grey,
+          'borderRadius': 6.0,
+        };
+      case 'operator': // 运算符按键 - 橙色调
+        return {
+          'backgroundColor': Colors.orange.shade50,
+          'borderColor': Colors.orange.shade200,
+          'textColor': Colors.orange.shade700,
+          'selectedColor': Colors.orange.withOpacity(0.2),
+          'selectedBorderColor': Colors.orange,
+          'selectedTextColor': Colors.orange.shade800,
+          'shadowColor': Colors.orange,
+          'borderRadius': 8.0,
+        };
+      case 'secondary': // 功能按键 - 紫色调
+        return {
+          'backgroundColor': Colors.purple.shade50,
+          'borderColor': Colors.purple.shade200,
+          'textColor': Colors.purple.shade700,
+          'selectedColor': Colors.purple.withOpacity(0.1),
+          'selectedBorderColor': Colors.purple,
+          'selectedTextColor': Colors.purple.shade800,
+          'shadowColor': Colors.purple,
+          'borderRadius': 7.0,
+        };
+      case 'special': // 特殊按键 - 绿色调
+        return {
+          'backgroundColor': Colors.green.shade50,
+          'borderColor': Colors.green.shade200,
+          'textColor': Colors.green.shade700,
+          'selectedColor': Colors.green.withOpacity(0.1),
+          'selectedBorderColor': Colors.green,
+          'selectedTextColor': Colors.green.shade800,
+          'shadowColor': Colors.green,
+          'borderRadius': 8.0,
+        };
+      default:
+        return {
+          'backgroundColor': Colors.grey.shade50,
+          'borderColor': Colors.grey.shade300,
+          'textColor': Colors.grey.shade700,
+          'selectedColor': Colors.orange.withOpacity(0.1),
+          'selectedBorderColor': Colors.orange,
+          'selectedTextColor': Colors.orange,
+          'shadowColor': Colors.grey,
+          'borderRadius': 6.0,
+        };
+    }
   }
 
   Widget _buildButtonPatternGenerationCard() {
