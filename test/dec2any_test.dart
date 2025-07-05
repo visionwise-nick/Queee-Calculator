@@ -12,14 +12,14 @@ void main() {
     test('dec2any - 六进制转换', () {
       // 测试31转六进制
       var state = engine.execute(CalculatorAction(
-        type: "input",
+        type: CalculatorActionType.input,
         value: '31',
       ));
       expect(state.display, '31');
       
       // 执行六进制转换
       state = engine.execute(CalculatorAction(
-        type: "expression",
+        type: CalculatorActionType.expression,
         expression: 'dec2any(x, 6)',
       ));
       
@@ -33,12 +33,12 @@ void main() {
     test('dec2any - 三进制转换', () {
       // 测试27转三进制
       var state = engine.execute(CalculatorAction(
-        type: "input",
+        type: CalculatorActionType.input,
         value: '27',
       ));
       
       state = engine.execute(CalculatorAction(
-        type: "expression",
+        type: CalculatorActionType.expression,
         expression: 'dec2any(x, 3)',
       ));
       
@@ -52,12 +52,12 @@ void main() {
     test('dec2any - 十二进制转换', () {
       // 测试143转十二进制
       var state = engine.execute(CalculatorAction(
-        type: "input",
+        type: CalculatorActionType.input,
         value: '143',
       ));
       
       state = engine.execute(CalculatorAction(
-        type: "expression",
+        type: CalculatorActionType.expression,
         expression: 'dec2any(x, 12)',
       ));
       
@@ -71,12 +71,12 @@ void main() {
     test('dec2any - 三十六进制转换', () {
       // 测试1295转三十六进制
       var state = engine.execute(CalculatorAction(
-        type: "input",
+        type: CalculatorActionType.input,
         value: '1295',
       ));
       
       state = engine.execute(CalculatorAction(
-        type: "expression",
+        type: CalculatorActionType.expression,
         expression: 'dec2any(x, 36)',
       ));
       
@@ -90,12 +90,12 @@ void main() {
     test('dec2any - 二进制转换（验证前缀）', () {
       // 测试15转二进制
       var state = engine.execute(CalculatorAction(
-        type: "input",
+        type: CalculatorActionType.input,
         value: '15',
       ));
       
       state = engine.execute(CalculatorAction(
-        type: "expression",
+        type: CalculatorActionType.expression,
         expression: 'dec2any(x, 2)',
       ));
       
@@ -109,12 +109,12 @@ void main() {
     test('dec2any - 十六进制转换（验证前缀）', () {
       // 测试255转十六进制
       var state = engine.execute(CalculatorAction(
-        type: "input",
+        type: CalculatorActionType.input,
         value: '255',
       ));
       
       state = engine.execute(CalculatorAction(
-        type: "expression",
+        type: CalculatorActionType.expression,
         expression: 'dec2any(x, 16)',
       ));
       
@@ -128,12 +128,12 @@ void main() {
     test('dec2any - 错误处理', () {
       // 测试无效进制
       var state = engine.execute(CalculatorAction(
-        type: "input",
+        type: CalculatorActionType.input,
         value: '10',
       ));
       
       state = engine.execute(CalculatorAction(
-        type: "expression",
+        type: CalculatorActionType.expression,
         expression: 'dec2any(x, 1)',
       ));
       
@@ -145,13 +145,13 @@ void main() {
     test('dec2any - 继续计算', () {
       // 测试进制转换后继续计算
       var state = engine.execute(CalculatorAction(
-        type: "input",
+        type: CalculatorActionType.input,
         value: '100',
       ));
       
       // 转换为七进制
       state = engine.execute(CalculatorAction(
-        type: "expression",
+        type: CalculatorActionType.expression,
         expression: 'dec2any(x, 7)',
       ));
       
@@ -159,7 +159,7 @@ void main() {
       
       // 继续计算：加50
       state = engine.execute(CalculatorAction(
-        type: "operator",
+        type: CalculatorActionType.operator,
         value: '+',
       ));
       
@@ -168,12 +168,12 @@ void main() {
       expect(state.previousValue, '100.0'); // 应该使用原始数值
       
       state = engine.execute(CalculatorAction(
-        type: "input",
+        type: CalculatorActionType.input,
         value: '50',
       ));
       
       state = engine.execute(CalculatorAction(
-        type: "equals",
+        type: CalculatorActionType.equals,
       ));
       
       expect(state.display, '150');

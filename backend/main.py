@@ -13,9 +13,6 @@ import copy
 import requests
 import base64
 from io import BytesIO
-import cachetools # 🆕 新增：用于内存缓存
-from PIL import Image, ImageDraw, ImageFont, ImageFilter
-import io
 
 app = FastAPI(title="Queee Calculator AI Backend", version="2.0.0")
 
@@ -31,10 +28,6 @@ app.add_middleware(
 # 全局变量
 _genai_initialized = False
 current_model_key = "flash"
-
-# 🆕 新增：汇率数据缓存
-# 创建一个大小为100，过期时间为3600秒（1小时）的TTL缓存
-exchange_rate_cache = cachetools.TTLCache(maxsize=100, ttl=3600)
 
 def initialize_genai():
     """初始化Google AI"""
@@ -90,7 +83,7 @@ class GridPosition(BaseModel):
     columnSpan: Optional[int] = None
 
 class CalculatorAction(BaseModel):
-    type: str  # input, operator, equals, clear, clearAll, backspace, decimal, negate, expression, multiParamFunction, parameterSeparator, functionExecute, customFunction, network_request
+    type: str  # input, operator, equals, clear, clearAll, backspace, decimal, negate, expression, multiParamFunction, parameterSeparator, functionExecute, customFunction
     value: Optional[str] = None
     expression: Optional[str] = None  # 数学表达式，如 "x*x", "x*0.15", "sqrt(x)"
     parameters: Optional[Dict[str, Any]] = None  # 自定义功能的预设参数，如 {"annualRate": 3.5, "years": 30}
@@ -672,15 +665,6 @@ AI生成：{"type": "customFunction", "value": "currency_converter", "parameters
 ```
 
 专注功能设计。基于用户需求进行功能增强或修改。严格确保所有生成的功能都能在底层计算引擎中可靠运行。对于用户的具体计算需求，优先生成自定义功能按键。
-
-🎯 **网络请求功能生成规则 (新)**：
-- **触发条件**: 当用户需要实时数据，如"最新汇率"时。
-- **动作类型**: 设置 `action.type` 为 `network_request`。
-- **计算值**: 设置 `action.value` 为 `"x * rate"`。
-- **API路径**: 设置 `action.url` 为 `"/get-exchange-rate"`。
-- **请求方法**: 设置 `action.method` 为 `"POST"`。
-- **请求参数**: 在 `action.parameters` 中设置 `from_currency` 和 `to_currency`。
-- **按钮标签**: `label` 应为 "USD→CNY" 这样的格式。
 """
 
 # AI二次校验和修复系统提示 - 强化无效按键检测
@@ -1925,123 +1909,6 @@ async def generate_text_image(request: TextImageRequest):
             "text": request.text,
             "message": f"生成创意字符 '{request.text}' 失败: {str(e)}"
     }
-
-# 🆕 新增：音效生成
-class SoundGenerationRequest(BaseModel):
-    prompt: str = Field(..., description="音效生成提示词，例如：'清脆的机械键盘声'")
-    duration: Optional[float] = Field(default=0.5, description="音效时长（秒）")
-
-@app.post("/generate-sound")
-async def generate_sound(request: SoundGenerationRequest):
-    """
-    根据文本描述生成简短的音效。
-    这通过一个创造性的提示技巧来实现，引导TTS模型生成音效而非语音。
-    """
-    initialize_genai()
-    try:
-        # 使用一个特殊的模型用于TTS
-        # 注意：这里的模型名称需要根据Google AI的实际可用模型进行调整
-        # 我们使用一个支持语音合成的模型
-        tts_model_name = "gemini-2.5-flash-preview-tts"
-        try:
-            tts_model = genai.GenerativeModel(tts_model_name)
-        except Exception:
-            # 如果预览版模型不可用，尝试使用一个通用模型
-            tts_model = get_current_model()
-
-        # 创造性的提示，引导模型生成音效而非语音
-        creative_prompt = f"""
-        This is a technical instruction for a sound synthesis engine. Do not generate speech.
-        Your task is to generate a sound effect based on the following description.
-        Description: '{request.prompt}'.
-        The sound should be very short, approximately {request.duration} seconds.
-        Output only the raw audio data for this sound effect.
-        """
-
-        print(f"🔊 正在生成音效... 提示词: '{request.prompt}'")
-        
-        # 配置响应为音频
-        response = await tts_model.generate_content_async(
-            contents=[creative_prompt],
-            generation_config=genai.types.GenerationConfig(
-                response_modality=genai.types.ResponseModality.AUDIO,
-                speech_config=genai.types.SpeechConfig(
-                    voice_config=genai.types.VoiceConfig(
-                        prebuilt_voice_config=genai.types.PrebuiltVoiceConfig(
-                            voice_name='Puck'  # 选择一个通用的声音
-                        )
-                    )
-                )
-            )
-        )
-
-        audio_part = response.candidates[0].content.parts[0]
-        audio_data_bytes = audio_part.inline_data.data
-        
-        # 将音频数据编码为Base64
-        audio_base64 = base64.b64encode(audio_data_bytes).decode('utf-8')
-        
-        print("✅ 音效生成成功")
-        return {"success": True, "audio_base64": audio_base64, "mime_type": "audio/wav"}
-
-    except Exception as e:
-        print(f"❌ 生成音效失败: {e}")
-        # 提供一个备用（静音）的wav文件
-        # 创建一个非常短的静音wav文件的Base64编码
-        silent_wav_base64 = "UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAAABkYXRhAAAAAA=="
-        return {"success": False, "error": str(e), "audio_base64": silent_wav_base64, "mime_type": "audio/wav"}
-
-class ExchangeRateRequest(BaseModel):
-    from_currency: str
-    to_currency: str
-
-@app.post("/get-exchange-rate")
-async def get_exchange_rate(request: ExchangeRateRequest):
-    """
-    获取指定货币之间的最新汇率。
-    结果会被缓存一小时以提高性能并减少对第三方API的调用。
-    """
-    from_currency = request.from_currency.upper()
-    to_currency = request.to_currency.upper()
-    cache_key = f"{from_currency}_{to_currency}"
-
-    # 检查缓存
-    if cache_key in exchange_rate_cache:
-        print(f"CACHE HIT: 从缓存中获取汇率 {from_currency} -> {to_currency}")
-        return {"success": True, "rate": exchange_rate_cache[cache_key]}
-
-    print(f"CACHE MISS: 正在从API获取汇率 {from_currency} -> {to_currency}")
-
-    # 从环境变量中获取API Key
-    api_key = os.getenv("EXCHANGE_RATE_API_KEY")
-    if not api_key:
-        print("❌ 错误：未设置EXCHANGE_RATE_API_KEY环境变量")
-        raise HTTPException(status_code=500, detail="服务器配置错误：缺少汇率API密钥")
-
-    url = f"https://v6.exchangerate-api.com/v6/{api_key}/latest/{from_currency}"
-
-    try:
-        response = requests.get(url)
-        response.raise_for_status()  # 如果响应状态码不是200，则引发HTTPError
-
-        data = response.json()
-        if data.get("result") == "success":
-            rate = data["conversion_rates"].get(to_currency)
-            if rate:
-                # 存入缓存
-                exchange_rate_cache[cache_key] = rate
-                print(f"✅ 成功获取汇率并存入缓存: 1 {from_currency} = {rate} {to_currency}")
-                return {"success": True, "rate": rate}
-            else:
-                raise HTTPException(status_code=404, detail=f"不支持的目标货币: {to_currency}")
-        else:
-            error_type = data.get("error-type", "未知错误")
-            print(f"❌ 汇率API错误: {error_type}")
-            raise HTTPException(status_code=500, detail=f"汇率服务API错误: {error_type}")
-
-    except requests.exceptions.RequestException as e:
-        print(f"❌ 调用汇率API失败: {e}")
-        raise HTTPException(status_code=503, detail="无法连接到汇率服务")
 
 if __name__ == "__main__":
     import uvicorn
