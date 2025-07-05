@@ -35,6 +35,10 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
   bool _selectAllBg = false;
   bool _isGeneratingButtonPattern = false;
   final TextEditingController _buttonPatternPromptController = TextEditingController();
+  
+  // 透明度调节状态
+  double _buttonOpacity = 1.0; // 按键透明度
+  double _displayOpacity = 1.0; // 显示区域透明度
 
   @override
   void initState() {
@@ -481,7 +485,11 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
                 ),
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
+            
+            // 透明度调节区域
+            _buildOpacityControls(),
+            const SizedBox(height: 20),
             
             // 操作按钮
             Row(
@@ -491,6 +499,9 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
                     onPressed: () {
                       setState(() {
                         _generatedAppBgUrl = null;
+                        // 重置透明度
+                        _buttonOpacity = 1.0;
+                        _displayOpacity = 1.0;
                       });
                     },
                     style: OutlinedButton.styleFrom(
@@ -521,6 +532,151 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  /// 构建透明度调节控件
+  Widget _buildOpacityControls() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.opacity, color: Colors.blue.shade600, size: 20),
+              const SizedBox(width: 8),
+              const Text(
+                '透明度调节',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          
+          // 按键透明度调节
+          Row(
+            children: [
+              Icon(Icons.touch_app, color: Colors.orange.shade600, size: 18),
+              const SizedBox(width: 8),
+              const Text(
+                '按键透明度',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+              ),
+              const Spacer(),
+              Text(
+                '${(_buttonOpacity * 100).round()}%',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.orange.shade600,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          SliderTheme(
+            data: SliderTheme.of(context).copyWith(
+              activeTrackColor: Colors.orange.shade400,
+              inactiveTrackColor: Colors.orange.shade100,
+              thumbColor: Colors.orange.shade600,
+              overlayColor: Colors.orange.shade100,
+              trackHeight: 4,
+              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
+            ),
+            child: Slider(
+              value: _buttonOpacity,
+              min: 0.0,
+              max: 1.0,
+              divisions: 20,
+              onChanged: (value) {
+                setState(() {
+                  _buttonOpacity = value;
+                });
+              },
+            ),
+          ),
+          const SizedBox(height: 16),
+          
+          // 显示区域透明度调节
+          Row(
+            children: [
+              Icon(Icons.monitor, color: Colors.purple.shade600, size: 18),
+              const SizedBox(width: 8),
+              const Text(
+                '显示区透明度',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+              ),
+              const Spacer(),
+              Text(
+                '${(_displayOpacity * 100).round()}%',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.purple.shade600,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          SliderTheme(
+            data: SliderTheme.of(context).copyWith(
+              activeTrackColor: Colors.purple.shade400,
+              inactiveTrackColor: Colors.purple.shade100,
+              thumbColor: Colors.purple.shade600,
+              overlayColor: Colors.purple.shade100,
+              trackHeight: 4,
+              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
+            ),
+            child: Slider(
+              value: _displayOpacity,
+              min: 0.0,
+              max: 1.0,
+              divisions: 20,
+              onChanged: (value) {
+                setState(() {
+                  _displayOpacity = value;
+                });
+              },
+            ),
+          ),
+          
+          // 透明度说明
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.blue.shade50,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.blue.shade200),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.info_outline, color: Colors.blue.shade600, size: 16),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    '调节透明度可让背景图更好地展现，0%为完全透明，100%为完全不透明',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.blue.shade700,
+                      height: 1.3,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1302,6 +1458,8 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
       backgroundImageUrl: _generatedAppBgUrl,
       backgroundType: 'image',
       backgroundOpacity: 1.0,
+      buttonOpacity: _buttonOpacity, // 应用按键透明度
+      displayOpacity: _displayOpacity, // 应用显示区域透明度
     );
 
     final updatedConfig = CalculatorConfig(
@@ -1321,14 +1479,12 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
     widget.onConfigUpdated(updatedConfig);
     
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('✅ 背景已应用！'),
+      SnackBar(
+        content: Text('✅ 背景已应用！按键透明度:${(_buttonOpacity * 100).round()}%, 显示区透明度:${(_displayOpacity * 100).round()}%'),
         backgroundColor: Colors.green,
       ),
     );
   }
-
-
 
   void _showResetDialog() {
     showDialog(

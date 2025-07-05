@@ -9,6 +9,8 @@ class AppBackgroundConfig {
   final List<String>? backgroundGradient;
   final String? backgroundPattern;
   final double? backgroundOpacity;
+  final double? buttonOpacity; // 按键区域的透明度
+  final double? displayOpacity; // 显示区域的透明度
   final String? backgroundBlendMode; // multiply, overlay, screen, etc.
   final bool? parallaxEffect;
   final double? parallaxIntensity;
@@ -20,6 +22,8 @@ class AppBackgroundConfig {
     this.backgroundGradient,
     this.backgroundPattern,
     this.backgroundOpacity = 1.0,
+    this.buttonOpacity = 1.0, // 默认不透明
+    this.displayOpacity = 1.0, // 默认不透明
     this.backgroundBlendMode,
     this.parallaxEffect = false,
     this.parallaxIntensity = 0.1,
@@ -33,6 +37,8 @@ class AppBackgroundConfig {
       backgroundGradient: (json['backgroundGradient'] as List<dynamic>?)?.cast<String>(),
       backgroundPattern: json['backgroundPattern'] as String?,
       backgroundOpacity: (json['backgroundOpacity'] as num?)?.toDouble() ?? 1.0,
+      buttonOpacity: (json['buttonOpacity'] as num?)?.toDouble() ?? 1.0,
+      displayOpacity: (json['displayOpacity'] as num?)?.toDouble() ?? 1.0,
       backgroundBlendMode: json['backgroundBlendMode'] as String?,
       parallaxEffect: json['parallaxEffect'] as bool? ?? false,
       parallaxIntensity: (json['parallaxIntensity'] as num?)?.toDouble() ?? 0.1,
@@ -47,6 +53,8 @@ class AppBackgroundConfig {
       'backgroundGradient': backgroundGradient,
       'backgroundPattern': backgroundPattern,
       'backgroundOpacity': backgroundOpacity,
+      'buttonOpacity': buttonOpacity,
+      'displayOpacity': displayOpacity,
       'backgroundBlendMode': backgroundBlendMode,
       'parallaxEffect': parallaxEffect,
       'parallaxIntensity': parallaxIntensity,
@@ -60,6 +68,8 @@ class AppBackgroundConfig {
     List<String>? backgroundGradient,
     String? backgroundPattern,
     double? backgroundOpacity,
+    double? buttonOpacity,
+    double? displayOpacity,
     String? backgroundBlendMode,
     bool? parallaxEffect,
     double? parallaxIntensity,
@@ -71,6 +81,8 @@ class AppBackgroundConfig {
       backgroundGradient: backgroundGradient ?? this.backgroundGradient,
       backgroundPattern: backgroundPattern ?? this.backgroundPattern,
       backgroundOpacity: backgroundOpacity ?? this.backgroundOpacity,
+      buttonOpacity: buttonOpacity ?? this.buttonOpacity,
+      displayOpacity: displayOpacity ?? this.displayOpacity,
       backgroundBlendMode: backgroundBlendMode ?? this.backgroundBlendMode,
       parallaxEffect: parallaxEffect ?? this.parallaxEffect,
       parallaxIntensity: parallaxIntensity ?? this.parallaxIntensity,

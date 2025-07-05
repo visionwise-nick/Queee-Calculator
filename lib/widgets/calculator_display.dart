@@ -4,90 +4,92 @@ import '../models/calculator_dsl.dart';
 import 'dart:convert';
 import 'dart:typed_data';
 import 'dart:math' as math;
+import 'package:provider/provider.dart';
 
 class CalculatorDisplay extends StatelessWidget {
   final CalculatorState state;
   final CalculatorTheme theme;
+  final AppBackgroundConfig? appBackground;
   final Function(String)? onParameterInput;
 
   const CalculatorDisplay({
     super.key,
     required this.state,
     required this.theme,
+    this.appBackground,
     this.onParameterInput,
   });
 
   @override
   Widget build(BuildContext context) {
-    // 使用主题指定的显示区圆角或默认值
     final borderRadius = theme.displayBorderRadius ?? theme.buttonBorderRadius;
     
-    return Container(
-      width: theme.displayWidth != null 
-          ? MediaQuery.of(context).size.width * theme.displayWidth!
-          : double.infinity,
-      padding: const EdgeInsets.all(12),
-      margin: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        color: theme.displayBackgroundGradient == null && theme.backgroundImage == null 
-            ? _parseColor(theme.displayBackgroundColor) 
-            : null,
-        gradient: theme.displayBackgroundGradient != null 
-            ? _buildGradient(theme.displayBackgroundGradient!) 
-            : null,
-        borderRadius: BorderRadius.circular(borderRadius),
-        boxShadow: [
-          if (theme.hasGlowEffect)
-            BoxShadow(
-              color: _parseColor(theme.shadowColor ?? theme.displayTextColor).withValues(alpha: 0.3),
-              blurRadius: 10,
-              spreadRadius: 2,
-            ),
-        ],
-        image: _buildBackgroundImage(theme.backgroundImage),
-      ),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          // 根据可用高度动态调整布局
-          final availableHeight = constraints.maxHeight;
-          final hasMultipleElements = (state.isInputtingFunction && state.currentFunction != null) ||
-                                     ((state.operator?.isNotEmpty ?? false) || (state.previousValue?.isNotEmpty ?? false));
-          
-          // 如果正在输入多参数函数，显示多参数输入界面
-          if (state.isInputtingFunction && state.currentFunction != null) {
-            return _buildMultiParameterDisplay(context, constraints);
-          }
-          
-          // 增强滚动支持，确保长表达式能正确显示
-          if (availableHeight < 80 || hasMultipleElements) {
-            return SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.symmetric(vertical: 4.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                mainAxisAlignment: MainAxisAlignment.center,
-                mainAxisSize: MainAxisSize.min,
-                children: _buildDisplayElements(),
+    final displayOpacity = appBackground?.displayOpacity ?? 1.0;
+    
+    return Opacity(
+      opacity: displayOpacity,
+      child: Container(
+        width: theme.displayWidth != null 
+            ? MediaQuery.of(context).size.width * theme.displayWidth!
+            : double.infinity,
+        padding: const EdgeInsets.all(12),
+        margin: const EdgeInsets.all(4),
+        decoration: BoxDecoration(
+          color: theme.displayBackgroundGradient == null && theme.backgroundImage == null 
+              ? _parseColor(theme.displayBackgroundColor) 
+              : null,
+          gradient: theme.displayBackgroundGradient != null 
+              ? _buildGradient(theme.displayBackgroundGradient!) 
+              : null,
+          borderRadius: BorderRadius.circular(borderRadius),
+          boxShadow: [
+            if (theme.hasGlowEffect)
+              BoxShadow(
+                color: _parseColor(theme.shadowColor ?? theme.displayTextColor).withValues(alpha: 0.3),
+                blurRadius: 10,
+                spreadRadius: 2,
               ),
-            );
-          } else {
-            // 使用Flexible确保不溢出，同时提供滚动能力
-            return SingleChildScrollView(
-              physics: const ClampingScrollPhysics(),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                mainAxisAlignment: MainAxisAlignment.center,
-                mainAxisSize: MainAxisSize.min,
-                children: _buildDisplayElements(),
-              ),
-            );
-          }
-        },
+          ],
+          image: _buildBackgroundImage(theme.backgroundImage),
+        ),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final availableHeight = constraints.maxHeight;
+            final hasMultipleElements = (state.isInputtingFunction && state.currentFunction != null) ||
+                                       ((state.operator?.isNotEmpty ?? false) || (state.previousValue?.isNotEmpty ?? false));
+            
+            if (state.isInputtingFunction && state.currentFunction != null) {
+              return _buildMultiParameterDisplay(context, constraints);
+            }
+            
+            if (availableHeight < 80 || hasMultipleElements) {
+              return SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                padding: const EdgeInsets.symmetric(vertical: 4.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: _buildDisplayElements(),
+                ),
+              );
+            } else {
+              return SingleChildScrollView(
+                physics: const ClampingScrollPhysics(),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: _buildDisplayElements(),
+                ),
+              );
+            }
+          },
+        ),
       ),
     );
   }
 
-  /// 构建渐变色
   LinearGradient _buildGradient(List<String> gradientColors) {
     return LinearGradient(
       begin: Alignment.topLeft,
@@ -96,7 +98,6 @@ class CalculatorDisplay extends StatelessWidget {
     );
   }
 
-  /// 获取多参数函数的操作提示
   String _getFunctionHint(String functionName, int paramCount) {
     switch (functionName.toLowerCase()) {
       case 'pow':
@@ -160,17 +161,15 @@ class CalculatorDisplay extends StatelessWidget {
     }
   }
 
-  /// 构建显示元素列表
   List<Widget> _buildDisplayElements() {
     return [
-      // 主显示屏
       Container(
         width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2), // 减少垂直padding
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
         child: Text(
           state.isInputtingFunction ? state.getFunctionDisplayText() : state.display,
           style: TextStyle(
-            fontSize: state.isInputtingFunction ? 20 : 24, // 减小字体大小
+            fontSize: state.isInputtingFunction ? 20 : 24,
             fontWeight: FontWeight.w300,
             color: _parseColor(theme.displayTextColor),
             fontFamily: 'monospace',
@@ -181,33 +180,31 @@ class CalculatorDisplay extends StatelessWidget {
         ),
       ),
       
-      // 多参数函数操作提示
       if (state.isInputtingFunction && state.currentFunction != null)
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 1), // 减少垂直padding
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 1),
           child: Text(
             _getFunctionHint(state.currentFunction!, state.functionParameters.length),
             style: TextStyle(
-              fontSize: 10, // 减小字体大小
+              fontSize: 10,
               color: _parseColor(theme.displayTextColor).withValues(alpha: 0.6),
               fontStyle: FontStyle.italic,
             ),
             textAlign: TextAlign.right,
-            maxLines: 1, // 限制为1行
+            maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
         ),
       
-      // 状态显示
       if ((state.operator?.isNotEmpty ?? false) || (state.previousValue?.isNotEmpty ?? false))
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 1), // 减少垂直padding
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 1),
           child: Text(
             '${state.previousValue ?? ''} ${state.operator ?? ''}',
             style: TextStyle(
-              fontSize: 10, // 减小字体大小
+              fontSize: 10,
               color: _parseColor(theme.displayTextColor).withValues(alpha: 0.7),
               fontFamily: 'monospace',
             ),
@@ -231,21 +228,17 @@ class CalculatorDisplay extends StatelessWidget {
     }
   }
 
-  /// 构建背景图像
   DecorationImage? _buildBackgroundImage(String? backgroundImage) {
     if (backgroundImage == null) {
       return null;
     }
 
-    // 过滤掉明显无效的URL格式
     if (backgroundImage.startsWith('url(') && backgroundImage.endsWith(')')) {
-      // 这是CSS样式的url()格式，不是有效的图片URL
       print('跳过无效的CSS格式背景图片: $backgroundImage');
       return null;
     }
 
     if (backgroundImage.startsWith('data:image/')) {
-      // 处理base64格式
       try {
         final base64Data = backgroundImage.split(',').last;
         final bytes = base64Decode(base64Data);
@@ -262,7 +255,6 @@ class CalculatorDisplay extends StatelessWidget {
         return null;
       }
     } else if (Uri.tryParse(backgroundImage)?.isAbsolute == true) {
-      // 处理有效的URL格式
       return DecorationImage(
         image: NetworkImage(backgroundImage),
         fit: BoxFit.cover,
@@ -275,23 +267,19 @@ class CalculatorDisplay extends StatelessWidget {
         },
       );
     } else {
-      // 跳过无效格式
       print('跳过无效格式的背景图片: $backgroundImage');
       return null;
     }
   }
 
-  /// 构建多参数输入显示界面
   Widget _buildMultiParameterDisplay(BuildContext context, BoxConstraints constraints) {
     final functionName = state.currentFunction!;
     final params = state.functionParameters;
     final currentInput = state.display;
     
-    // 获取函数的参数配置 - 使用缓存减少重复计算
     final paramConfig = _getParameterConfig(functionName);
     final minParams = paramConfig['minParams'] as int? ?? 2;
     
-    // 预计算颜色以避免重复解析
     final displayTextColor = _parseColor(theme.displayTextColor);
     final backgroundColor = displayTextColor.withValues(alpha: 0.05);
     final currentBgColor = displayTextColor.withValues(alpha: 0.1);
@@ -303,7 +291,6 @@ class CalculatorDisplay extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // 主显示区域 - 显示紧凑函数格式
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -323,7 +310,6 @@ class CalculatorDisplay extends StatelessWidget {
           
           const SizedBox(height: 6),
           
-          // 精简的进度指示器 - 不再重复显示函数名
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 8),
@@ -353,9 +339,6 @@ class CalculatorDisplay extends StatelessWidget {
             ),
           ),
           
-          // 预览功能已删除 - 用户反馈不需要
-          
-          // 精简的操作提示
           const SizedBox(height: 4),
           Text(
             _getFunctionHint(functionName, params.length),
@@ -373,7 +356,6 @@ class CalculatorDisplay extends StatelessWidget {
     );
   }
 
-  /// 获取函数期望的参数数量
   int _getExpectedParamCount(String functionName) {
     switch (functionName.toLowerCase()) {
       case 'pow':
@@ -415,29 +397,26 @@ class CalculatorDisplay extends StatelessWidget {
         return 5;
       
       default:
-        return 3; // 默认3个参数
+        return 3;
     }
   }
 
-  /// 获取步骤指示器
   String _getStepIndicator(int current, int total) {
     List<String> indicators = [];
     for (int i = 0; i < total; i++) {
       if (i < current) {
-        indicators.add('●'); // 已完成
+        indicators.add('●');
       } else if (i == current) {
-        indicators.add('◐'); // 当前进行中
+        indicators.add('◐');
       } else {
-        indicators.add('○'); // 未完成
+        indicators.add('○');
       }
     }
     return indicators.join(' ');
   }
 
-  /// 获取参数配置
   Map<String, dynamic> _getParameterConfig(String functionName) {
     switch (functionName.toLowerCase()) {
-      // 基础数学函数
       case 'pow':
         return {
           'title': '幂运算 (X^Y)',
@@ -542,67 +521,66 @@ class CalculatorDisplay extends StatelessWidget {
           'minParams': 2,
         };
         
-      // 金融计算函数  
-      case '复利计算':
-      case 'compound':
-      case 'compoundinterest':
-        return {
-          'title': '复利计算',
-          'paramNames': ['本金', '年利率', '投资年数'],
-          'paramUnits': ['元', '%', '年'],
-          'minParams': 3,
-        };
-        
-      case '贷款计算':
-      case 'loan':
-      case 'loanpayment':
-        return {
-          'title': '贷款月供计算',
-          'paramNames': ['贷款金额', '年利率', '贷款年数'],
-          'paramUnits': ['元', '%', '年'],
-          'minParams': 3,
-        };
-        
-      case '投资回报':
-      case 'roi':
-      case 'investmentreturn':
-        return {
-          'title': '投资回报率',
-          'paramNames': ['投资收益', '投资成本'],
-          'paramUnits': ['元', '元'],
-          'minParams': 2,
-        };
-        
-      case '汇率转换':
-      case 'currency':
-      case 'exchange':
-      case 'exchangerate':
-        return {
-          'title': '汇率转换',
-          'paramNames': ['金额', '汇率'],
-          'paramUnits': ['', ''],
-          'minParams': 2,
-        };
-        
-      case '抵押贷款':
-      case 'mortgage':
-        return {
-          'title': '抵押贷款计算',
-          'paramNames': ['房价', '首付比例', '贷款年数', '年利率'],
-          'paramUnits': ['元', '%', '年', '%'],
-          'minParams': 4,
-        };
-        
-      case '年金计算':
-      case 'annuity':
-        return {
-          'title': '年金计算',
-          'paramNames': ['每期支付', '年利率', '期数'],
-          'paramUnits': ['元', '%', '期'],
-          'minParams': 3,
-        };
-        
-              case '通胀调整':
+        case '复利计算':
+        case 'compound':
+        case 'compoundinterest':
+          return {
+            'title': '复利计算',
+            'paramNames': ['本金', '年利率', '投资年数'],
+            'paramUnits': ['元', '%', '年'],
+            'minParams': 3,
+          };
+          
+        case '贷款计算':
+        case 'loan':
+        case 'loanpayment':
+          return {
+            'title': '贷款月供计算',
+            'paramNames': ['贷款金额', '年利率', '贷款年数'],
+            'paramUnits': ['元', '%', '年'],
+            'minParams': 3,
+          };
+          
+        case '投资回报':
+        case 'roi':
+        case 'investmentreturn':
+          return {
+            'title': '投资回报率',
+            'paramNames': ['投资收益', '投资成本'],
+            'paramUnits': ['元', '元'],
+            'minParams': 2,
+          };
+          
+        case '汇率转换':
+        case 'currency':
+        case 'exchange':
+        case 'exchangerate':
+          return {
+            'title': '汇率转换',
+            'paramNames': ['金额', '汇率'],
+            'paramUnits': ['', ''],
+            'minParams': 2,
+          };
+          
+        case '抵押贷款':
+        case 'mortgage':
+          return {
+            'title': '抵押贷款计算',
+            'paramNames': ['房价', '首付比例', '贷款年数', '年利率'],
+            'paramUnits': ['元', '%', '年', '%'],
+            'minParams': 4,
+          };
+          
+        case '年金计算':
+        case 'annuity':
+          return {
+            'title': '年金计算',
+            'paramNames': ['每期支付', '年利率', '期数'],
+            'paramUnits': ['元', '%', '期'],
+            'minParams': 3,
+          };
+          
+        case '通胀调整':
         case 'inflation':
           return {
             'title': '通胀调整',
@@ -657,26 +635,21 @@ class CalculatorDisplay extends StatelessWidget {
     }
   }
 
-  /// 格式化结果数字
   String _formatResult(double result) {
-    // 检查是否为整数
     if (result == result.toInt() && result.abs() < 1000000000000) {
       return result.toInt().toString();
     }
     
-    // 科学计数法判断
     if (result.abs() >= 1e12 || (result.abs() < 1e-6 && result != 0)) {
       return result.toStringAsExponential(6).replaceAll(RegExp(r'0*e'), 'e');
     }
     
-    // 正常小数显示
     String formatted = result.toStringAsFixed(10);
     formatted = formatted.replaceAll(RegExp(r'0*$'), '').replaceAll(RegExp(r'\.$'), '');
     
     return formatted;
   }
 
-  /// 计算最大公约数
   int _gcd(int a, int b) {
     a = a.abs();
     b = b.abs();
@@ -688,7 +661,6 @@ class CalculatorDisplay extends StatelessWidget {
     return a;
   }
 
-  /// 计算阶乘
   int _factorial(int n) {
     if (n < 0) return 0;
     if (n == 0 || n == 1) return 1;
@@ -699,11 +671,9 @@ class CalculatorDisplay extends StatelessWidget {
     return result;
   }
 
-  /// 计算预览结果
   String _calculatePreview(String functionName, List<double> params) {
     try {
       switch (functionName.toLowerCase()) {
-        // 基础数学函数预览
         case 'pow':
           if (params.length >= 2) {
             double result = math.pow(params[0], params[1]).toDouble();
@@ -809,7 +779,6 @@ class CalculatorDisplay extends StatelessWidget {
           }
           break;
           
-        // 金融计算函数预览
         case '复利计算':
         case 'compound':
         case 'compoundinterest':

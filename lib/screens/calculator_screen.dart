@@ -65,6 +65,7 @@ class CalculatorScreen extends StatelessWidget {
           child: CalculatorDisplay(
             state: provider.state,
             theme: provider.config.theme,
+            appBackground: provider.config.appBackground,
             onParameterInput: (paramId) {
               _handleParameterInput(context, provider, paramId);
             },

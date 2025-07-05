@@ -14,14 +14,21 @@ class CalculatorButtonGrid extends StatelessWidget {
       builder: (context, provider, child) {
         final layout = provider.config.layout;
         final theme = provider.config.theme;
+        final appBackground = provider.config.appBackground;
         
         return LayoutBuilder(
           builder: (context, constraints) {
-            return Container(
-              width: constraints.maxWidth,
-              height: constraints.maxHeight,
-              padding: EdgeInsets.all(_calculatePadding(constraints)),
-              child: _buildOptimizedGrid(layout, provider, constraints, theme),
+            // 应用按键透明度
+            final buttonOpacity = appBackground?.buttonOpacity ?? 1.0;
+            
+            return Opacity(
+              opacity: buttonOpacity,
+              child: Container(
+                width: constraints.maxWidth,
+                height: constraints.maxHeight,
+                padding: EdgeInsets.all(_calculatePadding(constraints)),
+                child: _buildOptimizedGrid(layout, provider, constraints, theme),
+              ),
             );
           },
         );
