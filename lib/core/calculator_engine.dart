@@ -781,6 +781,9 @@ class CalculatorEngine {
     print('🔢 替换后的表达式：$evalExpression');
     
     try {
+      // 🔧 预处理：将数学幂运算符^转换为pow函数
+      evalExpression = _preprocessPowerOperator(evalExpression);
+      
       // 🚀 新增：检测并处理JavaScript函数语句
       if (_isJavaScriptExpression(evalExpression)) {
         return _evaluateJavaScriptExpression(evalExpression, x);
@@ -1074,6 +1077,23 @@ class CalculatorEngine {
     return expression.replaceAllMapped(pattern, (match) => x.toString());
   }
 
+  /// 预处理幂运算符：将^转换为pow函数调用
+  String _preprocessPowerOperator(String expression) {
+    // 匹配形如 (number)^(number) 的模式
+    // 支持括号包围的表达式，如 (1.00292)^(360)
+    RegExp powerPattern = RegExp(r'(\([^)]+\)|\d+\.?\d*)\^(\([^)]+\)|\d+\.?\d*)');
+    
+    while (powerPattern.hasMatch(expression)) {
+      expression = expression.replaceAllMapped(powerPattern, (match) {
+        String base = match.group(1)!;
+        String exponent = match.group(2)!;
+        return 'pow($base, $exponent)';
+      });
+    }
+    
+    return expression;
+  }
+
   /// 处理多参数函数表达式
   double _evaluateMultiParamExpression(String expression, double x) {
     // 解析函数名和参数
@@ -1207,7 +1227,7 @@ class CalculatorEngine {
       r'>>>',
       r'&\d',  // 位运算
       r'\|\d',
-      r'\^\d',
+      // 移除 r'\^\d' 避免将数学幂运算符^误认为JavaScript位运算
       r'~\d',
       // JavaScript数组/对象语法
       r'\[.*\]',
