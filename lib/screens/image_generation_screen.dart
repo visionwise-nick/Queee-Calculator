@@ -75,6 +75,13 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
           icon: const Icon(Icons.arrow_back_ios, color: Color(0xFF6B7280)),
           onPressed: () => Navigator.pop(context),
         ),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.refresh, color: Colors.orange.shade600),
+            onPressed: _showResetDialog,
+            tooltip: '恢复默认',
+          ),
+        ],
         bottom: TabBar(
           controller: _tabController,
           labelColor: const Color(0xFF6366F1),
@@ -524,11 +531,11 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 多选按键选择
+          // 选择按键（放在最上面）
           _buildMultiButtonBgSelectionCard(),
           const SizedBox(height: 20),
           
-          // 按键背景图生成区域
+          // 自定义生成区域（包含快速示例）
           _buildButtonPatternGenerationCard(),
         ],
       ),
@@ -537,6 +544,7 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
 
   Widget _buildMultiButtonBgSelectionCard() {
     final buttons = widget.currentConfig.layout.buttons;
+    final layout = widget.currentConfig.layout;
     
     return Container(
       decoration: BoxDecoration(
@@ -599,82 +607,8 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
             ),
             const SizedBox(height: 16),
             
-            GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 4,
-                childAspectRatio: 1,
-                crossAxisSpacing: 8,
-                mainAxisSpacing: 8,
-              ),
-              itemCount: buttons.length,
-              itemBuilder: (context, index) {
-                final button = buttons[index];
-                final isSelected = _selectedButtonBgIds.contains(button.id);
-                
-                return Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    onTap: () {
-                      setState(() {
-                        if (isSelected) {
-                          _selectedButtonBgIds.remove(button.id);
-                        } else {
-                          _selectedButtonBgIds.add(button.id);
-                        }
-                        _selectAllBg = _selectedButtonBgIds.length == buttons.length;
-                      });
-                    },
-                    borderRadius: BorderRadius.circular(8),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: isSelected
-                            ? Colors.orange.withOpacity(0.1)
-                            : Colors.grey.shade50,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: isSelected
-                              ? Colors.orange
-                              : Colors.grey.shade300,
-                          width: isSelected ? 2 : 1,
-                        ),
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          if (isSelected)
-                            Icon(
-                              Icons.check_circle,
-                              color: Colors.orange,
-                              size: 16,
-                            ),
-                          Text(
-                            button.label,
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: isSelected
-                                  ? Colors.orange
-                                  : Colors.grey.shade700,
-                              fontSize: 14,
-                            ),
-                          ),
-                          Text(
-                            isSelected ? '已选择' : '点击选择',
-                            style: TextStyle(
-                              fontSize: 10,
-                              color: isSelected 
-                                  ? Colors.orange
-                                  : Colors.grey.shade500,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
+            // 按照实际计算器布局显示按键
+            _buildCalculatorLayoutGrid(buttons, layout),
             
             if (_selectedButtonBgIds.isNotEmpty) ...[
               const SizedBox(height: 12),
@@ -697,6 +631,146 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
         ),
       ),
     );
+  }
+
+  Widget _buildCalculatorLayoutGrid(List<CalculatorButton> buttons, CalculatorLayout layout) {
+    // 按行分组按钮
+    Map<int, List<CalculatorButton>> buttonsByRow = {};
+    for (final button in buttons) {
+      final row = button.gridPosition.row;
+      buttonsByRow.putIfAbsent(row, () => []).add(button);
+    }
+    
+    final sortedRows = buttonsByRow.keys.toList()..sort();
+    
+    return Column(
+      children: sortedRows.map((rowIndex) {
+        final rowButtons = buttonsByRow[rowIndex] ?? [];
+        rowButtons.sort((a, b) => a.gridPosition.column.compareTo(b.gridPosition.column));
+        
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Row(
+            children: _buildRowButtons(rowButtons, layout.columns),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  List<Widget> _buildRowButtons(List<CalculatorButton> rowButtons, int totalColumns) {
+    List<Widget> rowWidgets = [];
+    
+    for (int col = 0; col < totalColumns; col++) {
+      // 查找当前列的按钮
+      CalculatorButton? button;
+      for (final btn in rowButtons) {
+        if (btn.gridPosition.column == col) {
+          button = btn;
+          break;
+        }
+      }
+      
+      if (button != null) {
+        final isSelected = _selectedButtonBgIds.contains(button.id);
+        final width = button.widthMultiplier > 1 ? 
+            (60.0 * button.widthMultiplier) + (8.0 * (button.widthMultiplier - 1)) : 60.0;
+        
+        rowWidgets.add(
+          Container(
+            width: width,
+            height: 60.0,
+            margin: const EdgeInsets.only(right: 8),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () {
+                  setState(() {
+                    if (isSelected) {
+                      _selectedButtonBgIds.remove(button!.id);
+                    } else {
+                      _selectedButtonBgIds.add(button!.id);
+                    }
+                    _selectAllBg = _selectedButtonBgIds.length == widget.currentConfig.layout.buttons.length;
+                  });
+                },
+                borderRadius: BorderRadius.circular(8),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? Colors.orange.withOpacity(0.1)
+                        : Colors.grey.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: isSelected
+                          ? Colors.orange
+                          : Colors.grey.shade300,
+                      width: isSelected ? 2 : 1,
+                    ),
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      if (isSelected)
+                        Icon(
+                          Icons.check_circle,
+                          color: Colors.orange,
+                          size: 16,
+                        ),
+                      Text(
+                        button.label,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: isSelected
+                              ? Colors.orange
+                              : Colors.grey.shade700,
+                          fontSize: 12,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      if (isSelected)
+                        Text(
+                          '已选择',
+                          style: TextStyle(
+                            fontSize: 8,
+                            color: Colors.orange,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+        
+        // 如果按钮宽度倍数大于1，跳过相应的列
+        if (button.widthMultiplier > 1) {
+          col += (button.widthMultiplier - 1).round();
+        }
+      } else {
+        // 空位置
+        rowWidgets.add(
+          Container(
+            width: 60.0,
+            height: 60.0,
+            margin: const EdgeInsets.only(right: 8),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: Colors.grey.shade300,
+                  width: 1,
+                ),
+              ),
+            ),
+          ),
+        );
+      }
+    }
+    
+    return rowWidgets;
   }
 
   Widget _buildButtonPatternGenerationCard() {
@@ -722,14 +796,14 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Colors.deepOrange.shade100,
+                    color: Colors.blue.shade100,
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(Icons.auto_awesome, color: Colors.deepOrange.shade700),
+                  child: Icon(Icons.edit, color: Colors.blue.shade700),
                 ),
                 const SizedBox(width: 12),
                 const Text(
-                  '背景图生成',
+                  '自定义生成',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -752,21 +826,21 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
               spacing: 8,
               runSpacing: 8,
               children: [
-                '几何图案 🔸🔹⬜',
-                '自然纹理 🌿🌊🍃',
-                '科技线条 ⚡🔋💫',
-                '抽象艺术 🎨🌈✨',
-                '金属质感 ⚙️🔧⚡',
-                '木纹材质 🌳🪵🍂',
-                '水晶质感 💎💠⚪',
-                '霓虹风格 🌈💫🔥',
-                '机械风格 ⚙️🔩🛠️',
-                '大理石纹 🗿🪨💎',
-                '渐变色彩 🌅🎨🌈',
-                '极简风格 ⚪⚫🔳',
+                '几何图案',
+                '自然纹理',
+                '科技线条',
+                '抽象艺术',
+                '金属质感',
+                '木纹材质',
+                '水晶质感',
+                '霓虹风格',
+                '机械风格',
+                '大理石纹',
+                '渐变色彩',
+                '极简风格',
               ].map((example) => 
                 ActionChip(
-                  label: Text(example, style: const TextStyle(fontSize: 11)),
+                  label: Text(example, style: const TextStyle(fontSize: 12)),
                   onPressed: () {
                     String prompt = '';
                     if (example.contains('几何图案')) prompt = '简洁的几何图案背景，适合按键使用的现代设计';
@@ -814,7 +888,7 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
               child: ElevatedButton(
                 onPressed: _generateButtonPatterns,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.deepOrange.shade600,
+                  backgroundColor: const Color(0xFF6366F1),
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
@@ -1084,6 +1158,138 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
         backgroundColor: Colors.green,
       ),
     );
+  }
+
+
+
+  void _showResetDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.refresh, color: Colors.orange),
+            SizedBox(width: 8),
+            Text('恢复默认设置'),
+          ],
+        ),
+        content: const Text('要恢复默认设置吗？\n\n这将清除所有按键背景图和APP背景图，恢复到原始样式。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text('取消', style: TextStyle(color: Colors.grey.shade600)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.of(context).pop();
+              await _resetToDefault();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: const Text('恢复默认', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _resetToDefault() async {
+    try {
+      // 清除所有按键背景图
+      final buttons = widget.currentConfig.layout.buttons;
+      final updatedButtons = buttons.map((button) {
+        return CalculatorButton(
+          id: button.id,
+          label: button.label,
+          action: button.action,
+          gridPosition: button.gridPosition,
+          type: button.type,
+          customColor: button.customColor,
+          isWide: button.isWide,
+          widthMultiplier: button.widthMultiplier,
+          heightMultiplier: button.heightMultiplier,
+          gradientColors: button.gradientColors,
+          backgroundImage: null, // 清除背景图
+          fontSize: button.fontSize,
+          borderRadius: button.borderRadius,
+          elevation: button.elevation,
+          width: button.width,
+          height: button.height,
+          backgroundColor: button.backgroundColor,
+          textColor: button.textColor,
+          borderColor: button.borderColor,
+          borderWidth: button.borderWidth,
+          shadowColor: button.shadowColor,
+          shadowOffset: button.shadowOffset,
+          shadowRadius: button.shadowRadius,
+          opacity: button.opacity,
+          rotation: button.rotation,
+          scale: button.scale,
+          backgroundPattern: button.backgroundPattern,
+          patternColor: button.patternColor,
+          patternOpacity: button.patternOpacity,
+          animation: button.animation,
+          animationDuration: button.animationDuration,
+          customIcon: button.customIcon,
+          iconSize: button.iconSize,
+          iconColor: button.iconColor,
+        );
+      }).toList();
+
+      final updatedLayout = CalculatorLayout(
+        name: widget.currentConfig.layout.name,
+        rows: widget.currentConfig.layout.rows,
+        columns: widget.currentConfig.layout.columns,
+        buttons: updatedButtons,
+        description: widget.currentConfig.layout.description,
+        minButtonSize: widget.currentConfig.layout.minButtonSize,
+        maxButtonSize: widget.currentConfig.layout.maxButtonSize,
+        gridSpacing: widget.currentConfig.layout.gridSpacing,
+      );
+
+      // 清除APP背景图
+      final updatedConfig = CalculatorConfig(
+        id: widget.currentConfig.id,
+        name: widget.currentConfig.name,
+        description: widget.currentConfig.description,
+        theme: widget.currentConfig.theme,
+        layout: updatedLayout,
+        appBackground: null, // 清除APP背景
+        version: widget.currentConfig.version,
+        createdAt: widget.currentConfig.createdAt,
+        authorPrompt: widget.currentConfig.authorPrompt,
+        thinkingProcess: widget.currentConfig.thinkingProcess,
+        aiResponse: widget.currentConfig.aiResponse,
+      );
+
+      widget.onConfigUpdated(updatedConfig);
+      
+      // 清除本地状态
+      setState(() {
+        _selectedButtonBgIds.clear();
+        _selectAllBg = false;
+        _generatedAppBgUrl = null;
+      });
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('✅ 已恢复默认设置！'),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 2),
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('恢复失败: $e'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
   }
 
   Uint8List _base64ToBytes(String base64String) {
