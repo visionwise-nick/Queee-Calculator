@@ -1469,17 +1469,23 @@ async def generate_pattern(request: ImageGenerationRequest):
     try:
         # 针对按钮图案的特殊处理
         pattern_prompt = f"""
-        Generate a seamless pattern for calculator button background:
+        Generate a SIMPLE and CLEAN pattern for small calculator button background:
         {request.prompt}
         
-        Requirements:
+        CRITICAL Requirements for small button display:
+        - ULTRA SIMPLE design with minimal details
+        - LARGE shapes and elements, avoid tiny patterns
+        - LOW information density - suitable for 64x64 pixel display
+        - BOLD geometric shapes or gradients only
+        - NO complex textures or fine details
+        - NO repetitive small elements that cause visual clutter
         - Seamless and tileable pattern
-        - Suitable for button background use
-        - Subtle and not distracting from text
+        - Subtle and not distracting from button text
         - Style: {request.style}
         - High contrast for text readability
         - Professional and clean design
-        - 256x256 pixels optimal size
+        - Optimized for very small display size (64x64 pixels)
+        - Avoid patterns that look cluttered when scaled down
         """
         
         print(f"🎨 开始生成图案，提示词: {pattern_prompt}")

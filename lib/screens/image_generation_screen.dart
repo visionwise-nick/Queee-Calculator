@@ -5,6 +5,7 @@ import '../services/ai_service.dart';
 import '../providers/calculator_provider.dart';
 import 'dart:convert';
 import 'dart:typed_data';
+import 'dart:math' as math;
 
 class ImageGenerationScreen extends StatefulWidget {
   final CalculatorConfig currentConfig;
@@ -802,43 +803,80 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
     return rowWidgets;
   }
 
-  // 根据按键类型和功能获取尺寸
+  // 根据按键类型和功能获取尺寸 - 大幅度差异化设计
   Map<String, double> _getButtonSizes(CalculatorButton button, double baseSize) {
     double widthMultiplier = button.widthMultiplier;
     double heightMultiplier = button.heightMultiplier;
     
-    // 根据按键类型调整基础大小
+    // 根据按键类型和具体功能进行大幅度差异化调整
     double sizeMultiplier;
-    switch (button.type) {
-      case 'primary': // 数字按键
-        sizeMultiplier = 1.0;
-        break;
-      case 'operator': // 运算符按键 - 更大更突出
-        sizeMultiplier = 1.15;
-        break;
-      case 'secondary': // 功能按键 - 中等大小
-        sizeMultiplier = 1.05;
-        break;
-      case 'special': // 特殊按键 - 根据功能调整
-        sizeMultiplier = 1.1;
-        break;
-      default:
-        sizeMultiplier = 1.0;
+    
+         // 特殊按键优先级最高的个性化调整
+     if (button.label == '=' || button.label.contains('等于')) {
+       // 等号按键 - 超大突出设计，成为整个布局的焦点
+       sizeMultiplier = 2.2; // 进一步增加到2.2倍
+       heightMultiplier = 3.0; // 高度3倍，超级突出
+       widthMultiplier = math.max(widthMultiplier, 1.2); // 稍微增加宽度
+     } else if (button.label == 'AC' || button.label.contains('清除')) {
+       // 清除按键 - 超大号设计便于快速操作
+       sizeMultiplier = 1.8;
+       widthMultiplier = math.max(widthMultiplier, 2.0); // 2倍宽度，易于点击
+       heightMultiplier = math.max(heightMultiplier, 1.2);
+     } else if (button.label == '0' || button.isWide) {
+       // 0按键或宽按键 - 超宽设计
+       sizeMultiplier = 1.4;
+       widthMultiplier = math.max(button.widthMultiplier, 2.5); // 2.5倍宽度
+    } else {
+      // 按类型调整基础大小
+      switch (button.type) {
+                 case 'primary': // 数字按键 - 标准大小但略有差异
+           // 重要数字稍大，其他标准
+           if (['1', '5', '9'].contains(button.label)) {
+             sizeMultiplier = 1.1; // 重要数字稍大
+           } else {
+             sizeMultiplier = 1.0;
+           }
+           break;
+         case 'operator': // 运算符按键 - 超大突出重要性
+           sizeMultiplier = 1.8; // 进一步增加
+           heightMultiplier = math.max(heightMultiplier, 1.6); // 1.6倍高
+           widthMultiplier = math.max(widthMultiplier, 1.2); // 稍微增加宽度
+           break;
+         case 'secondary': // 功能按键 - 大号设计
+           sizeMultiplier = 1.5; // 进一步增加
+           widthMultiplier = math.max(widthMultiplier, 1.3); // 增加宽度
+           break;
+         case 'special': // 特殊按键 - 超大号设计
+           sizeMultiplier = 1.7; // 大幅增加
+           heightMultiplier = math.max(heightMultiplier, 1.3);
+           break;
+        default:
+          sizeMultiplier = 1.0;
+      }
     }
     
-    // 特殊按键的个性化调整
-    if (button.label == '=' || button.label.contains('等于')) {
-      sizeMultiplier = 1.2; // 等号按键更大
-      heightMultiplier = 1.3;
-    } else if (button.label == 'AC' || button.label.contains('清除')) {
-      sizeMultiplier = 1.1; // 清除按键稍大
-    } else if (button.label == '0' || button.isWide) {
-      // 0按键或宽按键保持宽度倍数
-      widthMultiplier = button.widthMultiplier;
-    }
+         // 根据按键文字长度进行额外调整
+     if (button.label.length > 2) {
+       // 长文字按键需要更大空间
+       widthMultiplier = math.max(widthMultiplier, 1.5);
+       sizeMultiplier *= 1.1;
+     }
+     
+     // 常用运算符特别处理 - 超级突出设计
+     if (['+', '-', '×', '÷', '*', '/'].contains(button.label)) {
+       sizeMultiplier = 2.0; // 运算符超级大，成为视觉焦点
+       heightMultiplier = math.max(heightMultiplier, 1.8); // 1.8倍高
+       widthMultiplier = math.max(widthMultiplier, 1.4); // 1.4倍宽
+     }
+     
+     // 小数点特别处理
+     if (button.label == '.') {
+       sizeMultiplier = 1.2; // 小数点稍大便于点击
+       widthMultiplier = math.max(widthMultiplier, 1.1);
+     }
     
     final adjustedSize = baseSize * sizeMultiplier;
-    final width = adjustedSize * widthMultiplier + (6.0 * (widthMultiplier - 1));
+    final width = adjustedSize * widthMultiplier + (8.0 * (widthMultiplier - 1)); // 增加间距补偿
     final height = adjustedSize * heightMultiplier;
     
     return {
@@ -994,35 +1032,35 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
               spacing: 8,
               runSpacing: 8,
               children: [
-                '几何图案',
-                '自然纹理',
-                '科技线条',
-                '抽象艺术',
-                '金属质感',
-                '木纹材质',
-                '水晶质感',
-                '霓虹风格',
-                '机械风格',
-                '大理石纹',
-                '渐变色彩',
-                '极简风格',
+                '纯色渐变',
+                '大圆点',
+                '宽条纹',
+                '单色块',
+                '大三角',
+                '宽格子',
+                '大波浪',
+                '圆形渐变',
+                '对角线',
+                '大方块',
+                '柔和雾化',
+                '纯净光晕',
               ].map((example) => 
                 ActionChip(
                   label: Text(example, style: const TextStyle(fontSize: 12)),
                   onPressed: () {
                     String prompt = '';
-                    if (example.contains('几何图案')) prompt = '简洁的几何图案背景，适合按键使用的现代设计';
-                    else if (example.contains('自然纹理')) prompt = '自然纹理背景，叶子或水波纹理，清新自然风格';
-                    else if (example.contains('科技线条')) prompt = '科技感线条图案，未来主义设计风格';
-                    else if (example.contains('抽象艺术')) prompt = '抽象艺术图案，色彩丰富的创意设计';
-                    else if (example.contains('金属质感')) prompt = '金属质感纹理，工业风格的按键背景';
-                    else if (example.contains('木纹材质')) prompt = '真实木纹纹理，自然温暖的木质感';
-                    else if (example.contains('水晶质感')) prompt = '透明水晶质感，带有光泽和折射效果的现代设计';
-                    else if (example.contains('霓虹风格')) prompt = '霓虹灯风格，充满活力的发光效果，适合动感按键';
-                    else if (example.contains('机械风格')) prompt = '机械工业风格，齿轮和螺丝纹理，精密感设计';
-                    else if (example.contains('大理石纹')) prompt = '优雅的大理石纹理，自然石材质感，高档奢华风格';
-                    else if (example.contains('渐变色彩')) prompt = '平滑的渐变色彩，现代时尚的色彩过渡效果';
-                    else if (example.contains('极简风格')) prompt = '极简主义设计，纯净的色彩和线条，现代简约风格';
+                    if (example.contains('纯色渐变')) prompt = '简单的双色渐变背景，大面积色块无细节，适合小按键显示';
+                    else if (example.contains('大圆点')) prompt = '3-4个大圆点图案，简洁几何形状，避免密集排列';
+                    else if (example.contains('宽条纹')) prompt = '2-3条宽条纹背景，粗线条设计，简单清晰';
+                    else if (example.contains('单色块')) prompt = '纯色背景带轻微纹理，极简设计无复杂图案';
+                    else if (example.contains('大三角')) prompt = '1-2个大三角形图案，简单几何形状，大尺寸设计';
+                    else if (example.contains('宽格子')) prompt = '2x2大格子图案，粗线条格子，简洁明了';
+                    else if (example.contains('大波浪')) prompt = '1-2条大波浪线条，流畅简洁的曲线设计';
+                    else if (example.contains('圆形渐变')) prompt = '单个圆形径向渐变，中心发散效果，大尺寸设计';
+                    else if (example.contains('对角线')) prompt = '1-2条对角线条，简单线性图案，粗线条设计';
+                    else if (example.contains('大方块')) prompt = '几个大方块排列，简洁几何形状，大尺寸设计';
+                    else if (example.contains('柔和雾化')) prompt = '柔和的雾化效果背景，无明显边界，渐变过渡';
+                    else if (example.contains('纯净光晕')) prompt = '单一光晕效果，中心亮边缘暗，简洁发光效果';
                     _buttonPatternPromptController.text = prompt;
                   },
                   backgroundColor: Colors.grey.shade100,
@@ -1147,7 +1185,7 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
         final result = await AIService.generatePattern(
           prompt: prompt,
           style: 'minimal',
-          size: '128x128',
+          size: '64x64',
         );
 
         if (result['success'] == true && result['pattern_url'] != null) {

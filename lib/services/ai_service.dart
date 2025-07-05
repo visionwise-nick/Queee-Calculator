@@ -6,7 +6,7 @@ import 'dart:async';
 
 class AIService {
   // Cloud Run 服务的 URL - 更新为新部署的服务
-  static const String _baseUrl = 'https://queee-calculator-ai-backend-adecumh2za-uc.a.run.app';
+  static const String _baseUrl = 'https://queee-calculator-ai-backend-685339952769.us-central1.run.app';
 
   /// 根据用户描述生成计算器配置
   static Future<CalculatorConfig?> generateCalculatorFromPrompt(
@@ -301,7 +301,7 @@ class AIService {
   static Future<Map<String, dynamic>> generatePattern({
     required String prompt,
     String style = 'minimal',
-    String size = '256x256',
+    String size = '64x64',
   }) async {
     try {
       final response = await http.post(
