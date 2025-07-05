@@ -5,7 +5,6 @@ import '../services/ai_service.dart';
 import '../providers/calculator_provider.dart';
 import 'dart:convert';
 import 'dart:typed_data';
-import 'dart:math' as math;
 
 class ImageGenerationScreen extends StatefulWidget {
   final CalculatorConfig currentConfig;
@@ -803,80 +802,43 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
     return rowWidgets;
   }
 
-  // 根据按键类型和功能获取尺寸 - 大幅度差异化设计
+  // 根据按键类型和功能获取尺寸
   Map<String, double> _getButtonSizes(CalculatorButton button, double baseSize) {
     double widthMultiplier = button.widthMultiplier;
     double heightMultiplier = button.heightMultiplier;
     
-    // 根据按键类型和具体功能进行大幅度差异化调整
+    // 根据按键类型调整基础大小
     double sizeMultiplier;
-    
-         // 特殊按键优先级最高的个性化调整
-     if (button.label == '=' || button.label.contains('等于')) {
-       // 等号按键 - 超大突出设计，成为整个布局的焦点
-       sizeMultiplier = 2.2; // 进一步增加到2.2倍
-       heightMultiplier = 3.0; // 高度3倍，超级突出
-       widthMultiplier = math.max(widthMultiplier, 1.2); // 稍微增加宽度
-     } else if (button.label == 'AC' || button.label.contains('清除')) {
-       // 清除按键 - 超大号设计便于快速操作
-       sizeMultiplier = 1.8;
-       widthMultiplier = math.max(widthMultiplier, 2.0); // 2倍宽度，易于点击
-       heightMultiplier = math.max(heightMultiplier, 1.2);
-     } else if (button.label == '0' || button.isWide) {
-       // 0按键或宽按键 - 超宽设计
-       sizeMultiplier = 1.4;
-       widthMultiplier = math.max(button.widthMultiplier, 2.5); // 2.5倍宽度
-    } else {
-      // 按类型调整基础大小
-      switch (button.type) {
-                 case 'primary': // 数字按键 - 标准大小但略有差异
-           // 重要数字稍大，其他标准
-           if (['1', '5', '9'].contains(button.label)) {
-             sizeMultiplier = 1.1; // 重要数字稍大
-           } else {
-             sizeMultiplier = 1.0;
-           }
-           break;
-         case 'operator': // 运算符按键 - 超大突出重要性
-           sizeMultiplier = 1.8; // 进一步增加
-           heightMultiplier = math.max(heightMultiplier, 1.6); // 1.6倍高
-           widthMultiplier = math.max(widthMultiplier, 1.2); // 稍微增加宽度
-           break;
-         case 'secondary': // 功能按键 - 大号设计
-           sizeMultiplier = 1.5; // 进一步增加
-           widthMultiplier = math.max(widthMultiplier, 1.3); // 增加宽度
-           break;
-         case 'special': // 特殊按键 - 超大号设计
-           sizeMultiplier = 1.7; // 大幅增加
-           heightMultiplier = math.max(heightMultiplier, 1.3);
-           break;
-        default:
-          sizeMultiplier = 1.0;
-      }
+    switch (button.type) {
+      case 'primary': // 数字按键
+        sizeMultiplier = 1.0;
+        break;
+      case 'operator': // 运算符按键 - 更大更突出
+        sizeMultiplier = 1.15;
+        break;
+      case 'secondary': // 功能按键 - 中等大小
+        sizeMultiplier = 1.05;
+        break;
+      case 'special': // 特殊按键 - 根据功能调整
+        sizeMultiplier = 1.1;
+        break;
+      default:
+        sizeMultiplier = 1.0;
     }
     
-         // 根据按键文字长度进行额外调整
-     if (button.label.length > 2) {
-       // 长文字按键需要更大空间
-       widthMultiplier = math.max(widthMultiplier, 1.5);
-       sizeMultiplier *= 1.1;
-     }
-     
-     // 常用运算符特别处理 - 超级突出设计
-     if (['+', '-', '×', '÷', '*', '/'].contains(button.label)) {
-       sizeMultiplier = 2.0; // 运算符超级大，成为视觉焦点
-       heightMultiplier = math.max(heightMultiplier, 1.8); // 1.8倍高
-       widthMultiplier = math.max(widthMultiplier, 1.4); // 1.4倍宽
-     }
-     
-     // 小数点特别处理
-     if (button.label == '.') {
-       sizeMultiplier = 1.2; // 小数点稍大便于点击
-       widthMultiplier = math.max(widthMultiplier, 1.1);
-     }
+    // 特殊按键的个性化调整
+    if (button.label == '=' || button.label.contains('等于')) {
+      sizeMultiplier = 1.2; // 等号按键更大
+      heightMultiplier = 1.3;
+    } else if (button.label == 'AC' || button.label.contains('清除')) {
+      sizeMultiplier = 1.1; // 清除按键稍大
+    } else if (button.label == '0' || button.isWide) {
+      // 0按键或宽按键保持宽度倍数
+      widthMultiplier = button.widthMultiplier;
+    }
     
     final adjustedSize = baseSize * sizeMultiplier;
-    final width = adjustedSize * widthMultiplier + (8.0 * (widthMultiplier - 1)); // 增加间距补偿
+    final width = adjustedSize * widthMultiplier + (6.0 * (widthMultiplier - 1));
     final height = adjustedSize * heightMultiplier;
     
     return {
