@@ -790,7 +790,8 @@ class CalculatorEngine {
       }
       
       // 🔧 处理多参数函数表达式
-      if (evalExpression.contains('(') && evalExpression.contains(',')) {
+      // 更精确的检测：表达式应该完全匹配多参数函数格式 functionName(param1,param2,...)
+      if (_isSimpleMultiParamFunction(evalExpression)) {
         return _evaluateMultiParamExpression(evalExpression, x);
       }
       // 🔧 处理特殊的单参数函数
@@ -1079,19 +1080,58 @@ class CalculatorEngine {
 
   /// 预处理幂运算符：将^转换为pow函数调用
   String _preprocessPowerOperator(String expression) {
-    // 匹配形如 (number)^(number) 的模式
-    // 支持括号包围的表达式，如 (1.00292)^(360)
-    RegExp powerPattern = RegExp(r'(\([^)]+\)|\d+\.?\d*)\^(\([^)]+\)|\d+\.?\d*)');
+    // 改进的正则表达式：支持更复杂的表达式
+    // 匹配 base^exponent 格式，其中base和exponent可以是：
+    // - 数字：123, 123.456
+    // - 括号表达式：(1.00292), (360)
+    // - 复杂表达式：需要更精确的匹配
     
-    while (powerPattern.hasMatch(expression)) {
-      expression = expression.replaceAllMapped(powerPattern, (match) {
+    // 简化方案：先处理简单的数字和括号表达式
+    RegExp simplePattern = RegExp(r'(\([^)]+\)|\d+(?:\.\d+)?)\^(\([^)]+\)|\d+(?:\.\d+)?)');
+    
+    while (simplePattern.hasMatch(expression)) {
+      expression = expression.replaceAllMapped(simplePattern, (match) {
         String base = match.group(1)!;
         String exponent = match.group(2)!;
-        return 'pow($base, $exponent)';
+        
+        // 🔧 清理多余的括号：如果内容是简单数字，去掉括号
+        String cleanBase = _cleanParentheses(base);
+        String cleanExponent = _cleanParentheses(exponent);
+        
+        print('🔧 幂运算符转换: $base^$exponent -> pow($cleanBase, $cleanExponent)');
+        return 'pow($cleanBase, $cleanExponent)';
       });
     }
     
+    print('🔧 幂运算符预处理结果: $expression');
     return expression;
+  }
+  
+  /// 清理多余的括号：如果括号内是简单数字，去掉括号
+  String _cleanParentheses(String value) {
+    if (value.startsWith('(') && value.endsWith(')')) {
+      String inner = value.substring(1, value.length - 1);
+      // 检查内容是否是简单的数字（包括小数）
+      if (RegExp(r'^\d+(?:\.\d+)?$').hasMatch(inner)) {
+        return inner;
+      }
+    }
+    return value;
+  }
+
+  /// 检测表达式是否为简单的多参数函数调用
+  /// 例如：pow(2,3) ✅   160.0*pow(1,2)+pow(3,4) ❌
+  bool _isSimpleMultiParamFunction(String expression) {
+    // 匹配格式：functionName(param1,param2,...)
+    // 表达式应该完全匹配这个格式，没有其他运算符
+    RegExp functionPattern = RegExp(r'^[a-zA-Z_][a-zA-Z0-9_]*\([^()]*\)$');
+    
+    if (!functionPattern.hasMatch(expression)) {
+      return false;
+    }
+    
+    // 确保包含逗号（多参数）
+    return expression.contains(',');
   }
 
   /// 处理多参数函数表达式
