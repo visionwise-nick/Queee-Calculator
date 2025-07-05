@@ -6,6 +6,8 @@ import '../services/ai_service.dart';
 import '../services/conversation_service.dart';
 import '../models/calculator_dsl.dart';
 import '../widgets/thinking_process_dialog.dart';
+import 'package:audioplayers/audioplayers.dart';
+import 'dart:convert';
 
 class AICustomizeScreen extends StatefulWidget {
   const AICustomizeScreen({super.key});
@@ -20,6 +22,11 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
   final ScrollController _scrollController = ScrollController();
   final FocusNode _focusNode = FocusNode();
   
+  final TextEditingController _soundPromptController = TextEditingController();
+  bool _isGeneratingSound = false;
+  String? _generatedSoundBase64;
+  final AudioPlayer _audioPlayer = AudioPlayer();
+
   List<ConversationMessage> _messages = [];
   bool _isLoading = false;
   ConversationSession? _currentSession;
@@ -49,6 +56,8 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
     _scrollController.dispose();
     _focusNode.dispose();
     _fabAnimationController.dispose();
+    _soundPromptController.dispose();
+    _audioPlayer.dispose();
     super.dispose();
   }
 
@@ -1307,6 +1316,94 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  /// 🆕 生成音效
+  Future<void> _generateSound() async {
+    if (_soundPromptController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('请输入音效描述')),
+      );
+      return;
+    }
+
+    setState(() {
+      _isGeneratingSound = true;
+      _generatedSoundBase64 = null;
+    });
+
+    try {
+      final base64Sound = await AIService.generateSoundEffect(
+        prompt: _soundPromptController.text.trim(),
+      );
+
+      if (base64Sound != null) {
+        setState(() {
+          _generatedSoundBase64 = base64Sound;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✅ 音效生成成功！点击预览按钮播放。'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('❌ 音效生成失败，请稍后重试。'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('❌ 发生错误: $e')),
+      );
+    } finally {
+      setState(() {
+        _isGeneratingSound = false;
+      });
+    }
+  }
+
+  /// 🆕 预览音效
+  Future<void> _previewSound() async {
+    if (_generatedSoundBase64 == null) return;
+    try {
+      await _audioPlayer.play(BytesSource(base64Decode(_generatedSoundBase64!)));
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('❌ 播放失败: $e')),
+      );
+    }
+  }
+
+  /// 🆕 应用音效
+  void _applySound() {
+    if (_generatedSoundBase64 == null) return;
+
+    final provider = Provider.of<CalculatorProvider>(context, listen: false);
+    final currentConfig = provider.config;
+
+    // 创建一个新的主题对象，只修改自定义音效字段
+    final newTheme = currentConfig.theme.copyWith(
+      customButtonSound: _generatedSoundBase64,
+    );
+
+    // 创建一个新的配置对象
+    final newConfig = currentConfig.copyWith(
+      theme: newTheme,
+    );
+
+    // 应用新配置
+    provider.applyConfig(newConfig);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('✅ 自定义音效已应用！'),
+        backgroundColor: Colors.green,
       ),
     );
   }

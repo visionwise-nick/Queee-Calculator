@@ -590,50 +590,46 @@ class AIService {
     return (hasWorkshopContent, protectedFields);
   }
 
-  /// 🔊 AI生成按键音效
-  static Future<Map<String, dynamic>> generateSound({
+  /// 🆕 新增：生成音效
+  static Future<String?> generateSoundEffect({
     required String prompt,
-    String buttonType = 'primary',
-    String style = 'modern',
-    double duration = 0.1,
-    String pitch = 'medium',
-    String volume = 'medium',
-    List<String> effects = const [],
+    double duration = 0.5,
   }) async {
     try {
-      print('🔊 正在生成按键音效...');
-      print('提示词: $prompt');
-      print('按键类型: $buttonType');
-      print('风格: $style');
-      
-      final response = await http.post(
-        Uri.parse('$_baseUrl/generate-sound'),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          'prompt': prompt,
-          'button_type': buttonType,
-          'style': style,
-          'duration': duration,
-          'pitch': pitch,
-          'volume': volume,
-          'effects': effects,
-        }),
-      ).timeout(const Duration(seconds: 30));
+      print('🔊 正在请求生成音效... 提示词: "$prompt"');
+      final url = Uri.parse('$_baseUrl/generate-sound');
+      final headers = {'Content-Type': 'application/json'};
+      final body = json.encode({
+        'prompt': prompt,
+        'duration': duration,
+      });
 
-      print('📡 收到响应: ${response.statusCode}');
-      
+      final response = await http.post(
+        url,
+        headers: headers,
+        body: body,
+      ).timeout(const Duration(seconds: 60)); // 音频生成可能需要更长时间
+
       if (response.statusCode == 200) {
-        final result = json.decode(response.body);
-        print('✅ 音效生成响应: ${result['success']}');
-        return result;
+        final data = json.decode(response.body);
+        if (data['success'] == true && data['audio_base64'] != null) {
+          print('✅ 音效生成成功');
+          return data['audio_base64'];
+        } else {
+          print('❌ 音效生成失败: ${data['error']}');
+          return null;
+        }
       } else {
-        print('❌ 音效生成失败: ${response.statusCode}');
+        print('❌ 音效生成服务响应错误: ${response.statusCode}');
         print('错误详情: ${response.body}');
-        throw Exception('音效生成失败: ${response.body}');
+        return null;
       }
+    } on TimeoutException {
+      print('❌ 音效生成服务调用超时');
+      return null;
     } catch (e) {
-      print('❌ 音效生成请求失败: $e');
-      throw Exception('网络请求失败: $e');
+      print('❌ 调用音效生成服务失败: $e');
+      return null;
     }
   }
 } 

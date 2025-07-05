@@ -108,6 +108,7 @@ class CalculatorTheme {
   final List<String>? buttonShadowColors; // 多层阴影颜色
   final double? buttonSpacing;
   final bool adaptiveLayout;
+  final String? customButtonSound; // 新增：自定义音效 (Base64)
 
   const CalculatorTheme({
     required this.name,
@@ -138,6 +139,7 @@ class CalculatorTheme {
     this.buttonShadowColors,
     this.buttonSpacing,
     this.adaptiveLayout = true,
+    this.customButtonSound,
   });
 
   factory CalculatorTheme.fromJson(Map<String, dynamic> json) {
@@ -170,6 +172,7 @@ class CalculatorTheme {
       buttonShadowColors: (json['buttonShadowColors'] as List<dynamic>?)?.cast<String>(),
       buttonSpacing: (json['buttonSpacing'] as num?)?.toDouble(),
       adaptiveLayout: json['adaptiveLayout'] as bool? ?? true,
+      customButtonSound: json['customButtonSound'] as String?,
     );
   }
 
@@ -203,7 +206,72 @@ class CalculatorTheme {
       'buttonShadowColors': buttonShadowColors,
       'buttonSpacing': buttonSpacing,
       'adaptiveLayout': adaptiveLayout,
+      'customButtonSound': customButtonSound,
     };
+  }
+
+  CalculatorTheme copyWith({
+    String? name,
+    String? backgroundColor,
+    List<String>? backgroundGradient,
+    String? backgroundImage,
+    String? displayBackgroundColor,
+    List<String>? displayBackgroundGradient,
+    String? displayTextColor,
+    double? displayWidth,
+    double? displayHeight,
+    double? displayHeightRatio,
+    double? displayBorderRadius,
+    String? primaryButtonColor,
+    List<String>? primaryButtonGradient,
+    String? primaryButtonTextColor,
+    String? secondaryButtonColor,
+    List<String>? secondaryButtonGradient,
+    String? secondaryButtonTextColor,
+    String? operatorButtonColor,
+    List<String>? operatorButtonGradient,
+    String? operatorButtonTextColor,
+    double? fontSize,
+    double? buttonBorderRadius,
+    bool? hasGlowEffect,
+    String? shadowColor,
+    double? buttonElevation,
+    List<String>? buttonShadowColors,
+    double? buttonSpacing,
+    bool? adaptiveLayout,
+    String? customButtonSound,
+  }) {
+    return CalculatorTheme(
+      name: name ?? this.name,
+      backgroundColor: backgroundColor ?? this.backgroundColor,
+      backgroundGradient: backgroundGradient ?? this.backgroundGradient,
+      backgroundImage: backgroundImage ?? this.backgroundImage,
+      displayBackgroundColor: displayBackgroundColor ?? this.displayBackgroundColor,
+      displayBackgroundGradient: displayBackgroundGradient ?? this.displayBackgroundGradient,
+      displayTextColor: displayTextColor ?? this.displayTextColor,
+      displayWidth: displayWidth ?? this.displayWidth,
+      displayHeight: displayHeight ?? this.displayHeight,
+      displayHeightRatio: displayHeightRatio ?? this.displayHeightRatio,
+      displayBorderRadius: displayBorderRadius ?? this.displayBorderRadius,
+      primaryButtonColor: primaryButtonColor ?? this.primaryButtonColor,
+      primaryButtonGradient: primaryButtonGradient ?? this.primaryButtonGradient,
+      primaryButtonTextColor: primaryButtonTextColor ?? this.primaryButtonTextColor,
+      secondaryButtonColor: secondaryButtonColor ?? this.secondaryButtonColor,
+      secondaryButtonGradient: secondaryButtonGradient ?? this.secondaryButtonGradient,
+      secondaryButtonTextColor: secondaryButtonTextColor ?? this.secondaryButtonTextColor,
+      operatorButtonColor: operatorButtonColor ?? this.operatorButtonColor,
+      operatorButtonGradient: operatorButtonGradient ?? this.operatorButtonGradient,
+      operatorButtonTextColor: operatorButtonTextColor ?? this.operatorButtonTextColor,
+      fontSize: fontSize ?? this.fontSize,
+      buttonBorderRadius: buttonBorderRadius ?? this.buttonBorderRadius,
+      hasGlowEffect: hasGlowEffect ?? this.hasGlowEffect,
+      shadowColor: shadowColor ?? this.shadowColor,
+      buttonElevation: buttonElevation ?? this.buttonElevation,
+      buttonShadowColors: buttonShadowColors ?? this.buttonShadowColors,
+      buttonSpacing: buttonSpacing ?? this.buttonSpacing,
+      adaptiveLayout: adaptiveLayout ?? this.adaptiveLayout,
+      customButtonSound: customButtonSound ?? this.customButtonSound,
+    );
   }
 }
 
@@ -575,6 +643,33 @@ class CalculatorConfig {
       if (thinkingProcess != null) 'thinkingProcess': thinkingProcess,
       if (aiResponse != null) 'aiResponse': aiResponse,
     };
+  }
+
+  CalculatorConfig copyWith({
+    String? name,
+    String? description,
+    CalculatorTheme? theme,
+    CalculatorLayout? layout,
+    AppBackgroundConfig? appBackground,
+    String? version,
+    DateTime? createdAt,
+    String? authorPrompt,
+    String? thinkingProcess,
+    String? aiResponse,
+  }) {
+    return CalculatorConfig(
+      id: id,
+      name: name ?? this.name,
+      description: description ?? this.description,
+      theme: theme ?? this.theme,
+      layout: layout ?? this.layout,
+      appBackground: appBackground ?? this.appBackground,
+      version: version ?? this.version,
+      createdAt: createdAt ?? this.createdAt,
+      authorPrompt: authorPrompt ?? this.authorPrompt,
+      thinkingProcess: thinkingProcess ?? this.thinkingProcess,
+      aiResponse: aiResponse ?? this.aiResponse,
+    );
   }
 
   /// 创建默认的基础计算器配置

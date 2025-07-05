@@ -14,4 +14,10 @@ pydantic>=2.10.0
 python-dotenv
 
 # 用于处理文件上传 (可选，但推荐)
-python-multipart>=0.0.6 
+python-multipart>=0.0.6
+
+# 图像处理库
+requests
+
+# 修复部署错误：添加Pillow依赖
+Pillow 

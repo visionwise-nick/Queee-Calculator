@@ -8,7 +8,6 @@ import '../widgets/calculation_history_dialog.dart';
 import '../widgets/multi_param_function_help_dialog.dart';
 import 'ai_customize_screen.dart';
 import 'image_generation_screen.dart';
-import 'sound_generation_screen.dart';
 import 'dart:math' as math;
 import 'dart:convert';
 import 'dart:typed_data';
@@ -163,26 +162,20 @@ class CalculatorScreen extends StatelessWidget {
                 tooltip: '运算历史',
               ),
               const SizedBox(width: 4),
-              // 音效生成工坊按钮
+              // 多参数函数帮助按钮
               _buildCompactIconButton(
-                icon: Icons.music_note,
+                icon: Icons.help_outline,
                 colors: [Color(0xFF10B981), Color(0xFF059669)],
                 shadowColor: Colors.green,
                 onPressed: () {
-                  final provider = Provider.of<CalculatorProvider>(context, listen: false);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => SoundGenerationScreen(
-                        currentConfig: provider.config,
-                        onConfigUpdated: (config) {
-                          provider.applyConfig(config);
-                        },
-                      ),
-                    ),
+                  showDialog(
+                    context: context,
+                    barrierDismissible: true,
+                    barrierColor: Colors.black.withValues(alpha: 0.7),
+                    builder: (context) => const MultiParamFunctionHelpDialog(),
                   );
                 },
-                tooltip: '音效生成工坊',
+                tooltip: '多参数函数帮助',
               ),
               const SizedBox(width: 4),
               // AI设计师按钮
