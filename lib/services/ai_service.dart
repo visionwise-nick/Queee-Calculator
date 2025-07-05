@@ -88,7 +88,7 @@ class AIService {
             responseMsg = '🎉 "${config.name}" 已准备就绪！\n\n💡 提示：您可以随时说出想要的调整，我会在保持现有设计基础上进行精确修改';
           }
         }
-        await _recordAssistantMessage(responseMsg, config: config, userPrompt: userPrompt);
+        await _recordAssistantMessage(responseMsg);
         
         return config;
       } else {
@@ -133,31 +133,13 @@ class AIService {
   }
 
   /// 记录AI响应消息
-  static Future<void> _recordAssistantMessage(String content, {
-    CalculatorConfig? config,
-    String? userPrompt,
-  }) async {
+  static Future<void> _recordAssistantMessage(String content) async {
     try {
-      final metadata = <String, dynamic>{};
-      if (config != null) {
-        metadata['hasConfig'] = true;
-        metadata['configName'] = config.name;
-        metadata['configData'] = config.toJson(); // 存储完整的配置数据
-        if (config.thinkingProcess != null) {
-          metadata['hasThinkingProcess'] = true;
-          metadata['thinkingProcess'] = config.thinkingProcess;
-        }
-      }
-      if (userPrompt != null) {
-        metadata['userPrompt'] = userPrompt;
-      }
-
       final message = ConversationMessage(
         id: ConversationService.generateMessageId(),
         type: MessageType.assistant,
         content: content,
         timestamp: DateTime.now(),
-        metadata: metadata.isNotEmpty ? metadata : null,
       );
 
       await ConversationService.addMessage(message);

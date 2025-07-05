@@ -3,6 +3,427 @@ import 'dart:math' show Random;
 import 'package:math_expressions/math_expressions.dart';
 import '../widgets/calculation_history_dialog.dart';
 
+/// 🔧 JavaScript表达式处理器 - 扩展支持JavaScript格式
+class JavaScriptExpressionProcessor {
+  
+  /// 处理JavaScript格式的表达式，转换为标准数学表达式
+  static String processJavaScriptExpression(String jsExpression, double currentValue) {
+    String processed = jsExpression;
+    
+    // 替换JavaScript Math对象方法
+    processed = _replaceMathMethods(processed);
+    
+    // 替换JavaScript内置函数
+    processed = _replaceBuiltInFunctions(processed);
+    
+    // 处理位运算符
+    processed = _processBitwiseOperators(processed);
+    
+    // 处理条件运算符
+    processed = _processConditionalOperator(processed);
+    
+    // 处理变量替换
+    processed = _processVariableReplacement(processed, currentValue);
+    
+    // 处理JavaScript特殊语法
+    processed = _processSpecialSyntax(processed);
+    
+    return processed;
+  }
+  
+  /// 替换JavaScript Math对象方法
+  static String _replaceMathMethods(String expression) {
+    return expression
+        // 基本数学函数
+        .replaceAll(RegExp(r'Math\.pow\s*\(\s*([^,]+)\s*,\s*([^)]+)\s*\)'), r'pow($1, $2)')
+        .replaceAll(RegExp(r'Math\.sqrt\s*\(\s*([^)]+)\s*\)'), r'sqrt($1)')
+        .replaceAll(RegExp(r'Math\.abs\s*\(\s*([^)]+)\s*\)'), r'abs($1)')
+        .replaceAll(RegExp(r'Math\.sin\s*\(\s*([^)]+)\s*\)'), r'sin($1)')
+        .replaceAll(RegExp(r'Math\.cos\s*\(\s*([^)]+)\s*\)'), r'cos($1)')
+        .replaceAll(RegExp(r'Math\.tan\s*\(\s*([^)]+)\s*\)'), r'tan($1)')
+        .replaceAll(RegExp(r'Math\.asin\s*\(\s*([^)]+)\s*\)'), r'asin($1)')
+        .replaceAll(RegExp(r'Math\.acos\s*\(\s*([^)]+)\s*\)'), r'acos($1)')
+        .replaceAll(RegExp(r'Math\.atan\s*\(\s*([^)]+)\s*\)'), r'atan($1)')
+        .replaceAll(RegExp(r'Math\.atan2\s*\(\s*([^,]+)\s*,\s*([^)]+)\s*\)'), r'atan2($1, $2)')
+        
+        // 指数和对数函数
+        .replaceAll(RegExp(r'Math\.exp\s*\(\s*([^)]+)\s*\)'), r'exp($1)')
+        .replaceAll(RegExp(r'Math\.log\s*\(\s*([^)]+)\s*\)'), r'ln($1)')
+        .replaceAll(RegExp(r'Math\.log10\s*\(\s*([^)]+)\s*\)'), r'log($1, 10)')
+        .replaceAll(RegExp(r'Math\.log2\s*\(\s*([^)]+)\s*\)'), r'log($1, 2)')
+        
+        // 取整函数
+        .replaceAll(RegExp(r'Math\.floor\s*\(\s*([^)]+)\s*\)'), r'floor($1)')
+        .replaceAll(RegExp(r'Math\.ceil\s*\(\s*([^)]+)\s*\)'), r'ceil($1)')
+        .replaceAll(RegExp(r'Math\.round\s*\(\s*([^)]+)\s*\)'), r'round($1)')
+        .replaceAll(RegExp(r'Math\.trunc\s*\(\s*([^)]+)\s*\)'), r'trunc($1)')
+        
+        // 最大最小值
+        .replaceAll(RegExp(r'Math\.max\s*\(\s*([^)]+)\s*\)'), r'max($1)')
+        .replaceAll(RegExp(r'Math\.min\s*\(\s*([^)]+)\s*\)'), r'min($1)')
+        
+        // 随机数
+        .replaceAll(RegExp(r'Math\.random\s*\(\s*\)'), r'random()')
+        
+        // 常数
+        .replaceAll('Math.PI', math.pi.toString())
+        .replaceAll('Math.E', math.e.toString())
+        .replaceAll('Math.LN2', math.ln2.toString())
+        .replaceAll('Math.LN10', math.ln10.toString())
+        .replaceAll('Math.LOG2E', (1 / math.ln2).toString())
+        .replaceAll('Math.LOG10E', (1 / math.ln10).toString())
+        .replaceAll('Math.SQRT1_2', (1 / math.sqrt2).toString())
+        .replaceAll('Math.SQRT2', math.sqrt2.toString());
+  }
+  
+  /// 替换JavaScript内置函数
+  static String _replaceBuiltInFunctions(String expression) {
+    return expression
+        // 数字解析函数
+        .replaceAllMapped(RegExp(r'parseInt\s*\(\s*([^,)]+)(?:\s*,\s*([^)]+))?\s*\)'), (match) {
+          String num = match.group(1)!;
+          String? base = match.group(2);
+          if (base != null) {
+            return 'parseIntWithBase($num, $base)';
+          } else {
+            return 'parseInt($num)';
+          }
+        })
+        .replaceAll(RegExp(r'parseFloat\s*\(\s*([^)]+)\s*\)'), r'parseFloat($1)')
+        .replaceAll(RegExp(r'Number\s*\(\s*([^)]+)\s*\)'), r'number($1)')
+        
+        // 字符串转换函数
+        .replaceAllMapped(RegExp(r'(\w+)\.toString\s*\(\s*([^)]*)\s*\)'), (match) {
+          String num = match.group(1)!;
+          String? base = match.group(2);
+          if (base != null && base.isNotEmpty) {
+            return 'toStringWithBase($num, $base)';
+          } else {
+            return 'toString($num)';
+          }
+        })
+        
+        // 类型检查函数
+        .replaceAll(RegExp(r'isNaN\s*\(\s*([^)]+)\s*\)'), r'isNaN($1)')
+        .replaceAll(RegExp(r'isFinite\s*\(\s*([^)]+)\s*\)'), r'isFinite($1)')
+        .replaceAll(RegExp(r'Number\.isInteger\s*\(\s*([^)]+)\s*\)'), r'isInteger($1)');
+  }
+  
+  /// 处理位运算符
+  static String _processBitwiseOperators(String expression) {
+    // JavaScript位运算符转换为自定义函数
+    return expression
+        .replaceAll(RegExp(r'(\w+|\([^)]+\))\s*&\s*(\w+|\([^)]+\))'), r'bitwiseAnd($1, $2)')
+        .replaceAll(RegExp(r'(\w+|\([^)]+\))\s*\|\s*(\w+|\([^)]+\))'), r'bitwiseOr($1, $2)')
+        .replaceAll(RegExp(r'(\w+|\([^)]+\))\s*\^\s*(\w+|\([^)]+\))'), r'bitwiseXor($1, $2)')
+        .replaceAll(RegExp(r'~\s*(\w+|\([^)]+\))'), r'bitwiseNot($1)')
+        .replaceAll(RegExp(r'(\w+|\([^)]+\))\s*<<\s*(\w+|\([^)]+\))'), r'leftShift($1, $2)')
+        .replaceAll(RegExp(r'(\w+|\([^)]+\))\s*>>\s*(\w+|\([^)]+\))'), r'rightShift($1, $2)')
+        .replaceAll(RegExp(r'(\w+|\([^)]+\))\s*>>>\s*(\w+|\([^)]+\))'), r'unsignedRightShift($1, $2)');
+  }
+  
+  /// 处理条件运算符（三元运算符）
+  static String _processConditionalOperator(String expression) {
+    // 简单的三元运算符处理：condition ? value1 : value2
+    return expression.replaceAll(
+      RegExp(r'([^?]+)\?\s*([^:]+)\s*:\s*([^,;)]+)'),
+      r'conditional($1, $2, $3)'
+    );
+  }
+  
+  /// 处理变量替换
+  static String _processVariableReplacement(String expression, double currentValue) {
+    return expression
+        .replaceAll(RegExp(r'\bx\b'), currentValue.toString())
+        .replaceAll(RegExp(r'\bvalue\b'), currentValue.toString())
+        .replaceAll(RegExp(r'\bcurrent\b'), currentValue.toString())
+        .replaceAll(RegExp(r'\binput\b'), currentValue.toString());
+  }
+  
+  /// 处理JavaScript特殊语法
+  static String _processSpecialSyntax(String expression) {
+    return expression
+        // 处理JavaScript的严格相等
+        .replaceAll('===', '==')
+        .replaceAll('!==', '!=')
+        
+        // 处理逻辑运算符
+        .replaceAll('&&', ' AND ')
+        .replaceAll('||', ' OR ')
+        .replaceAll('!', ' NOT ')
+        
+        // 处理自增自减（简化处理）
+        .replaceAll(RegExp(r'(\w+)\+\+'), r'($1 + 1)')
+        .replaceAll(RegExp(r'(\w+)--'), r'($1 - 1)')
+        .replaceAll(RegExp(r'\+\+(\w+)'), r'($1 + 1)')
+        .replaceAll(RegExp(r'--(\w+)'), r'($1 - 1)')
+        
+        // 处理复合赋值运算符（简化处理）
+        .replaceAll(RegExp(r'(\w+)\s*\+=\s*([^;]+)'), r'($1 + $2)')
+        .replaceAll(RegExp(r'(\w+)\s*-=\s*([^;]+)'), r'($1 - $2)')
+        .replaceAll(RegExp(r'(\w+)\s*\*=\s*([^;]+)'), r'($1 * $2)')
+        .replaceAll(RegExp(r'(\w+)\s*/=\s*([^;]+)'), r'($1 / $2)');
+  }
+  
+  /// 评估JavaScript表达式
+  static double evaluateJavaScriptExpression(String jsExpression, double currentValue) {
+    try {
+      // 预处理JavaScript表达式
+      String processed = processJavaScriptExpression(jsExpression, currentValue);
+      
+      // 尝试使用扩展的函数处理器
+      return _evaluateExtendedExpression(processed);
+    } catch (e) {
+      print('❌ JavaScript表达式计算错误：$e');
+      print('🔍 原始表达式：$jsExpression');
+      throw Exception('JavaScript表达式计算错误：$e');
+    }
+  }
+  
+  /// 评估扩展的表达式（包含自定义函数）
+  static double _evaluateExtendedExpression(String expression) {
+    // 处理自定义函数
+    String processed = expression;
+    
+    // 处理位运算函数
+    processed = _handleBitwiseFunctions(processed);
+    
+    // 处理数字解析函数
+    processed = _handleNumberFunctions(processed);
+    
+    // 处理条件函数
+    processed = _handleConditionalFunctions(processed);
+    
+    // 使用math_expressions库解析
+    try {
+      Parser parser = Parser();
+      Expression exp = parser.parse(processed);
+      ContextModel cm = ContextModel();
+      
+      double result = exp.evaluate(EvaluationType.REAL, cm);
+      
+      if (result.isNaN || result.isInfinite) {
+        throw Exception('计算结果无效');
+      }
+      
+      return result;
+    } catch (e) {
+      // 回退到简单计算
+      return _evaluateSimpleJavaScript(processed);
+    }
+  }
+  
+  /// 处理位运算函数
+  static String _handleBitwiseFunctions(String expression) {
+    // 实现位运算函数的实际计算
+    expression = expression.replaceAllMapped(
+      RegExp(r'bitwiseAnd\(([^,]+),\s*([^)]+)\)'),
+      (match) {
+        try {
+          int a = double.parse(match.group(1)!).toInt();
+          int b = double.parse(match.group(2)!).toInt();
+          return (a & b).toString();
+        } catch (e) {
+          return '0';
+        }
+      }
+    );
+    
+    expression = expression.replaceAllMapped(
+      RegExp(r'bitwiseOr\(([^,]+),\s*([^)]+)\)'),
+      (match) {
+        try {
+          int a = double.parse(match.group(1)!).toInt();
+          int b = double.parse(match.group(2)!).toInt();
+          return (a | b).toString();
+        } catch (e) {
+          return '0';
+        }
+      }
+    );
+    
+    expression = expression.replaceAllMapped(
+      RegExp(r'bitwiseXor\(([^,]+),\s*([^)]+)\)'),
+      (match) {
+        try {
+          int a = double.parse(match.group(1)!).toInt();
+          int b = double.parse(match.group(2)!).toInt();
+          return (a ^ b).toString();
+        } catch (e) {
+          return '0';
+        }
+      }
+    );
+    
+    expression = expression.replaceAllMapped(
+      RegExp(r'bitwiseNot\(([^)]+)\)'),
+      (match) {
+        try {
+          int a = double.parse(match.group(1)!).toInt();
+          return (~a).toString();
+        } catch (e) {
+          return '0';
+        }
+      }
+    );
+    
+    expression = expression.replaceAllMapped(
+      RegExp(r'leftShift\(([^,]+),\s*([^)]+)\)'),
+      (match) {
+        try {
+          int a = double.parse(match.group(1)!).toInt();
+          int b = double.parse(match.group(2)!).toInt();
+          return (a << b).toString();
+        } catch (e) {
+          return '0';
+        }
+      }
+    );
+    
+    expression = expression.replaceAllMapped(
+      RegExp(r'rightShift\(([^,]+),\s*([^)]+)\)'),
+      (match) {
+        try {
+          int a = double.parse(match.group(1)!).toInt();
+          int b = double.parse(match.group(2)!).toInt();
+          return (a >> b).toString();
+        } catch (e) {
+          return '0';
+        }
+      }
+    );
+    
+    return expression;
+  }
+  
+  /// 处理数字解析函数
+  static String _handleNumberFunctions(String expression) {
+    // parseInt函数
+    expression = expression.replaceAllMapped(
+      RegExp(r'parseInt\(([^)]+)\)'),
+      (match) {
+        try {
+          String numStr = match.group(1)!;
+          double num = double.parse(numStr);
+          return num.toInt().toString();
+        } catch (e) {
+          return '0';
+        }
+      }
+    );
+    
+    // parseIntWithBase函数
+    expression = expression.replaceAllMapped(
+      RegExp(r'parseIntWithBase\(([^,]+),\s*([^)]+)\)'),
+      (match) {
+        try {
+          String numStr = match.group(1)!;
+          int base = double.parse(match.group(2)!).toInt();
+          int result = int.parse(numStr, radix: base);
+          return result.toString();
+        } catch (e) {
+          return '0';
+        }
+      }
+    );
+    
+    // parseFloat函数
+    expression = expression.replaceAllMapped(
+      RegExp(r'parseFloat\(([^)]+)\)'),
+      (match) {
+        try {
+          String numStr = match.group(1)!;
+          double num = double.parse(numStr);
+          return num.toString();
+        } catch (e) {
+          return '0';
+        }
+      }
+    );
+    
+    return expression;
+  }
+  
+  /// 处理条件函数
+  static String _handleConditionalFunctions(String expression) {
+    return expression.replaceAllMapped(
+      RegExp(r'conditional\(([^,]+),\s*([^,]+),\s*([^)]+)\)'),
+      (match) {
+        try {
+          double condition = double.parse(match.group(1)!);
+          String trueValue = match.group(2)!;
+          String falseValue = match.group(3)!;
+          return condition != 0 ? trueValue : falseValue;
+        } catch (e) {
+          return match.group(3)!; // 返回false值作为默认
+        }
+      }
+    );
+  }
+  
+  /// 简单的JavaScript表达式计算（回退方案）
+  static double _evaluateSimpleJavaScript(String expression) {
+    // 简化的表达式计算
+    try {
+      // 移除空格
+      expression = expression.replaceAll(' ', '');
+      
+      // 基本的四则运算
+      if (expression.contains('+') || expression.contains('-') || 
+          expression.contains('*') || expression.contains('/')) {
+        return _evaluateBasicArithmetic(expression);
+      }
+      
+      // 尝试解析为数字
+      return double.parse(expression);
+    } catch (e) {
+      print('⚠️ 简单JavaScript表达式解析失败：$e');
+      return 0.0;
+    }
+  }
+  
+  /// 基本算术表达式计算
+  static double _evaluateBasicArithmetic(String expression) {
+    // 简单的算术表达式解析（支持基本的四则运算）
+    try {
+      // 处理乘除法优先级
+      while (expression.contains('*') || expression.contains('/')) {
+        RegExp mulDiv = RegExp(r'(\d+(?:\.\d+)?)\s*([*/])\s*(\d+(?:\.\d+)?)');
+        expression = expression.replaceAllMapped(mulDiv, (match) {
+          double a = double.parse(match.group(1)!);
+          String op = match.group(2)!;
+          double b = double.parse(match.group(3)!);
+          if (op == '*') {
+            return (a * b).toString();
+          } else {
+            if (b == 0) throw Exception('除零错误');
+            return (a / b).toString();
+          }
+        });
+      }
+      
+      // 处理加减法
+      while (expression.contains('+') || expression.contains('-')) {
+        RegExp addSub = RegExp(r'(\d+(?:\.\d+)?)\s*([+-])\s*(\d+(?:\.\d+)?)');
+        expression = expression.replaceAllMapped(addSub, (match) {
+          double a = double.parse(match.group(1)!);
+          String op = match.group(2)!;
+          double b = double.parse(match.group(3)!);
+          if (op == '+') {
+            return (a + b).toString();
+          } else {
+            return (a - b).toString();
+          }
+        });
+      }
+      
+      return double.parse(expression);
+    } catch (e) {
+      throw Exception('算术表达式计算错误：$e');
+    }
+  }
+}
+
 /// 计算器操作类型 - 简化版本
 enum CalculatorActionType {
   input,      // 输入数字
@@ -529,7 +950,7 @@ class CalculatorEngine {
     return _state;
   }
 
-  /// 增强的表达式处理器 - 支持完整的科学计算
+  /// 增强的表达式处理器 - 支持完整的科学计算和JavaScript格式
   CalculatorState _handleExpression(String expression) {
     if (_state.isError) return _state;
     
@@ -538,7 +959,7 @@ class CalculatorEngine {
       print('🔢 表达式计算：当前值=$currentValue, 表达式=$expression');
       
       // 计算表达式结果
-      double result = _evaluateScientificExpression(expression, currentValue);
+      double result = _evaluateExpressionWithJavaScriptSupport(expression, currentValue);
       print('🔢 计算结果：$result');
       
       // 记录计算步骤到历史
@@ -575,6 +996,54 @@ class CalculatorEngine {
       _state = _state.copyWith(display: 'Error', isError: true);
       return _state;
     }
+  }
+  
+  /// 🔧 新增：支持JavaScript格式的表达式评估
+  double _evaluateExpressionWithJavaScriptSupport(String expression, double currentValue) {
+    // 检查是否包含JavaScript特征
+    bool isJavaScriptExpression = _isJavaScriptExpression(expression);
+    
+    if (isJavaScriptExpression) {
+      print('📝 检测到JavaScript表达式，使用JavaScript处理器');
+      return JavaScriptExpressionProcessor.evaluateJavaScriptExpression(expression, currentValue);
+    } else {
+      print('📝 使用标准表达式处理器');
+      return _evaluateScientificExpression(expression, currentValue);
+    }
+  }
+  
+  /// 检查是否为JavaScript表达式
+  bool _isJavaScriptExpression(String expression) {
+    // JavaScript特征检测
+    List<String> jsFeatures = [
+      'Math.',           // Math对象
+      'parseInt',        // parseInt函数
+      'parseFloat',      // parseFloat函数
+      'Number(',         // Number构造函数
+      '.toString',       // toString方法
+      'isNaN',           // isNaN函数
+      'isFinite',        // isFinite函数
+      '&',               // 位运算AND
+      '|',               // 位运算OR
+      '^',               // 位运算XOR
+      '~',               // 位运算NOT
+      '<<',              // 左移位
+      '>>',              // 右移位
+      '>>>',             // 无符号右移位
+      '?',               // 三元运算符
+      '++',              // 自增
+      '--',              // 自减
+      '+=',              // 复合赋值
+      '-=',              // 复合赋值
+      '*=',              // 复合赋值
+      '/=',              // 复合赋值
+      '&&',              // 逻辑AND
+      '||',              // 逻辑OR
+      '===',             // 严格相等
+      '!==',             // 严格不等
+    ];
+    
+    return jsFeatures.any((feature) => expression.contains(feature));
   }
 
   /// 处理多参数函数开始
@@ -781,17 +1250,8 @@ class CalculatorEngine {
     print('🔢 替换后的表达式：$evalExpression');
     
     try {
-      // 🔧 预处理：将数学幂运算符^转换为pow函数
-      evalExpression = _preprocessPowerOperator(evalExpression);
-      
-      // 🚀 新增：检测并处理JavaScript函数语句
-      if (_isJavaScriptExpression(evalExpression)) {
-        return _evaluateJavaScriptExpression(evalExpression, x);
-      }
-      
       // 🔧 处理多参数函数表达式
-      // 更精确的检测：表达式应该完全匹配多参数函数格式 functionName(param1,param2,...)
-      if (_isSimpleMultiParamFunction(evalExpression)) {
+      if (evalExpression.contains('(') && evalExpression.contains(',')) {
         return _evaluateMultiParamExpression(evalExpression, x);
       }
       // 🔧 处理特殊的单参数函数
@@ -1078,62 +1538,6 @@ class CalculatorEngine {
     return expression.replaceAllMapped(pattern, (match) => x.toString());
   }
 
-  /// 预处理幂运算符：将^转换为pow函数调用
-  String _preprocessPowerOperator(String expression) {
-    // 改进的正则表达式：支持更复杂的表达式
-    // 匹配 base^exponent 格式，其中base和exponent可以是：
-    // - 数字：123, 123.456
-    // - 括号表达式：(1.00292), (360)
-    // - 复杂表达式：需要更精确的匹配
-    
-    // 简化方案：先处理简单的数字和括号表达式
-    RegExp simplePattern = RegExp(r'(\([^)]+\)|\d+(?:\.\d+)?)\^(\([^)]+\)|\d+(?:\.\d+)?)');
-    
-    while (simplePattern.hasMatch(expression)) {
-      expression = expression.replaceAllMapped(simplePattern, (match) {
-        String base = match.group(1)!;
-        String exponent = match.group(2)!;
-        
-        // 🔧 清理多余的括号：如果内容是简单数字，去掉括号
-        String cleanBase = _cleanParentheses(base);
-        String cleanExponent = _cleanParentheses(exponent);
-        
-        print('🔧 幂运算符转换: $base^$exponent -> pow($cleanBase, $cleanExponent)');
-        return 'pow($cleanBase, $cleanExponent)';
-      });
-    }
-    
-    print('🔧 幂运算符预处理结果: $expression');
-    return expression;
-  }
-  
-  /// 清理多余的括号：如果括号内是简单数字，去掉括号
-  String _cleanParentheses(String value) {
-    if (value.startsWith('(') && value.endsWith(')')) {
-      String inner = value.substring(1, value.length - 1);
-      // 检查内容是否是简单的数字（包括小数）
-      if (RegExp(r'^\d+(?:\.\d+)?$').hasMatch(inner)) {
-        return inner;
-      }
-    }
-    return value;
-  }
-
-  /// 检测表达式是否为简单的多参数函数调用
-  /// 例如：pow(2,3) ✅   160.0*pow(1,2)+pow(3,4) ❌
-  bool _isSimpleMultiParamFunction(String expression) {
-    // 匹配格式：functionName(param1,param2,...)
-    // 表达式应该完全匹配这个格式，没有其他运算符
-    RegExp functionPattern = RegExp(r'^[a-zA-Z_][a-zA-Z0-9_]*\([^()]*\)$');
-    
-    if (!functionPattern.hasMatch(expression)) {
-      return false;
-    }
-    
-    // 确保包含逗号（多参数）
-    return expression.contains(',');
-  }
-
   /// 处理多参数函数表达式
   double _evaluateMultiParamExpression(String expression, double x) {
     // 解析函数名和参数
@@ -1236,475 +1640,6 @@ class CalculatorEngine {
         
       default:
         throw Exception('未知的多参数函数：$functionName');
-    }
-  }
-
-  /// 检测是否为JavaScript表达式
-  bool _isJavaScriptExpression(String expression) {
-    // 检测JavaScript特有的函数和语法
-    List<String> jsPatterns = [
-      // JavaScript内置函数
-      r'parseInt\(',
-      r'parseFloat\(',
-      r'toString\(',
-      r'toFixed\(',
-      r'toPrecision\(',
-      r'toExponential\(',
-      r'Math\.',
-      r'Number\.',
-      r'String\.',
-      r'Boolean\(',
-      r'isNaN\(',
-      r'isFinite\(',
-      // JavaScript运算符
-      r'===',
-      r'!==',
-      r'&&',
-      r'\|\|',
-      r'\?\s*:',  // 三元运算符
-      r'>>',
-      r'<<',
-      r'>>>',
-      r'&\d',  // 位运算
-      r'\|\d',
-      // 移除 r'\^\d' 避免将数学幂运算符^误认为JavaScript位运算
-      r'~\d',
-      // JavaScript数组/对象语法
-      r'\[.*\]',
-      r'\{.*\}',
-      // JavaScript字符串方法
-      r'substring\(',
-      r'substr\(',
-      r'charAt\(',
-      r'indexOf\(',
-      r'split\(',
-      r'replace\(',
-      // 类型转换
-      r'Number\(',
-      r'String\(',
-    ];
-    
-    for (String pattern in jsPatterns) {
-      if (RegExp(pattern).hasMatch(expression)) {
-        print('🔍 检测到JavaScript语法: $pattern in $expression');
-        return true;
-      }
-    }
-    
-    return false;
-  }
-
-  /// JavaScript表达式评估器
-  double _evaluateJavaScriptExpression(String expression, double x) {
-    print('🚀 开始JavaScript表达式解析: $expression');
-    
-    try {
-      // 创建JavaScript上下文环境
-      Map<String, dynamic> jsContext = {
-        'x': x,
-        'Math': _createMathObject(),
-        'Number': _createNumberObject(),
-        'String': _createStringObject(),
-        'parseInt': _createParseIntFunction(),
-        'parseFloat': _createParseFloatFunction(),
-        'isNaN': _createIsNaNFunction(),
-        'isFinite': _createIsFiniteFunction(),
-      };
-      
-      // 解析并执行JavaScript表达式
-      return _executeJavaScriptExpression(expression, jsContext);
-      
-    } catch (e) {
-      print('❌ JavaScript表达式执行失败: $e');
-      throw Exception('JavaScript执行错误：$e');
-    }
-  }
-
-  /// 创建JavaScript Math对象
-  Map<String, dynamic> _createMathObject() {
-    return {
-      'PI': math.pi,
-      'E': math.e,
-      'abs': (double x) => x.abs(),
-      'ceil': (double x) => x.ceil().toDouble(),
-      'floor': (double x) => x.floor().toDouble(),
-      'round': (double x) => x.round().toDouble(),
-      'max': (List<double> args) => args.isEmpty ? double.negativeInfinity : args.reduce(math.max),
-      'min': (List<double> args) => args.isEmpty ? double.infinity : args.reduce(math.min),
-      'pow': (double base, double exp) => math.pow(base, exp).toDouble(),
-      'sqrt': (double x) => math.sqrt(x),
-      'sin': (double x) => math.sin(x),
-      'cos': (double x) => math.cos(x),
-      'tan': (double x) => math.tan(x),
-      'asin': (double x) => math.asin(x),
-      'acos': (double x) => math.acos(x),
-      'atan': (double x) => math.atan(x),
-      'atan2': (double y, double x) => math.atan2(y, x),
-      'exp': (double x) => math.exp(x),
-      'log': (double x) => math.log(x),
-      'random': () => math.Random().nextDouble(),
-    };
-  }
-
-  /// 创建JavaScript Number对象
-  Map<String, dynamic> _createNumberObject() {
-    return {
-      'MAX_VALUE': double.maxFinite,
-      'MIN_VALUE': double.minPositive,
-      'POSITIVE_INFINITY': double.infinity,
-      'NEGATIVE_INFINITY': double.negativeInfinity,
-      'NaN': double.nan,
-      'isInteger': (double x) => x == x.toInt(),
-      'isFinite': (double x) => x.isFinite,
-      'isNaN': (double x) => x.isNaN,
-    };
-  }
-
-  /// 创建JavaScript String对象
-  Map<String, dynamic> _createStringObject() {
-    return {
-      'fromCharCode': (int code) => String.fromCharCode(code),
-    };
-  }
-
-  /// 创建parseInt函数
-  Function _createParseIntFunction() {
-    return (String str, [int? radix]) {
-      radix ??= 10;
-      if (radix < 2 || radix > 36) {
-        throw Exception('parseInt: radix must be between 2 and 36');
-      }
-      
-      // 清理字符串
-      str = str.trim();
-      if (str.isEmpty) return double.nan;
-      
-      // 处理符号
-      bool negative = false;
-      if (str.startsWith('-')) {
-        negative = true;
-        str = str.substring(1);
-      } else if (str.startsWith('+')) {
-        str = str.substring(1);
-      }
-      
-      // 自动检测进制
-      if (radix == 16 && str.toLowerCase().startsWith('0x')) {
-        str = str.substring(2);
-      } else if (radix == 2 && str.toLowerCase().startsWith('0b')) {
-        str = str.substring(2);
-      } else if (radix == 8 && str.startsWith('0')) {
-        str = str.substring(1);
-      }
-      
-      try {
-        int result = int.parse(str, radix: radix);
-        return (negative ? -result : result).toDouble();
-      } catch (e) {
-        return double.nan;
-      }
-    };
-  }
-
-  /// 创建parseFloat函数
-  Function _createParseFloatFunction() {
-    return (String str) {
-      str = str.trim();
-      if (str.isEmpty) return double.nan;
-      
-      try {
-        return double.parse(str);
-      } catch (e) {
-        return double.nan;
-      }
-    };
-  }
-
-  /// 创建isNaN函数
-  Function _createIsNaNFunction() {
-    return (dynamic value) {
-      if (value is num) return value.isNaN;
-      if (value is String) {
-        try {
-          double parsed = double.parse(value);
-          return parsed.isNaN;
-        } catch (e) {
-          return true;
-        }
-      }
-      return true;
-    };
-  }
-
-  /// 创建isFinite函数
-  Function _createIsFiniteFunction() {
-    return (dynamic value) {
-      if (value is num) return value.isFinite;
-      if (value is String) {
-        try {
-          double parsed = double.parse(value);
-          return parsed.isFinite;
-        } catch (e) {
-          return false;
-        }
-      }
-      return false;
-    };
-  }
-
-  /// 执行JavaScript表达式
-  double _executeJavaScriptExpression(String expression, Map<String, dynamic> context) {
-    // 这里实现一个简化的JavaScript表达式执行器
-    // 由于完整的JavaScript解析器非常复杂，我们实现常用的函数调用
-    
-    // 处理常见的JavaScript函数调用
-    
-    // parseInt()函数
-    RegExp parseIntRegex = RegExp(r'parseInt\(([^,)]+)(?:,\s*(\d+))?\)');
-    if (parseIntRegex.hasMatch(expression)) {
-      Match match = parseIntRegex.firstMatch(expression)!;
-      String valueStr = match.group(1)!.trim();
-      int? radix = match.group(2) != null ? int.parse(match.group(2)!) : null;
-      
-      // 替换变量
-      valueStr = _replaceVariables(valueStr, context);
-      Function parseInt = context['parseInt'] as Function;
-      return parseInt(valueStr, radix);
-    }
-    
-    // parseFloat()函数
-    RegExp parseFloatRegex = RegExp(r'parseFloat\(([^)]+)\)');
-    if (parseFloatRegex.hasMatch(expression)) {
-      Match match = parseFloatRegex.firstMatch(expression)!;
-      String valueStr = match.group(1)!.trim();
-      valueStr = _replaceVariables(valueStr, context);
-      Function parseFloat = context['parseFloat'] as Function;
-      return parseFloat(valueStr);
-    }
-    
-    // toString()方法 (数字转字符串然后返回长度或其他处理)
-    RegExp toStringRegex = RegExp(r'(\d+|x)\.toString\((\d+)?\)');
-    if (toStringRegex.hasMatch(expression)) {
-      Match match = toStringRegex.firstMatch(expression)!;
-      String numberStr = match.group(1)!;
-      String? radixStr = match.group(2);
-      
-      double number = numberStr == 'x' ? context['x'] : double.parse(numberStr);
-      int radix = radixStr != null ? int.parse(radixStr) : 10;
-      
-      if (radix < 2 || radix > 36) {
-        throw Exception('toString: radix must be between 2 and 36');
-      }
-      
-      // 如果表达式包含.length，返回字符串长度
-      if (expression.contains('.length')) {
-        String result = _convertToBase(number.toInt(), radix);
-        return result.length.toDouble();
-      }
-      
-      // 否则返回转换后的数值（用于显示）
-      String result = _convertToBase(number.toInt(), radix);
-      _state = _state.copyWith(
-        display: result,
-        displayFormat: radix == 2 ? 'binary' : (radix == 8 ? 'octal' : (radix == 16 ? 'hex' : 'custom')),
-        rawResult: result,
-        numericValue: number,
-      );
-      return number; // 返回原始数值
-    }
-    
-    // Math对象方法
-    RegExp mathRegex = RegExp(r'Math\.(\w+)\(([^)]*)\)');
-    if (mathRegex.hasMatch(expression)) {
-      Match match = mathRegex.firstMatch(expression)!;
-      String methodName = match.group(1)!;
-      String argsStr = match.group(2)!;
-      
-      Map<String, dynamic> mathObj = context['Math'] as Map<String, dynamic>;
-      if (mathObj.containsKey(methodName)) {
-        List<String> argStrings = argsStr.isEmpty ? [] : argsStr.split(',').map((s) => s.trim()).toList();
-        List<double> args = argStrings.map((arg) {
-          String processedArg = _replaceVariables(arg, context);
-          return double.parse(processedArg);
-        }).toList();
-        
-        Function method = mathObj[methodName] as Function;
-        if (args.isEmpty) {
-          return method();
-        } else if (args.length == 1) {
-          return method(args[0]);
-        } else if (args.length == 2) {
-          return method(args[0], args[1]);
-        } else {
-          return method(args);
-        }
-      }
-    }
-    
-    // 位运算操作
-    if (_containsBitwiseOperation(expression)) {
-      return _evaluateBitwiseExpression(expression, context);
-    }
-    
-    // 三元运算符 condition ? value1 : value2
-    RegExp ternaryRegex = RegExp(r'(.+?)\s*\?\s*(.+?)\s*:\s*(.+)');
-    if (ternaryRegex.hasMatch(expression)) {
-      Match match = ternaryRegex.firstMatch(expression)!;
-      String condition = match.group(1)!.trim();
-      String trueValue = match.group(2)!.trim();
-      String falseValue = match.group(3)!.trim();
-      
-      bool conditionResult = _evaluateCondition(condition, context);
-      String selectedValue = conditionResult ? trueValue : falseValue;
-      return double.parse(_replaceVariables(selectedValue, context));
-    }
-    
-    // 如果都不匹配，尝试直接计算表达式
-    String processedExpression = _replaceVariables(expression, context);
-    return double.parse(processedExpression);
-  }
-
-  /// 替换表达式中的变量
-  String _replaceVariables(String expression, Map<String, dynamic> context) {
-    String result = expression;
-    context.forEach((key, value) {
-      if (value is num) {
-        result = result.replaceAll(key, value.toString());
-      }
-    });
-    return result;
-  }
-
-  /// 检查是否包含位运算操作
-  bool _containsBitwiseOperation(String expression) {
-    List<String> bitwiseOps = ['&', '|', '^', '~', '<<', '>>', '>>>'];
-    return bitwiseOps.any((op) => expression.contains(op));
-  }
-
-  /// 评估位运算表达式
-  double _evaluateBitwiseExpression(String expression, Map<String, dynamic> context) {
-    expression = _replaceVariables(expression, context);
-    
-    // 简化的位运算解析
-    if (expression.contains('&')) {
-      List<String> parts = expression.split('&');
-      if (parts.length == 2) {
-        int a = double.parse(parts[0].trim()).toInt();
-        int b = double.parse(parts[1].trim()).toInt();
-        return (a & b).toDouble();
-      }
-    }
-    
-    if (expression.contains('|')) {
-      List<String> parts = expression.split('|');
-      if (parts.length == 2) {
-        int a = double.parse(parts[0].trim()).toInt();
-        int b = double.parse(parts[1].trim()).toInt();
-        return (a | b).toDouble();
-      }
-    }
-    
-    if (expression.contains('^')) {
-      List<String> parts = expression.split('^');
-      if (parts.length == 2) {
-        int a = double.parse(parts[0].trim()).toInt();
-        int b = double.parse(parts[1].trim()).toInt();
-        return (a ^ b).toDouble();
-      }
-    }
-    
-    if (expression.contains('<<')) {
-      List<String> parts = expression.split('<<');
-      if (parts.length == 2) {
-        int a = double.parse(parts[0].trim()).toInt();
-        int b = double.parse(parts[1].trim()).toInt();
-        return (a << b).toDouble();
-      }
-    }
-    
-    if (expression.contains('>>')) {
-      List<String> parts = expression.split('>>');
-      if (parts.length == 2) {
-        int a = double.parse(parts[0].trim()).toInt();
-        int b = double.parse(parts[1].trim()).toInt();
-        return (a >> b).toDouble();
-      }
-    }
-    
-    // 按位非运算
-    if (expression.startsWith('~')) {
-      int a = double.parse(expression.substring(1).trim()).toInt();
-      return (~a).toDouble();
-    }
-    
-    throw Exception('不支持的位运算表达式: $expression');
-  }
-
-  /// 评估条件表达式
-  bool _evaluateCondition(String condition, Map<String, dynamic> context) {
-    condition = _replaceVariables(condition, context);
-    
-    // 简化的条件评估
-    if (condition.contains('===')) {
-      List<String> parts = condition.split('===');
-      if (parts.length == 2) {
-        String left = parts[0].trim();
-        String right = parts[1].trim();
-        return left == right;
-      }
-    }
-    
-    if (condition.contains('!==')) {
-      List<String> parts = condition.split('!==');
-      if (parts.length == 2) {
-        String left = parts[0].trim();
-        String right = parts[1].trim();
-        return left != right;
-      }
-    }
-    
-    if (condition.contains('>=')) {
-      List<String> parts = condition.split('>=');
-      if (parts.length == 2) {
-        double left = double.parse(parts[0].trim());
-        double right = double.parse(parts[1].trim());
-        return left >= right;
-      }
-    }
-    
-    if (condition.contains('<=')) {
-      List<String> parts = condition.split('<=');
-      if (parts.length == 2) {
-        double left = double.parse(parts[0].trim());
-        double right = double.parse(parts[1].trim());
-        return left <= right;
-      }
-    }
-    
-    if (condition.contains('>')) {
-      List<String> parts = condition.split('>');
-      if (parts.length == 2) {
-        double left = double.parse(parts[0].trim());
-        double right = double.parse(parts[1].trim());
-        return left > right;
-      }
-    }
-    
-    if (condition.contains('<')) {
-      List<String> parts = condition.split('<');
-      if (parts.length == 2) {
-        double left = double.parse(parts[0].trim());
-        double right = double.parse(parts[1].trim());
-        return left < right;
-      }
-    }
-    
-    // 默认情况：非零为true
-    try {
-      double value = double.parse(condition);
-      return value != 0;
-    } catch (e) {
-      return false;
     }
   }
 

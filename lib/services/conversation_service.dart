@@ -20,18 +20,6 @@ class ConversationMessage {
     this.metadata,
   });
 
-  /// 检查是否包含计算器配置
-  bool get hasCalculatorConfig => metadata?['hasConfig'] == true;
-  
-  /// 获取配置名称
-  String? get configName => metadata?['configName'];
-  
-  /// 获取用户输入的Prompt
-  String? get userPrompt => metadata?['userPrompt'];
-  
-  /// 检查是否可以回滚到此设计
-  bool get canRollback => hasCalculatorConfig && type == MessageType.assistant;
-
   Map<String, dynamic> toJson() => {
     'id': id,
     'type': type.name,
@@ -263,98 +251,5 @@ class ConversationService {
   /// 生成消息ID
   static String generateMessageId() {
     return 'msg_${DateTime.now().millisecondsSinceEpoch}_${DateTime.now().microsecond}';
-  }
-
-  /// 获取当前会话的设计历史记录
-  static Future<List<ConversationMessage>> getDesignHistory() async {
-    final session = await getCurrentSession();
-    if (session == null) return [];
-    
-    // 返回所有包含计算器配置的助手消息，按时间倒序
-    return session.messages
-        .where((msg) => msg.canRollback)
-        .toList()
-        .reversed
-        .toList();
-  }
-
-  /// 获取设计历史记录的简要信息
-  static Future<List<Map<String, dynamic>>> getDesignHistorySummary() async {
-    final designHistory = await getDesignHistory();
-    
-    return designHistory.map((msg) {
-      // 从消息内容中提取简要描述
-      String summary = msg.content;
-      if (summary.length > 50) {
-        summary = summary.substring(0, 50) + '...';
-      }
-      
-      return {
-        'id': msg.id,
-        'configName': msg.configName ?? '未命名设计',
-        'summary': summary,
-        'timestamp': msg.timestamp,
-        'userPrompt': msg.userPrompt,
-      };
-    }).toList();
-  }
-
-  /// 清理旧的设计历史记录，保留最近的指定数量
-  static Future<void> cleanupDesignHistory({int keepCount = 20}) async {
-    try {
-      final session = await getCurrentSession();
-      if (session == null) return;
-      
-      final designMessages = session.messages
-          .where((msg) => msg.canRollback)
-          .toList();
-      
-      if (designMessages.length <= keepCount) return;
-      
-      // 按时间排序，保留最新的keepCount条记录
-      designMessages.sort((a, b) => b.timestamp.compareTo(a.timestamp));
-      final toRemove = designMessages.sublist(keepCount);
-      
-      // 删除旧记录
-      var updatedMessages = session.messages.toList();
-      for (final msg in toRemove) {
-        updatedMessages.removeWhere((m) => m.id == msg.id);
-      }
-      
-      // 更新会话
-      final sessions = await getAllSessions();
-      final sessionIndex = sessions.indexWhere((s) => s.id == session.id);
-      if (sessionIndex != -1) {
-        sessions[sessionIndex] = session.copyWith(
-          messages: updatedMessages,
-          updatedAt: DateTime.now(),
-        );
-        await _saveSessions(sessions);
-      }
-      
-      print('🧹 已清理 ${toRemove.length} 条旧的设计历史记录');
-    } catch (e) {
-      print('清理设计历史失败: $e');
-    }
-  }
-
-  /// 获取设计历史记录的统计信息
-  static Future<Map<String, int>> getDesignHistoryStats() async {
-    try {
-      final session = await getCurrentSession();
-      if (session == null) return {'total': 0, 'designs': 0};
-      
-      final designMessages = session.messages
-          .where((msg) => msg.canRollback)
-          .toList();
-      
-      return {
-        'total': session.messages.length,
-        'designs': designMessages.length,
-      };
-    } catch (e) {
-      print('获取设计历史统计失败: $e');
-      return {'total': 0, 'designs': 0};
-    }
   }
 } 

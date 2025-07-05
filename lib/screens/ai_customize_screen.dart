@@ -118,7 +118,7 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
     _scrollToBottom();
   }
 
-  Future<void> _addAssistantMessage(String content, {CalculatorConfig? config, String? userPrompt}) async {
+  Future<void> _addAssistantMessage(String content, {CalculatorConfig? config}) async {
     final metadata = <String, dynamic>{};
     if (config != null) {
       metadata['hasConfig'] = true;
@@ -127,9 +127,6 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
         metadata['hasThinkingProcess'] = true;
         metadata['thinkingProcess'] = config.thinkingProcess;
       }
-    }
-    if (userPrompt != null) {
-      metadata['userPrompt'] = userPrompt;
     }
 
     final message = ConversationMessage(
@@ -451,7 +448,7 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
                 itemBuilder: (context, index) {
                   final reply = quickReplies[index];
                   
-                  // 递进式色彩设计：从浅到深表示功能的递进（扩展到20个）
+                  // 递进式色彩设计：从浅到深表示功能的递进
                   final progressColors = [
                     // Level 1-3: 基础功能 - 绿色系（简单到复杂）
                     [const Color(0xFFE8F5E8), const Color(0xFFC8E6C9)], // 浅绿
@@ -472,20 +469,6 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
                     [const Color(0xFFFFF3E0), const Color(0xFFFFCC02)], // 浅橙
                     [const Color(0xFFFFB74D), const Color(0xFFFF9800)], // 中橙
                     [const Color(0xFFFF6F00), const Color(0xFFE65100)], // 深橙
-                    
-                    // Level 13-15: 高阶分析 - 红色系（深度计算）
-                    [const Color(0xFFFFEBEE), const Color(0xFFEF9A9A)], // 浅红
-                    [const Color(0xFFE57373), const Color(0xFFE53935)], // 中红
-                    [const Color(0xFFD32F2F), const Color(0xFFB71C1C)], // 深红
-                    
-                    // Level 16-18: 终极功能 - 青色系（专业分析）
-                    [const Color(0xFFE0F2F1), const Color(0xFF80CBC4)], // 浅青
-                    [const Color(0xFF4DB6AC), const Color(0xFF00695C)], // 中青
-                    [const Color(0xFF004D40), const Color(0xFF00251A)], // 深青
-                    
-                    // Level 19-20: 巅峰功能 - 金色系（大师级）
-                    [const Color(0xFFFFF8E1), const Color(0xFFFFD54F)], // 浅金
-                    [const Color(0xFFFFB300), const Color(0xFFFF8F00)], // 深金
                   ];
                   
                   final colorPair = progressColors[index % progressColors.length];
@@ -525,7 +508,7 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
                   
                   final icon = progressIcons[index % progressIcons.length];
                   
-                  // 递进式级别标签（扩展到20个）
+                  // 递进式级别标签 - 扩展至完整20个级别
                   final levelLabels = [
                     'Level 1', 'Level 2', 'Level 3', 'Level 4', 
                     'Level 5', 'Level 6', 'Level 7', 'Level 8',
@@ -571,7 +554,7 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: Text(
-                                  levelLabels[index % levelLabels.length],
+                                  levelLabels[index],
                                   style: TextStyle(
                                     fontSize: 10,
                                     fontWeight: FontWeight.bold,
@@ -727,292 +710,6 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
         ],
       ),
     );
-  }
-
-  /// 显示设计历史
-  Future<void> _showDesignHistory() async {
-    try {
-      final designHistory = await ConversationService.getDesignHistorySummary();
-      final stats = await ConversationService.getDesignHistoryStats();
-      
-      if (designHistory.isEmpty) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('💡 还没有设计历史记录'),
-              backgroundColor: Colors.orange,
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        }
-        return;
-      }
-
-      // 自动清理旧记录
-      await ConversationService.cleanupDesignHistory();
-
-      if (mounted) {
-        showModalBottomSheet(
-          context: context,
-          backgroundColor: Colors.transparent,
-          isScrollControlled: true,
-          builder: (context) => Container(
-            height: MediaQuery.of(context).size.height * 0.8,
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-            ),
-            child: Column(
-              children: [
-                // 标题栏
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.blue.shade50,
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.restore, color: Colors.blue.shade600),
-                      const SizedBox(width: 8),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            '设计历史',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          Text(
-                            '共 ${stats['designs']} 个设计',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey.shade600,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const Spacer(),
-                      IconButton(
-                        icon: const Icon(Icons.close),
-                        onPressed: () => Navigator.pop(context),
-                      ),
-                    ],
-                  ),
-                ),
-                // 历史记录列表
-                Expanded(
-                  child: ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: designHistory.length,
-                    itemBuilder: (context, index) {
-                      final item = designHistory[index];
-                      final timestamp = item['timestamp'] as DateTime;
-                      final configName = item['configName'] as String;
-                      final summary = item['summary'] as String;
-                      final userPrompt = item['userPrompt'] as String?;
-                      
-                      return Card(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        child: ListTile(
-                          leading: CircleAvatar(
-                            backgroundColor: Colors.blue.shade100,
-                            child: Text(
-                              '${index + 1}',
-                              style: TextStyle(
-                                color: Colors.blue.shade700,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                          title: Text(
-                            configName,
-                            style: const TextStyle(fontWeight: FontWeight.w600),
-                          ),
-                          subtitle: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              if (userPrompt != null && userPrompt.isNotEmpty) ...[
-                                const SizedBox(height: 4),
-                                Text(
-                                  '💬 "$userPrompt"',
-                                  style: TextStyle(
-                                    color: Colors.grey.shade600,
-                                    fontSize: 12,
-                                    fontStyle: FontStyle.italic,
-                                  ),
-                                ),
-                              ],
-                              const SizedBox(height: 4),
-                              Text(
-                                summary,
-                                style: TextStyle(color: Colors.grey.shade700),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                '🕒 ${_formatTimestamp(timestamp)}',
-                                style: TextStyle(
-                                  color: Colors.grey.shade500,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
-                          ),
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              IconButton(
-                                icon: Icon(Icons.restore, color: Colors.blue.shade600),
-                                onPressed: () => _rollbackToDesign(item['id'] as String),
-                                tooltip: '回滚到此设计',
-                              ),
-                              IconButton(
-                                icon: Icon(Icons.edit, color: Colors.orange.shade600),
-                                onPressed: () => _editFromDesign(userPrompt ?? ''),
-                                tooltip: '基于此设计重新编辑',
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      }
-    } catch (e) {
-      print('显示设计历史失败: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('❌ 加载设计历史失败'),
-            backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-    }
-  }
-
-  /// 格式化时间戳
-  String _formatTimestamp(DateTime timestamp) {
-    final now = DateTime.now();
-    final difference = now.difference(timestamp);
-    
-    if (difference.inMinutes < 1) {
-      return '刚刚';
-    } else if (difference.inMinutes < 60) {
-      return '${difference.inMinutes}分钟前';
-    } else if (difference.inHours < 24) {
-      return '${difference.inHours}小时前';
-    } else if (difference.inDays < 7) {
-      return '${difference.inDays}天前';
-    } else {
-      return '${timestamp.month}/${timestamp.day}';
-    }
-  }
-
-  /// 回滚到指定设计
-  Future<void> _rollbackToDesign(String messageId) async {
-    try {
-      Navigator.pop(context); // 关闭历史记录面板
-      
-      // 显示确认对话框
-      final confirmed = await showDialog<bool>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Row(
-            children: [
-              Icon(Icons.restore, color: Colors.blue),
-              SizedBox(width: 8),
-              Text('确认回滚'),
-            ],
-          ),
-          content: const Text('确定要回滚到此设计吗？当前的计算器配置将被替换。'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('取消'),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('确认回滚'),
-            ),
-          ],
-        ),
-      );
-      
-      if (confirmed != true) return;
-      
-      // 获取历史消息
-      final designHistory = await ConversationService.getDesignHistory();
-      final targetMessage = designHistory.firstWhere(
-        (msg) => msg.id == messageId,
-        orElse: () => throw Exception('未找到目标设计'),
-      );
-      
-      // 从消息中恢复配置
-      final configData = targetMessage.metadata?['configData'] as Map<String, dynamic>?;
-      if (configData == null) {
-        throw Exception('配置数据不完整，无法回滚');
-      }
-      
-      // 恢复配置
-      final config = CalculatorConfig.fromJson(configData);
-      final provider = Provider.of<CalculatorProvider>(context, listen: false);
-      await provider.applyConfig(config);
-      
-      // 显示成功提示
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('✅ 已成功回滚到"${targetMessage.configName}"'),
-            backgroundColor: Colors.green,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-      
-      // 记录回滚操作
-      await _addSystemMessage('🔄 已回滚到历史设计："${targetMessage.configName}"');
-      
-    } catch (e) {
-      print('回滚设计失败: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('❌ 回滚失败'),
-            backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-    }
-  }
-
-  /// 基于历史设计重新编辑
-  void _editFromDesign(String originalPrompt) {
-    Navigator.pop(context); // 关闭历史记录面板
-    
-    // 将原始Prompt填入输入框
-    _textController.text = originalPrompt;
-    _focusNode.requestFocus();
-    
-    // 显示提示
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('💡 已填入原始Prompt，您可以修改后重新生成'),
-          backgroundColor: Colors.orange,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    }
   }
 
   Widget _buildMessageBubble(ConversationMessage message, int index) {
@@ -1491,15 +1188,11 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
         ),
         actions: [
           IconButton(
-            icon: Icon(Icons.restore, color: Colors.blue.shade600),
-            onPressed: _showDesignHistory,
-            tooltip: '设计历史',
-          ),
-          IconButton(
             icon: Icon(Icons.lightbulb_outline, color: Colors.amber.shade600),
             onPressed: _showQuickReplies,
             tooltip: '快速想法',
           ),
+
           IconButton(
             icon: Icon(Icons.refresh, color: Colors.orange.shade600),
             onPressed: _clearConversation,

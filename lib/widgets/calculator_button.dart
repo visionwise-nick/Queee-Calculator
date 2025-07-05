@@ -225,16 +225,16 @@ class _CalculatorButtonWidgetState extends State<CalculatorButtonWidget>
     return buttonWidget;
   }
 
-  /// 🔧 改进：计算安全的自适应大小
+  /// 计算自适应大小
   Size _calculateAdaptiveSize(CalculatorTheme theme) {
-    // 如果有固定大小，优先使用（但仍需边界检查）
+    // 如果有固定大小，优先使用
     if (widget.fixedSize != null) {
-      return _applySafetyConstraints(widget.fixedSize!);
+      return widget.fixedSize!;
     }
     
-    // 如果按钮指定了固定宽高，使用指定值（但仍需边界检查）
+    // 如果按钮指定了固定宽高，使用指定值
     if (widget.button.width != null && widget.button.height != null) {
-      return _applySafetyConstraints(Size(widget.button.width!, widget.button.height!));
+      return Size(widget.button.width!, widget.button.height!);
     }
     
     // 获取屏幕信息
@@ -243,9 +243,9 @@ class _CalculatorButtonWidgetState extends State<CalculatorButtonWidget>
     final screenWidth = screenSize.width;
     final screenHeight = screenSize.height;
     
-    // 🔧 改进：更安全的基础大小计算
-    double baseWidth = _calculateSafeBaseWidth(screenWidth);
-    double baseHeight = _calculateSafeBaseHeight(screenHeight);
+    // 默认基础大小（可根据屏幕大小调整）
+    double baseWidth = screenWidth * 0.2; // 屏幕宽度的20%
+    double baseHeight = screenHeight * 0.08; // 屏幕高度的8%
     
     // 根据按钮类型调整基础大小
     switch (widget.button.type) {
@@ -269,17 +269,17 @@ class _CalculatorButtonWidgetState extends State<CalculatorButtonWidget>
       
       switch (sizeMode) {
         case 'content':
-          return _applySafetyConstraints(_calculateContentBasedSize(baseWidth, baseHeight, theme));
+          return _calculateContentBasedSize(baseWidth, baseHeight, theme);
         case 'fill':
-          return _applySafetyConstraints(_calculateFillSize(screenWidth, screenHeight));
+          return _calculateFillSize(screenWidth, screenHeight);
         case 'fixed':
-          return _applySafetyConstraints(Size(
+          return Size(
             widget.button.width ?? baseWidth,
             widget.button.height ?? baseHeight,
-          ));
+          );
         case 'adaptive':
         default:
-          return _applySafetyConstraints(_calculateAdaptiveBasedSize(baseWidth, baseHeight, theme));
+          return _calculateAdaptiveBasedSize(baseWidth, baseHeight, theme);
       }
     }
     
@@ -288,64 +288,18 @@ class _CalculatorButtonWidgetState extends State<CalculatorButtonWidget>
     final finalHeight = (widget.button.height ?? baseHeight) * widget.button.heightMultiplier;
     
     // 应用宽高比约束
-    Size finalSize;
     if (widget.button.aspectRatio != null) {
       final aspectRatio = widget.button.aspectRatio!;
       if (finalWidth / finalHeight > aspectRatio) {
         // 宽度过大，调整宽度
-        finalSize = Size(finalHeight * aspectRatio, finalHeight);
+        return Size(finalHeight * aspectRatio, finalHeight);
       } else {
         // 高度过大，调整高度
-        finalSize = Size(finalWidth, finalWidth / aspectRatio);
+        return Size(finalWidth, finalWidth / aspectRatio);
       }
-    } else {
-      finalSize = Size(finalWidth, finalHeight);
     }
     
-    return _applySafetyConstraints(finalSize);
-  }
-
-  /// 🔧 新增：计算安全的基础宽度
-  double _calculateSafeBaseWidth(double screenWidth) {
-    // 根据屏幕宽度动态调整基础宽度
-    if (screenWidth < 400) {
-      return math.max(screenWidth * 0.15, 50); // 小屏幕：最小50px
-    } else if (screenWidth < 600) {
-      return math.max(screenWidth * 0.18, 60); // 中屏幕：最小60px
-    } else {
-      return math.max(screenWidth * 0.20, 80); // 大屏幕：最小80px
-    }
-  }
-
-  /// 🔧 新增：计算安全的基础高度
-  double _calculateSafeBaseHeight(double screenHeight) {
-    // 根据屏幕高度动态调整基础高度
-    if (screenHeight < 600) {
-      return math.max(screenHeight * 0.06, 30); // 小屏幕：最小30px
-    } else if (screenHeight < 800) {
-      return math.max(screenHeight * 0.07, 40); // 中屏幕：最小40px
-    } else {
-      return math.max(screenHeight * 0.08, 50); // 大屏幕：最小50px
-    }
-  }
-
-  /// 🔧 新增：应用安全约束
-  Size _applySafetyConstraints(Size size) {
-    final mediaQuery = MediaQuery.of(context);
-    final screenSize = mediaQuery.size;
-    
-    // 设置安全边界：按钮不应超过屏幕的80%
-    final maxSafeWidth = screenSize.width * 0.8;
-    final maxSafeHeight = screenSize.height * 0.3;
-    
-    // 设置最小尺寸
-    const minButtonWidth = 20.0;
-    const minButtonHeight = 20.0;
-    
-    return Size(
-      size.width.clamp(minButtonWidth, maxSafeWidth),
-      size.height.clamp(minButtonHeight, maxSafeHeight),
-    );
+    return Size(finalWidth, finalHeight);
   }
 
   /// 基于内容计算大小
