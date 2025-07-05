@@ -459,14 +459,102 @@ BMI计算：   "BMI(身高175)"
 ❌ 无法映射到底层实现的功能
 ❌ calculateMortgage等不支持的表达式函数
 
-🚨 **严禁JavaScript语法 - 特别警告**：
-❌ Number(x).toString(8) - 禁止JavaScript进制转换
-❌ Number(x).toString(16) - 禁止JavaScript进制转换  
-❌ parseInt(x, 2) - 禁止JavaScript解析函数
-❌ Math.sin(x) - 禁止JavaScript Math对象
-❌ x.toString() - 禁止JavaScript字符串方法
+🚀 **新增JavaScript函数语句支持**：
+✅ **JavaScript内置函数**：
+✅ parseInt(x, 2) - JavaScript进制解析函数
+✅ parseInt(x, 8) - 八进制解析
+✅ parseInt(x, 16) - 十六进制解析
+✅ parseFloat(x) - 浮点数解析
+✅ isNaN(x) - 检查是否为NaN
+✅ isFinite(x) - 检查是否为有限数
 
-✅ **正确的进制转换语法**：
+✅ **JavaScript Math对象**：
+✅ Math.sin(x) - 正弦函数
+✅ Math.cos(x) - 余弦函数
+✅ Math.tan(x) - 正切函数
+✅ Math.abs(x) - 绝对值
+✅ Math.ceil(x) - 向上取整
+✅ Math.floor(x) - 向下取整
+✅ Math.round(x) - 四舍五入
+✅ Math.max(a,b) - 最大值
+✅ Math.min(a,b) - 最小值
+✅ Math.pow(x,y) - 幂运算
+✅ Math.sqrt(x) - 平方根
+✅ Math.exp(x) - 指数函数
+✅ Math.log(x) - 自然对数
+✅ Math.random() - 随机数
+✅ Math.PI - 圆周率
+✅ Math.E - 自然常数
+
+✅ **JavaScript字符串方法**：
+✅ x.toString() - 转换为字符串
+✅ x.toString(2) - 转换为二进制字符串
+✅ x.toString(8) - 转换为八进制字符串
+✅ x.toString(16) - 转换为十六进制字符串
+✅ x.toString().length - 获取字符串长度
+
+✅ **JavaScript位运算**：
+✅ x & y - 按位与
+✅ x | y - 按位或
+✅ x ^ y - 按位异或
+✅ ~x - 按位非
+✅ x << n - 左移
+✅ x >> n - 右移
+✅ x >>> n - 无符号右移
+
+✅ **JavaScript条件运算**：
+✅ condition ? value1 : value2 - 三元运算符
+✅ x === y - 严格等于
+✅ x !== y - 严格不等于
+✅ x >= y - 大于等于
+✅ x <= y - 小于等于
+
+✅ **JavaScript数值转换**：
+✅ Number(x) - 转换为数字
+✅ String(x) - 转换为字符串
+✅ Boolean(x) - 转换为布尔值
+
+💡 **JavaScript表达式示例**：
+```json
+// 进制转换
+{"type": "expression", "expression": "parseInt(x, 2)"}      // 二进制转十进制
+{"type": "expression", "expression": "parseInt(x, 16)"}     // 十六进制转十进制
+{"type": "expression", "expression": "x.toString(2)"}       // 十进制转二进制
+{"type": "expression", "expression": "x.toString(16)"}      // 十进制转十六进制
+
+// 数学运算
+{"type": "expression", "expression": "Math.pow(x, 2)"}      // 平方
+{"type": "expression", "expression": "Math.sqrt(x)"}        // 开平方
+{"type": "expression", "expression": "Math.sin(x)"}         // 正弦
+{"type": "expression", "expression": "Math.PI * x"}         // 圆周率计算
+
+// 位运算
+{"type": "expression", "expression": "x & 255"}             // 按位与
+{"type": "expression", "expression": "x | 128"}             // 按位或
+{"type": "expression", "expression": "x << 1"}              // 左移1位
+{"type": "expression", "expression": "x >> 2"}              // 右移2位
+
+// 条件运算
+{"type": "expression", "expression": "x > 0 ? x : -x"}      // 绝对值
+{"type": "expression", "expression": "x >= 100 ? x*0.9 : x"} // 条件折扣
+
+// 字符串长度
+{"type": "expression", "expression": "x.toString().length"}  // 数字位数
+{"type": "expression", "expression": "x.toString(16).length"} // 十六进制位数
+```
+
+🎯 **双重支持策略**：
+现在底层计算引擎同时支持：
+1. **传统数学表达式**：sin(x), sqrt(x), pow(x,2) 等
+2. **JavaScript函数语句**：Math.sin(x), Math.sqrt(x), Math.pow(x,2) 等
+
+选择建议：
+- 简单数学运算：优先使用传统表达式
+- 复杂逻辑运算：使用JavaScript表达式
+- 进制转换：优先使用JavaScript方法
+- 条件判断：必须使用JavaScript表达式
+
+✅ **仍然支持的传统语法**：
 ✅ dec2oct(x) - 十进制转八进制
 ✅ dec2hex(x) - 十进制转十六进制
 ✅ bin2dec(x) - 二进制转十进制
@@ -966,135 +1054,136 @@ AI设计师只能修改按钮功能逻辑，不能覆盖工坊生成的图像内
 请严格按照用户需求生成配置JSON，不得超出要求范围。
 """
 
-        # 🚀 阶段1：使用Pro模型进行高质量设计
-        print("🚀 阶段1：使用Gemini Pro模型进行高质量初始设计...")
+        # ⚡ 阶段1：使用Flash模型进行快速初始生成
+        print("⚡ 阶段1：使用Gemini Flash模型进行快速初始生成...")
         
-        # 临时切换到Pro模型
+        # 临时切换到Flash模型
         original_model = current_model_key
-        current_model_key = "pro"
+        current_model_key = "flash"
         
         try:
-            pro_model = genai.GenerativeModel(AVAILABLE_MODELS["pro"]["name"])
-            pro_response = pro_model.generate_content([
-                {"role": "user", "parts": [SYSTEM_PROMPT + "\n\n" + enhanced_user_prompt]}
-            ])
-            
-            # 解析Pro模型响应
-            pro_response_text = pro_response.text.strip()
-            print(f"🎯 Pro模型响应长度: {len(pro_response_text)} 字符")
-            
-            # 提取JSON配置
-            if "```json" in pro_response_text:
-                json_start = pro_response_text.find("```json") + 7
-                json_end = pro_response_text.find("```", json_start)
-                config_json = pro_response_text[json_start:json_end].strip()
-            else:
-                # 尝试找到JSON对象的开始和结束
-                json_start = pro_response_text.find('[')
-                json_end = pro_response_text.rfind(']')
-                if json_start != -1 and json_end != -1:
-                    config_json = pro_response_text[json_start:json_end+1]
-                else:
-                    config_json = pro_response_text
-            
-            print(f"🔍 提取的JSON长度: {len(config_json)} 字符")
-            print(f"🔍 JSON前100字符: {config_json[:100]}")
-            
-            # 解析Pro模型生成的配置
-            ai_generated_config = json.loads(config_json)
-            if not isinstance(ai_generated_config, dict):
-                raise HTTPException(status_code=500, detail="Pro模型未能生成有效的配置JSON")
-            
-            # 🛡️ 阶段2：使用Flash模型进行快速审核和修复
-            print("⚡ 阶段2：使用Gemini Flash模型进行快速审核和修复...")
-            
-            # 切换到Flash模型
-            current_model_key = "flash"
             flash_model = genai.GenerativeModel(AVAILABLE_MODELS["flash"]["name"])
-            
-            # 构建审核提示词
-            audit_prompt = f"""
-🔍 【AI配置审核任务】
-你是计算器配置审核专家，负责审核和修复Pro模型生成的配置。
-
-📋 【原始用户需求】
-{request.user_input}
-
-🎯 【Pro模型生成的配置】
-```json
-{json.dumps(ai_generated_config, ensure_ascii=False, indent=2)}
-```
-
-🚨 【审核和修复要求】
-1. 检查JSON结构完整性
-2. 修复按键大小倍数为整数（严禁小数倍数）
-3. 验证按键位置合理性
-4. 检查多参数函数配套按键
-5. 清理无效按键
-6. 修复数学表达式语法
-7. 确保配置可以正常使用
-
-⚡ 【快速修复原则】
-- 保持Pro模型的整体设计思路
-- 只修复明显的错误和问题
-- 不做大幅度的重新设计
-- 确保最终配置的可用性
-
-请返回修复后的完整JSON配置。
-"""
-            
             flash_response = flash_model.generate_content([
-                {"role": "user", "parts": [VALIDATION_PROMPT + "\n\n" + audit_prompt]}
+                {"role": "user", "parts": [SYSTEM_PROMPT + "\n\n" + enhanced_user_prompt]}
             ])
             
             # 解析Flash模型响应
             flash_response_text = flash_response.text.strip()
-            print(f"⚡ Flash模型审核响应长度: {len(flash_response_text)} 字符")
+            print(f"⚡ Flash模型响应长度: {len(flash_response_text)} 字符")
             
-            # 提取审核后的JSON配置
+            # 提取JSON配置
             if "```json" in flash_response_text:
                 json_start = flash_response_text.find("```json") + 7
                 json_end = flash_response_text.find("```", json_start)
-                audited_config_json = flash_response_text[json_start:json_end].strip()
+                config_json = flash_response_text[json_start:json_end].strip()
             else:
                 # 尝试找到JSON对象的开始和结束
                 json_start = flash_response_text.find('[')
                 json_end = flash_response_text.rfind(']')
                 if json_start != -1 and json_end != -1:
-                    audited_config_json = flash_response_text[json_start:json_end+1]
+                    config_json = flash_response_text[json_start:json_end+1]
                 else:
-                    audited_config_json = flash_response_text
+                    config_json = flash_response_text
+            
+            print(f"🔍 提取的JSON长度: {len(config_json)} 字符")
+            print(f"🔍 JSON前100字符: {config_json[:100]}")
+            
+            # 解析Flash模型生成的配置
+            ai_generated_config = json.loads(config_json)
+            if not isinstance(ai_generated_config, dict):
+                raise HTTPException(status_code=500, detail="Flash模型未能生成有效的配置JSON")
+            
+            # 🎯 阶段2：使用Pro模型进行高质量审核和优化
+            print("🎯 阶段2：使用Gemini Pro模型进行高质量审核和优化...")
+            
+            # 切换到Pro模型
+            current_model_key = "pro"
+            pro_model = genai.GenerativeModel(AVAILABLE_MODELS["pro"]["name"])
+            
+            # 构建深度审核提示词
+            audit_prompt = f"""
+🔍 【高级配置审核任务】
+你是高级计算器配置审核专家，负责深度审核和优化Flash模型生成的配置。
+
+📋 【原始用户需求】
+{request.user_input}
+
+⚡ 【Flash模型快速生成的配置】
+```json
+{json.dumps(ai_generated_config, ensure_ascii=False, indent=2)}
+```
+
+🎯 【深度审核和优化要求】
+1. **功能完整性分析**：检查功能是否充分满足用户需求
+2. **用户体验优化**：改进按钮布局和交互逻辑
+3. **表达式精确性**：验证数学表达式和JavaScript函数语句的正确性
+4. **边界情况考虑**：处理可能的错误情况和异常输入
+5. **性能优化建议**：确保计算器运行效率
+6. **界面逻辑完善**：优化按钮位置和功能分组
+7. **JavaScript语法验证**：确保新增的JavaScript表达式正确可用
+
+🚀 【Pro模型增强原则】
+- 保持Flash模型的核心设计思路
+- 在用户需求基础上进行深度优化
+- 添加更智能的功能配置
+- 确保最终配置的专业性和可靠性
+- 充分利用JavaScript函数语句的新功能
+
+请返回经过专业审核优化后的完整JSON配置。
+"""
+            
+            pro_response = pro_model.generate_content([
+                {"role": "user", "parts": [VALIDATION_PROMPT + "\n\n" + audit_prompt]}
+            ])
+            
+            # 解析Pro模型响应
+            pro_response_text = pro_response.text.strip()
+            print(f"🎯 Pro模型审核响应长度: {len(pro_response_text)} 字符")
+            
+            # 提取审核优化后的JSON配置
+            if "```json" in pro_response_text:
+                json_start = pro_response_text.find("```json") + 7
+                json_end = pro_response_text.find("```", json_start)
+                audited_config_json = pro_response_text[json_start:json_end].strip()
+            else:
+                # 尝试找到JSON对象的开始和结束
+                json_start = pro_response_text.find('[')
+                json_end = pro_response_text.rfind(']')
+                if json_start != -1 and json_end != -1:
+                    audited_config_json = pro_response_text[json_start:json_end+1]
+                else:
+                    audited_config_json = pro_response_text
             
             try:
-                # 使用Flash模型审核后的配置
+                # 使用Pro模型审核优化后的配置
                 ai_generated_config = json.loads(audited_config_json)
                 if not isinstance(ai_generated_config, dict):
-                    print("⚠️ Flash审核失败，使用Pro模型原始配置")
-                    # 如果Flash审核失败，回退到Pro模型配置
+                    print("⚠️ Pro审核失败，使用Flash模型原始配置")
+                    # 如果Pro审核失败，回退到Flash模型配置
                     ai_generated_config = json.loads(config_json)
                 else:
-                    print("✅ Flash模型审核成功，使用审核后配置")
+                    print("✅ Pro模型审核优化成功，使用优化后配置")
             except json.JSONDecodeError:
-                print("⚠️ Flash审核配置解析失败，使用Pro模型原始配置")
-                # 如果Flash解析失败，使用Pro模型配置
+                print("⚠️ Pro审核配置解析失败，使用Flash模型原始配置")
+                # 如果Pro解析失败，使用Flash模型配置
                 ai_generated_config = json.loads(config_json)
             
-            # 合并思考过程（Pro模型的深度思考 + Flash模型的审核报告）
+            # 合并思考过程（Flash模型的快速生成 + Pro模型的深度优化）
             combined_thinking = f"""
-🎯 【Pro模型深度设计】
-{pro_response_text}
-
-⚡ 【Flash模型快速审核】
+⚡ 【Flash模型快速生成】
 {flash_response_text}
+
+🎯 【Pro模型深度审核优化】
+{pro_response_text}
 """
             response_text = combined_thinking
             
-        except Exception as pro_error:
-            print(f"⚠️ Pro模型处理失败: {str(pro_error)}，回退到Flash模型单独处理")
-            # 如果Pro模型失败，回退到原来的Flash模型处理
-            current_model_key = "flash"
-            flash_model = genai.GenerativeModel(AVAILABLE_MODELS["flash"]["name"])
-            fallback_response = flash_model.generate_content([
+        except Exception as flash_error:
+            print(f"⚠️ Flash模型处理失败: {str(flash_error)}，回退到Pro模型单独处理")
+            # 如果Flash模型失败，回退到原来的Pro模型处理
+            current_model_key = "pro"
+            pro_model = genai.GenerativeModel(AVAILABLE_MODELS["pro"]["name"])
+            fallback_response = pro_model.generate_content([
                 {"role": "user", "parts": [SYSTEM_PROMPT + "\n\n" + enhanced_user_prompt]}
             ])
             
