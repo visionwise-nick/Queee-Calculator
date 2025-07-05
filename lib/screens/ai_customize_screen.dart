@@ -322,26 +322,67 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
     }
   }
 
-  void _showAdvancedPromptSheet(BuildContext context) {
-    // 🚀 全新功能案例库 - 聚焦专业金融投研 & 潮流生活娱乐
+  void _showQuickReplies() {
     final quickReplies = [
-      // --- 📈 专业金融投研 ---
-      '给我一个"A股打新收益测算器"，需要输入新股价格、中签率、首日涨幅预期，然后计算出期望收益', // Level 1
-      '在"打新测算器"基础上，增加一个"港股打新"模式，要考虑甲乙组、孖展倍数和手续费，然后对比A股和港股打新的不同', // Level 2
-      '我需要一个专业的"股票成本与盈亏分析器"，支持多次买入和卖出，自动扣除佣金（万分之三）、印花税（千分之一），最后计算出真实的持仓成本和盈亏金额', // Level 3
-      '升级"股票分析器"，增加"T+0成本计算"功能，模拟日内交易后成本的变化，帮助我决定做T策略', // Level 4
-      '创建一个"基金定投复利计算器"，可以设置每月定投金额、预期年化收益率、定投年限，然后帮我计算出最终的本息总额和复利收益', // Level 5
-      '我需要一个高风险的"加密货币合约计算器"，输入开仓价格、保证金、杠杆倍数，能帮我实时算出强平价格和预估的爆仓风险', // Level 6
-
-      // --- 🎮 潮流生活娱乐 ---
-      '做一个"游戏抽卡期望值计算器"，让我可以输入单抽概率、是否有保底机制，它能告诉我抽出目标角色大概需要多少抽', // Level 7
-      '升级"抽卡计算器"，加入"成本计算"功能，让我输入每抽的价格，它能告诉我抽出一个满命座/满精炼的角色需要花多少钱', // Level 8
-      '我是二次元爱好者，需要一个"谷子调价计算器"，能根据我入手的日元价格、当前汇率、国际运费和包装材料费，帮我算出每个吧唧的真实人民币成本', // Level 9
-      '我是海淘达人，创建一个"海淘转运凑单计算器"，能根据商品价格、消费税、国际运费（按重量计费）、关税，帮我找到最划算的凑单方案', // Level 10
-      '要去听演唱会，做一个"远征预算规划器"，一站式计算来回机票、酒店住宿、门票、荧光棒和当地交通的总开销', // Level 11
-
-      // --- 🏠 保留的核心实用 ---
-      '最后，给我一个专业的"房贷专家计算器"，除了计算月供，还要能对比等额本息和等额本金两种模式的总利息差异，并计算提前还款能省多少钱', // Level 12
+      // 🧋 Level 1：奶茶成瘾指数计算器 - 预设25岁标准
+      '添加"奶茶成瘾度"按键，输入体重(kg)计算个人奶茶安全指数：体重×1.2×0.8×2.5，预设25岁成人、代谢率1.2、年龄系数0.8、运动频率2.5',
+      
+      // 🎮 Level 2：游戏氪金性价比分析器 - 预设标准玩家模型
+      '新增"氪金性价比"按键，输入充值金额(元)计算真实价值：充值金额÷(50×1.5×100×30)，预设每月50小时、技能提升率1.5、社交价值100、时薪30元',
+      
+      // 😴 Level 3：熬夜生命损耗计算器 - 预设标准睡眠模型
+      '增加"熬夜生命值"按键，输入年龄计算熬夜伤害：(24-6)²×年龄×0.03×1.2，预设6小时睡眠、身体指数0.03、恢复能力1.2',
+      
+      // 🏠 Level 4：一键房贷计算器 - 预设3.5%利率30年
+      '添加"房贷神器"按键，输入贷款金额(万元)计算月供：贷款金额×10000×0.00292×(1.00292^360)÷((1.00292^360)-1)，预设3.5%年利率30年等额本息',
+      
+      // 🛍️ Level 5：网购真实成本分析器 - 预设隐性成本系数
+      '新增"网购真相"按键，输入商品价格(元)计算真实成本：商品价格×(1+0.08+0.15+0.05+0.12)，预设快递费8%、时间成本15%、退换货风险5%、冲动溢价12%',
+      
+      // 💪 Level 6：个人减肥效率计算器 - 预设70kg基准
+      '添加"减肥效率"按键，输入目标体重(kg)计算减肥天数：(70-目标体重)×7700÷(300+200)÷1500×0.8，预设当前70kg、运动消耗300卡、饮食控制200卡、基础代谢1500、年龄系数0.8',
+      
+      // ☕ Level 7：咖啡因代谢个性化计算器 - 预设标准代谢率
+      '新增"咖啡因代谢"按键，输入体重(kg)计算每日安全摄入量：体重×6×1.0×0.9×1.1，预设每公斤6mg、代谢率1.0、年龄系数0.9、健康指数1.1',
+      
+      // 💕 Level 8：恋爱成本效益分析器 - 预设标准恋爱模型
+      '增加"恋爱成本"按键，输入月收入(元)计算月恋爱成本：(月收入×0.3+月收入×0.2+月收入×0.1+月收入×0.05)×1.2×0.8，预设约会费30%、礼物20%、时间成本10%、机会成本5%、投资回报率1.2、幸福指数0.8',
+      
+      // 🚗 Level 9：购车综合成本计算器 - 预设5年使用周期
+      '添加"购车真相"按键，输入车价(万元)计算5年总成本：车价×10000+车价×1000×5+15000×5+3000×10+车价×5000×0.6+1200×12×5，预设保险1000元/年、油费15000元/年、保养3000元/次×10次、折旧率60%、停车费1200元/月',
+      
+      // 🍕 Level 10：外卖健康成本双重计算器 - 预设标准外卖模型
+      '新增"外卖双重成本"按键，输入月外卖次数计算总成本：次数×25×1.8+次数×50×1.5×0.6，预设外卖均价25元、溢价率1.8、健康成本50元/次、身体负担1.5、长期影响系数0.6',
+      
+      // 💼 Level 11：跳槽收益风险评估器 - 预设职业发展模型
+      '增加"跳槽分析"按键，输入新工作薪资(元)计算跳槽价值：(新薪资-8000)×0.8×1.2×1.1×1.3-5000，预设当前薪资8000元、稳定系数0.8、发展潜力1.2、学习成长1.1、行业前景1.3、跳槽风险成本5000元',
+      
+      // 🌟 Level 12：网红打卡投资回报率计算器 - 预设社交资本模型
+      '添加"打卡ROI"按键，输入打卡费用(元)计算社交投资回报：打卡费用÷(100×50×1.5×0.8)，预设社交影响力100、个人品牌价值50、网络效应1.5、长期收益潜力0.8',
+      
+      // 🐶 Level 13：宠物年龄换算器 - 预设狗狗年龄模型
+      '添加"狗狗年龄"按键，输入狗狗年龄(岁)计算相当于人类年龄：狗狗年龄×7×0.8×1.2+狗狗年龄×2，预设换算系数7、品种系数0.8、健康系数1.2、基础年龄调整2',
+      
+      // 👍 Level 14：朋友圈点赞成本计算器 - 预设社交投入模型
+      '添加"点赞成本"按键，输入每日点赞次数计算年度社交投入：点赞次数×0.5×365×1.2×0.8，预设每次点赞0.5分钟、全年365天、注意力成本1.2、社交回报0.8',
+      
+      // 📺 Level 15：追剧时间成本分析器 - 预设娱乐价值模型
+      '添加"追剧成本"按键，输入剧集集数计算时间投入价值：剧集集数×45×30×0.6×1.5，预设每集45分钟、时薪30元、娱乐折扣0.6、情感价值1.5',
+      
+      // 🏃 Level 16：跑步减肥效果计算器 - 预设运动科学模型
+      '添加"跑步减肥"按键，输入跑步时长(分钟)计算减肥效果：跑步时长×10×0.8×1.3÷7700×1000，预设每分钟消耗10卡、效率系数0.8、个人系数1.3、每克脂肪7700卡、结果转换克',
+      
+      // 🚇 Level 17：通勤成本综合计算器 - 预设城市通勤模型
+      '添加"通勤成本"按键，输入通勤距离(公里)计算月度真实成本：距离×2×22×(8+5+2)×1.2+距离×50，预设往返2次、工作日22天、地铁8元+时间成本5元+疲劳成本2元、综合系数1.2、健康成本50元/公里',
+      
+      // 💰 Level 18：理财收益目标计算器 - 预设投资回报模型
+      '添加"理财目标"按键，输入目标金额(万元)计算达成时间：目标金额×10000÷(5000×1.06^年数)，预设每月投资5000元、年化收益6%、复利计算模型',
+      
+      // 🎓 Level 19：考试通过率预测器 - 预设学习效率模型
+      '添加"考试通过率"按键，输入学习天数计算通过概率：(学习天数×2×0.8×1.2+20)÷100，预设每天学习2小时、吸收率0.8、个人系数1.2、基础概率20%、结果转换百分比',
+      
+      // 🏠 Level 20：租房性价比分析器 - 预设居住质量模型
+      '添加"租房性价比"按键，输入房租(元)计算居住质量指数：房租÷(30×1.2×0.8×1.5×100)，预设每平米30元合理价格、位置系数1.2、配套系数0.8、交通系数1.5、质量基准100',
     ];
 
     showModalBottomSheet(
@@ -387,11 +428,11 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          '🚀 全新功能案例库 - 聚焦专业金融投研 & 潮流生活娱乐',
-                          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                          '🚀 功能递进案例库',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                         ),
                         Text(
-                          '每个案例都极具挑战性，考验AI能力',
+                          '每个案例都在前面基础上增加新功能',
                           style: TextStyle(fontSize: 12, color: Colors.grey),
                         ),
                       ],
@@ -407,76 +448,88 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
                 itemBuilder: (context, index) {
                   final reply = quickReplies[index];
                   
-                  // 🎨 全新色彩和图标体系
-                  final categoryColors = [
-                    // 金融投研 - 蓝色系 (专业、冷静)
-                    [Colors.blue.shade100, Colors.blue.shade700],
-                    [Colors.blue.shade100, Colors.blue.shade700],
-                    [Colors.blue.shade200, Colors.blue.shade800],
-                    [Colors.blue.shade200, Colors.blue.shade800],
-                    [Colors.blue.shade300, Colors.blue.shade900],
-                    [Colors.blue.shade300, Colors.blue.shade900],
-                    // 潮流生活 - 紫色系 (时尚、新潮)
-                    [Colors.purple.shade100, Colors.purple.shade700],
-                    [Colors.purple.shade100, Colors.purple.shade700],
-                    [Colors.purple.shade200, Colors.purple.shade800],
-                    [Colors.purple.shade200, Colors.purple.shade800],
-                    [Colors.purple.shade300, Colors.purple.shade900],
-                    // 核心实用 - 绿色系 (可靠、实用)
-                    [Colors.green.shade100, Colors.green.shade700],
+                  // 递进式色彩设计：从浅到深表示功能的递进
+                  final progressColors = [
+                    // Level 1-3: 基础功能 - 绿色系（简单到复杂）
+                    [const Color(0xFFE8F5E8), const Color(0xFFC8E6C9)], // 浅绿
+                    [const Color(0xFFDCEDC8), const Color(0xFFAED581)], // 中绿  
+                    [const Color(0xFFCDDC39), const Color(0xFF9E9D24)], // 深绿
+                    
+                    // Level 4-6: 专业功能 - 蓝色系（进阶功能）
+                    [const Color(0xFFE3F2FD), const Color(0xFFBBDEFB)], // 浅蓝
+                    [const Color(0xFF90CAF9), const Color(0xFF42A5F5)], // 中蓝
+                    [const Color(0xFF2196F3), const Color(0xFF1976D2)], // 深蓝
+                    
+                    // Level 7-9: 高级功能 - 紫色系（高级功能）
+                    [const Color(0xFFF3E5F5), const Color(0xFFCE93D8)], // 浅紫
+                    [const Color(0xFFBA68C8), const Color(0xFF9C27B0)], // 中紫
+                    [const Color(0xFF8E24AA), const Color(0xFF6A1B9A)], // 深紫
+                    
+                    // Level 10-12: 终极功能 - 橙色系（专家级）
+                    [const Color(0xFFFFF3E0), const Color(0xFFFFCC02)], // 浅橙
+                    [const Color(0xFFFFB74D), const Color(0xFFFF9800)], // 中橙
+                    [const Color(0xFFFF6F00), const Color(0xFFE65100)], // 深橙
                   ];
                   
-                  final categoryIcons = [
-                    // 金融投研
-                    Icons.show_chart,         // A股打新
-                    Icons.sync_alt,          // 港股打新对比
-                    Icons.attach_money,      // 股票成本
-                    Icons.candlestick_chart, // T+0成本
-                    Icons.stacked_line_chart,  // 基金定投
-                    Icons.currency_bitcoin,  // 加密货币合约
-                    // 潮流生活
-                    Icons.sports_esports,    // 游戏抽卡
-                    Icons.diamond,           // 抽卡成本
-                    Icons.card_giftcard,     // 谷子调价
-                    Icons.local_shipping,    // 海淘凑单
-                    Icons.music_note,        // 演唱会预算
-                    // 核心实用
-                    Icons.real_estate_agent, // 房贷专家
-                  ];
-
-                  final colorPair = categoryColors[index];
-                  final icon = categoryIcons[index];
+                  final colorPair = progressColors[index % progressColors.length];
                   
-                  // 类别标签
-                  String categoryLabel;
-                  Color categoryColor;
-                  if (index < 6) {
-                    categoryLabel = '金融投研';
-                    categoryColor = Colors.blue.shade800;
-                  } else if (index < 11) {
-                    categoryLabel = '潮流生活';
-                    categoryColor = Colors.purple.shade800;
-                  } else {
-                    categoryLabel = '核心实用';
-                    categoryColor = Colors.green.shade800;
-                  }
+                  // 递进式图标设计 - 复杂多因式计算
+                  final progressIcons = [
+                    // Level 1-4: 个性化健康评估
+                    Icons.psychology,                // 奶茶成瘾度（心理健康）
+                    Icons.analytics,                 // 游戏氪金性价比（数据分析）
+                    Icons.health_and_safety,         // 熬夜生命值（健康安全）
+                    Icons.calculate,                 // 房贷神器（复杂计算）
+                    
+                    // Level 5-8: 隐性成本分析
+                    Icons.visibility,                // 网购真相（揭示隐性成本）
+                    Icons.timeline,                  // 减肥效率（时间轴规划）
+                    Icons.biotech,                   // 咖啡因代谢（生物技术）
+                    Icons.account_balance_wallet,    // 恋爱成本（经济分析）
+                    
+                    // Level 9-12: 全生命周期评估
+                    Icons.directions_car,            // 购车真相（汽车全成本）
+                    Icons.restaurant,                // 外卖双重成本（餐饮分析）
+                    Icons.trending_up,               // 跳槽分析（职业发展）
+                    Icons.network_check,             // 打卡ROI（网络效应）
+                    
+                    // Level 13-16: 生活趣味计算
+                    Icons.pets,                      // 狗狗年龄（宠物）
+                    Icons.thumb_up,                  // 点赞成本（社交媒体）
+                    Icons.tv,                        // 追剧成本（娱乐）
+                    Icons.directions_run,            // 跑步减肥（运动健身）
+                    
+                    // Level 17-20: 生活质量评估
+                    Icons.commute,                   // 通勤成本（交通）
+                    Icons.savings,                   // 理财目标（投资）
+                    Icons.school,                    // 考试通过率（学习）
+                    Icons.apartment,                 // 租房性价比（居住）
+                  ];
+                  
+                  final icon = progressIcons[index % progressIcons.length];
+                  
+                  // 递进式级别标签
+                  final levelLabels = [
+                    'Level 1', 'Level 2', 'Level 3', 'Level 4', 
+                    'Level 5', 'Level 6', 'Level 7', 'Level 8',
+                    'Level 9', 'Level 10', 'Level 11', 'Level 12'
+                  ];
                   
                   return Container(
                     margin: const EdgeInsets.only(bottom: 12),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [colorPair[0], colorPair[0].withOpacity(0.5)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: colorPair[1].withOpacity(0.3)),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: colorPair,
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
-                          color: colorPair[1].withOpacity(0.1),
+                          color: colorPair[1].withOpacity(0.3),
                           blurRadius: 8,
                           offset: const Offset(0, 4),
-                        ),
+                          ),
                       ],
                     ),
                     child: Material(
@@ -490,41 +543,57 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
                         child: Padding(
                           padding: const EdgeInsets.all(16),
                           child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // 图标和类别标签
-                              Column(
-                                children: [
-                                  Icon(icon, color: colorPair[1], size: 28),
-                                  const SizedBox(height: 8),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                                    decoration: BoxDecoration(
-                                      color: colorPair[1].withOpacity(0.8),
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: Text(
-                                      categoryLabel,
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
+                              // 级别标签
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.9),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  levelLabels[index],
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: colorPair[1],
                                   ),
-                                ],
+                                ),
                               ),
-                              const SizedBox(width: 16),
+                              const SizedBox(width: 12),
+                              // 功能图标
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.9),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Icon(
+                                  icon,
+                                  color: colorPair[1],
+                                  size: 20,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
                               // 案例描述
                               Expanded(
                                 child: Text(
                                   reply,
-                                  style: TextStyle(
+                                  style: const TextStyle(
                                     fontSize: 14,
-                                    color: Colors.grey.shade800,
-                                    fontWeight: FontWeight.w500,
-                                    height: 1.4,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.white,
+                                    height: 1.3,
                                   ),
+                                ),
+                              ),
+                              // 进度指示器
+                              Container(
+                                width: 4,
+                                height: 40,
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.8),
+                                  borderRadius: BorderRadius.circular(2),
                                 ),
                               ),
                             ],
@@ -534,6 +603,45 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
                     ),
                   );
                 },
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Colors.blue.shade50, Colors.purple.shade50],
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.blue.shade100),
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.lightbulb_outline, color: Colors.blue.shade600),
+                        const SizedBox(width: 8),
+                        const Text(
+                          '💡 递进式设计理念',
+              style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      '每个级别都在前面基础上增加新功能，Level 1→Level 12 逐步构建功能完整的专业计算器',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey,
+                        height: 1.3,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
@@ -1079,7 +1187,7 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
         actions: [
           IconButton(
             icon: Icon(Icons.lightbulb_outline, color: Colors.amber.shade600),
-            onPressed: () => _showAdvancedPromptSheet(context),
+            onPressed: _showQuickReplies,
             tooltip: '快速想法',
           ),
 

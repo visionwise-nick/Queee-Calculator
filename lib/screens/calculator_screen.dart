@@ -5,7 +5,6 @@ import '../models/calculator_dsl.dart';
 import '../widgets/calculator_display.dart';
 import '../widgets/calculator_button_grid.dart';
 import '../widgets/calculation_history_dialog.dart';
-import '../widgets/multi_param_function_help_dialog.dart';
 import 'ai_customize_screen.dart';
 import 'image_generation_screen.dart';
 import 'dart:math' as math;
@@ -160,22 +159,6 @@ class CalculatorScreen extends StatelessWidget {
                   );
                 },
                 tooltip: '运算历史',
-              ),
-              const SizedBox(width: 4),
-              // 多参数函数帮助按钮
-              _buildCompactIconButton(
-                icon: Icons.help_outline,
-                colors: [Color(0xFF10B981), Color(0xFF059669)],
-                shadowColor: Colors.green,
-                onPressed: () {
-                  showDialog(
-                    context: context,
-                    barrierDismissible: true,
-                    barrierColor: Colors.black.withValues(alpha: 0.7),
-                    builder: (context) => const MultiParamFunctionHelpDialog(),
-                  );
-                },
-                tooltip: '多参数函数帮助',
               ),
               const SizedBox(width: 4),
               // AI设计师按钮
