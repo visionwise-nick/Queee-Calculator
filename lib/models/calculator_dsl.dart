@@ -608,7 +608,6 @@ class CalculatorConfig {
             action: const CalculatorAction(type: CalculatorActionType.clearAll),
             gridPosition: const GridPosition(row: 1, column: 0),
             type: 'secondary',
-            widthMultiplier: 1.3, // 清除按键稍大，提升易用性
           ),
           CalculatorButton(
             id: 'negate',
@@ -630,7 +629,6 @@ class CalculatorConfig {
             action: const CalculatorAction(type: CalculatorActionType.operator, value: '/'),
             gridPosition: const GridPosition(row: 1, column: 3),
             type: 'operator',
-            heightMultiplier: 1.1, // 除号按键稍高
           ),
           // 数字按钮 7-9
           CalculatorButton(
@@ -660,7 +658,6 @@ class CalculatorConfig {
             action: const CalculatorAction(type: CalculatorActionType.operator, value: '*'),
             gridPosition: const GridPosition(row: 2, column: 3),
             type: 'operator',
-            heightMultiplier: 1.1, // 乘号按键稍高
           ),
           // 数字按钮 4-6
           CalculatorButton(
@@ -690,7 +687,6 @@ class CalculatorConfig {
             action: const CalculatorAction(type: CalculatorActionType.operator, value: '-'),
             gridPosition: const GridPosition(row: 3, column: 3),
             type: 'operator',
-            heightMultiplier: 1.1, // 减号按键稍高
           ),
           // 数字按钮 1-3
           CalculatorButton(
@@ -720,7 +716,6 @@ class CalculatorConfig {
             action: const CalculatorAction(type: CalculatorActionType.operator, value: '+'),
             gridPosition: const GridPosition(row: 4, column: 3),
             type: 'operator',
-            heightMultiplier: 1.2, // 加号按键稍高，提升可点击性
           ),
           // 最后一行：0, ., =
           CalculatorButton(
@@ -744,7 +739,6 @@ class CalculatorConfig {
             action: const CalculatorAction(type: CalculatorActionType.equals),
             gridPosition: const GridPosition(row: 5, column: 3),
             type: 'operator',
-            widthMultiplier: 1.5, // 等号按键宽度*1.5，高频使用
           ),
         ],
       ),
