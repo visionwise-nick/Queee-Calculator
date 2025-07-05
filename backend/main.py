@@ -1093,97 +1093,96 @@ AI设计师只能修改按钮功能逻辑，不能覆盖工坊生成的图像内
             if not isinstance(ai_generated_config, dict):
                 raise HTTPException(status_code=500, detail="Flash模型未能生成有效的配置JSON")
             
-            # 🎯 阶段2：使用Pro模型进行高质量审核和优化
-            print("🎯 阶段2：使用Gemini Pro模型进行高质量审核和优化...")
+            # 🎯 阶段2：使用Flash模型进行快速审核和优化
+            print("🎯 阶段2：使用Gemini Flash模型进行快速审核和优化...")
             
-            # 切换到Pro模型
-            current_model_key = "pro"
-            pro_model = genai.GenerativeModel(AVAILABLE_MODELS["pro"]["name"])
+            # 继续使用Flash模型（两个阶段都用Flash）
+            current_model_key = "flash"
+            flash_audit_model = genai.GenerativeModel(AVAILABLE_MODELS["flash"]["name"])
             
             # 构建深度审核提示词
             audit_prompt = f"""
-🔍 【高级配置审核任务】
-你是高级计算器配置审核专家，负责深度审核和优化Flash模型生成的配置。
+🔍 【Flash模型配置审核任务】
+你是计算器配置优化专家，负责快速审核和优化第一阶段Flash模型生成的配置。
 
 📋 【原始用户需求】
 {request.user_input}
 
-⚡ 【Flash模型快速生成的配置】
+⚡ 【第一阶段Flash模型生成的配置】
 ```json
 {json.dumps(ai_generated_config, ensure_ascii=False, indent=2)}
 ```
 
-🎯 【深度审核和优化要求】
-1. **功能完整性分析**：检查功能是否充分满足用户需求
+🎯 【快速审核和优化要求】
+1. **功能完整性检查**：确保功能满足用户需求
 2. **用户体验优化**：改进按钮布局和交互逻辑
-3. **表达式精确性**：验证数学表达式和JavaScript函数语句的正确性
-4. **边界情况考虑**：处理可能的错误情况和异常输入
-5. **性能优化建议**：确保计算器运行效率
-6. **界面逻辑完善**：优化按钮位置和功能分组
-7. **JavaScript语法验证**：确保新增的JavaScript表达式正确可用
+3. **表达式验证**：确认数学表达式和JavaScript函数语句正确
+4. **逻辑流程优化**：完善计算流程和错误处理
+5. **界面布局调整**：优化按钮位置和功能分组
+6. **JavaScript语法检查**：确保新增的JavaScript表达式可用
 
-🚀 【Pro模型增强原则】
-- 保持Flash模型的核心设计思路
-- 在用户需求基础上进行深度优化
-- 添加更智能的功能配置
-- 确保最终配置的专业性和可靠性
-- 充分利用JavaScript函数语句的新功能
+🚀 【Flash模型优化原则】
+- 保持第一阶段的核心设计思路
+- 快速识别和修复潜在问题
+- 在用户需求基础上进行合理优化
+- 确保配置的实用性和稳定性
+- 充分利用JavaScript函数语句功能
 
 请返回经过专业审核优化后的完整JSON配置。
 """
             
-            pro_response = pro_model.generate_content([
+            flash_audit_response = flash_audit_model.generate_content([
                 {"role": "user", "parts": [VALIDATION_PROMPT + "\n\n" + audit_prompt]}
             ])
             
-            # 解析Pro模型响应
-            pro_response_text = pro_response.text.strip()
-            print(f"🎯 Pro模型审核响应长度: {len(pro_response_text)} 字符")
+            # 解析Flash审核模型响应
+            flash_audit_response_text = flash_audit_response.text.strip()
+            print(f"🎯 Flash模型审核响应长度: {len(flash_audit_response_text)} 字符")
             
             # 提取审核优化后的JSON配置
-            if "```json" in pro_response_text:
-                json_start = pro_response_text.find("```json") + 7
-                json_end = pro_response_text.find("```", json_start)
-                audited_config_json = pro_response_text[json_start:json_end].strip()
+            if "```json" in flash_audit_response_text:
+                json_start = flash_audit_response_text.find("```json") + 7
+                json_end = flash_audit_response_text.find("```", json_start)
+                audited_config_json = flash_audit_response_text[json_start:json_end].strip()
             else:
                 # 尝试找到JSON对象的开始和结束
-                json_start = pro_response_text.find('[')
-                json_end = pro_response_text.rfind(']')
+                json_start = flash_audit_response_text.find('[')
+                json_end = flash_audit_response_text.rfind(']')
                 if json_start != -1 and json_end != -1:
-                    audited_config_json = pro_response_text[json_start:json_end+1]
+                    audited_config_json = flash_audit_response_text[json_start:json_end+1]
                 else:
-                    audited_config_json = pro_response_text
+                    audited_config_json = flash_audit_response_text
             
             try:
-                # 使用Pro模型审核优化后的配置
+                # 使用Flash模型审核优化后的配置
                 ai_generated_config = json.loads(audited_config_json)
                 if not isinstance(ai_generated_config, dict):
-                    print("⚠️ Pro审核失败，使用Flash模型原始配置")
-                    # 如果Pro审核失败，回退到Flash模型配置
+                    print("⚠️ Flash审核失败，使用第一阶段Flash模型原始配置")
+                    # 如果Flash审核失败，回退到第一阶段Flash模型配置
                     ai_generated_config = json.loads(config_json)
                 else:
-                    print("✅ Pro模型审核优化成功，使用优化后配置")
+                    print("✅ Flash模型审核优化成功，使用优化后配置")
             except json.JSONDecodeError:
-                print("⚠️ Pro审核配置解析失败，使用Flash模型原始配置")
-                # 如果Pro解析失败，使用Flash模型配置
+                print("⚠️ Flash审核配置解析失败，使用第一阶段Flash模型原始配置")
+                # 如果Flash解析失败，使用第一阶段Flash模型配置
                 ai_generated_config = json.loads(config_json)
             
-            # 合并思考过程（Flash模型的快速生成 + Pro模型的深度优化）
+            # 合并思考过程（双重Flash模型的快速生成 + 快速审核优化）
             combined_thinking = f"""
-⚡ 【Flash模型快速生成】
+⚡ 【第一阶段Flash模型快速生成】
 {flash_response_text}
 
-🎯 【Pro模型深度审核优化】
-{pro_response_text}
+🎯 【第二阶段Flash模型快速审核优化】
+{flash_audit_response_text}
 """
             response_text = combined_thinking
             
         except Exception as flash_error:
-            print(f"⚠️ Flash模型处理失败: {str(flash_error)}，回退到Pro模型单独处理")
-            # 如果Flash模型失败，回退到原来的Pro模型处理
-            current_model_key = "pro"
-            pro_model = genai.GenerativeModel(AVAILABLE_MODELS["pro"]["name"])
-            fallback_response = pro_model.generate_content([
+            print(f"⚠️ 双重Flash模型处理失败: {str(flash_error)}，回退到单一Flash模型处理")
+            # 如果双重Flash模型失败，回退到单一Flash模型处理
+            current_model_key = "flash"
+            fallback_flash_model = genai.GenerativeModel(AVAILABLE_MODELS["flash"]["name"])
+            fallback_response = fallback_flash_model.generate_content([
                 {"role": "user", "parts": [SYSTEM_PROMPT + "\n\n" + enhanced_user_prompt]}
             ])
             
@@ -1210,7 +1209,7 @@ AI设计师只能修改按钮功能逻辑，不能覆盖工坊生成的图像内
             # 恢复原始模型
             current_model_key = original_model
         
-        print(f"🎯 双重AI处理完成，最终配置生成成功")
+        print(f"🎯 双重Flash模型处理完成，最终配置生成成功")
         
         try:
             
