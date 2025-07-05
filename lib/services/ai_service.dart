@@ -589,4 +589,51 @@ class AIService {
     
     return (hasWorkshopContent, protectedFields);
   }
+
+  /// 🔊 AI生成按键音效
+  static Future<Map<String, dynamic>> generateSound({
+    required String prompt,
+    String buttonType = 'primary',
+    String style = 'modern',
+    double duration = 0.1,
+    String pitch = 'medium',
+    String volume = 'medium',
+    List<String> effects = const [],
+  }) async {
+    try {
+      print('🔊 正在生成按键音效...');
+      print('提示词: $prompt');
+      print('按键类型: $buttonType');
+      print('风格: $style');
+      
+      final response = await http.post(
+        Uri.parse('$_baseUrl/generate-sound'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'prompt': prompt,
+          'button_type': buttonType,
+          'style': style,
+          'duration': duration,
+          'pitch': pitch,
+          'volume': volume,
+          'effects': effects,
+        }),
+      ).timeout(const Duration(seconds: 30));
+
+      print('📡 收到响应: ${response.statusCode}');
+      
+      if (response.statusCode == 200) {
+        final result = json.decode(response.body);
+        print('✅ 音效生成响应: ${result['success']}');
+        return result;
+      } else {
+        print('❌ 音效生成失败: ${response.statusCode}');
+        print('错误详情: ${response.body}');
+        throw Exception('音效生成失败: ${response.body}');
+      }
+    } catch (e) {
+      print('❌ 音效生成请求失败: $e');
+      throw Exception('网络请求失败: $e');
+    }
+  }
 } 

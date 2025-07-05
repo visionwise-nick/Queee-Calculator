@@ -1767,6 +1767,15 @@ class TextImageRequest(BaseModel):
     background: Optional[str] = Field(default="transparent", description="背景类型：transparent, dark, light, gradient")
     effects: Optional[List[str]] = Field(default=[], description="视觉效果列表")
 
+class SoundGenerationRequest(BaseModel):
+    prompt: str = Field(..., description="音效生成提示词，如'机械键盘按键声'")
+    button_type: Optional[str] = Field(default="primary", description="按键类型：primary, secondary, operator, special")
+    style: Optional[str] = Field(default="modern", description="音效风格：modern, retro, nature, sci-fi, minimal, mechanical等")
+    duration: Optional[float] = Field(default=0.1, description="音效持续时间（秒）")
+    pitch: Optional[str] = Field(default="medium", description="音调高低：low, medium, high")
+    volume: Optional[str] = Field(default="medium", description="音量大小：low, medium, high")
+    effects: Optional[List[str]] = Field(default=[], description="音效效果列表：reverb, echo, distortion等")
+
 @app.post("/generate-text-image")
 async def generate_text_image(request: TextImageRequest):
     """生成创意字符图片 - 用指定元素构造字符形状"""
@@ -1909,6 +1918,97 @@ async def generate_text_image(request: TextImageRequest):
             "text": request.text,
             "message": f"生成创意字符 '{request.text}' 失败: {str(e)}"
     }
+
+@app.post("/generate-sound")
+async def generate_sound(request: SoundGenerationRequest):
+    """生成按键音效"""
+    try:
+        print(f"🔊 正在生成按键音效...")
+        print(f"提示词: {request.prompt}")
+        print(f"按键类型: {request.button_type}")
+        print(f"风格: {request.style}")
+        
+        # 构建音效生成提示词
+        style_descriptions = {
+            "modern": "clean, crisp, digital",
+            "retro": "vintage, warm, analog",
+            "nature": "organic, natural, subtle",
+            "sci-fi": "futuristic, electronic, synthetic",
+            "minimal": "simple, pure, subtle",
+            "mechanical": "mechanical, tactile, precise"
+        }
+        
+        # 按键类型的音效特征
+        button_characteristics = {
+            "primary": "neutral, balanced tone",
+            "secondary": "softer, muted tone", 
+            "operator": "sharper, more pronounced",
+            "special": "unique, distinctive sound"
+        }
+        
+        style_desc = style_descriptions.get(request.style, "modern")
+        button_char = button_characteristics.get(request.button_type, "neutral")
+        
+        # 构建详细的音效生成提示
+        detailed_prompt = f"""Generate a {request.style} {button_char} button click sound effect.
+        
+Description: {request.prompt}
+Style: {style_desc}
+Duration: {request.duration} seconds
+Pitch: {request.pitch}
+Volume: {request.volume}
+Effects: {', '.join(request.effects) if request.effects else 'none'}
+
+The sound should be:
+- Clean and crisp
+- Suitable for calculator button press
+- Pleasant to hear repeatedly
+- Professional quality
+- {request.duration} seconds in duration"""
+
+        print(f"🚀 使用音效生成提示词: {detailed_prompt}")
+        
+        # 注意：Gemini 2.0 Flash目前不支持音频生成
+        # 这里返回一个模拟响应，说明音效生成功能尚未实现
+        return {
+            "success": False,
+            "error": "音效生成功能暂未实现",
+            "message": "Gemini 2.0 Flash目前不支持音效生成，此功能将在后续版本中实现",
+            "request_details": {
+                "prompt": request.prompt,
+                "style": request.style,
+                "button_type": request.button_type,
+                "duration": request.duration,
+                "pitch": request.pitch,
+                "volume": request.volume,
+                "effects": request.effects
+            },
+            "suggested_sounds": [
+                {
+                    "name": "点击音效",
+                    "file": "click_soft.wav",
+                    "description": "柔和的点击声"
+                },
+                {
+                    "name": "尖锐音效", 
+                    "file": "click_sharp.wav",
+                    "description": "尖锐的点击声"
+                },
+                {
+                    "name": "计算音效",
+                    "file": "calculate.wav", 
+                    "description": "计算完成音效"
+                }
+            ]
+        }
+        
+    except Exception as e:
+        print(f"❌ 音效生成失败: {str(e)}")
+        return {
+            "success": False,
+            "error": str(e),
+            "message": f"音效生成失败: {str(e)}"
+        }
 
 if __name__ == "__main__":
     import uvicorn
