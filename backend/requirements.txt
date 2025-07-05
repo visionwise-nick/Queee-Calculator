@@ -20,4 +20,6 @@ python-multipart>=0.0.6
 requests
 
 # 修复部署错误：添加Pillow依赖
-Pillow 
+Pillow
+# 🆕 新增：用于内存缓存
+cachetools 

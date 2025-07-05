@@ -3,10 +3,13 @@ import '../core/calculator_engine.dart';
 import '../models/calculator_dsl.dart';
 import '../services/config_service.dart';
 import '../widgets/calculation_history_dialog.dart';
+import '../services/ai_service.dart';
 
 class CalculatorProvider extends ChangeNotifier {
   final CalculatorEngine _engine = CalculatorEngine();
   CalculatorConfig _config = CalculatorConfig.createDefault();
+  Map<String, String> _buttonLabels = {};
+  Map<String, bool> _loadingButtons = {};
 
   CalculatorConfig get config => _config;
   CalculatorState get state => _engine.state;
@@ -36,8 +39,12 @@ class CalculatorProvider extends ChangeNotifier {
    }
 
   // 执行计算器操作
-  void executeAction(CalculatorAction action) {
-    _engine.execute(action);
+  Future<void> executeAction(CalculatorAction action, {String? buttonId}) async {
+    if (action.type == 'network_request') {
+      await _handleNetworkRequest(action, buttonId!);
+    } else {
+      _engine.execute(action);
+    }
     notifyListeners();
   }
 
@@ -119,5 +126,84 @@ class CalculatorProvider extends ChangeNotifier {
     } catch (e) {
       return Colors.grey; // 默认颜色
     }
+  }
+
+  // 🆕 新增：获取按钮是否在加载中的方法
+  bool isButtonLoading(String buttonId) => _loadingButtons[buttonId] ?? false;
+
+  // 🆕 新增：处理网络请求的方法
+  Future<void> _handleNetworkRequest(CalculatorAction action, String buttonId) async {
+    if (action.url == null || action.parameters == null) return;
+
+    // 1. 设置加载状态
+    _loadingButtons[buttonId] = true;
+    if (action.loadingLabel != null) {
+      _buttonLabels[buttonId] = action.loadingLabel!;
+    }
+    notifyListeners();
+
+    try {
+      // 2. 调用API
+      final rate = await AIService.getExchangeRate(
+        fromCurrency: action.parameters!['from_currency'],
+        toCurrency: action.parameters!['to_currency'],
+      );
+
+      if (rate != null) {
+        // 3. 执行计算
+        final expression = action.value?.replaceAll('rate', rate.toString()) ?? 'x * $rate';
+        final newAction = CalculatorAction(type: 'expression', expression: expression);
+        _engine.execute(newAction);
+      }
+    } catch (e) {
+      print("网络请求失败: $e");
+      // 可以在这里处理错误，比如在界面上显示错误信息
+    } finally {
+      // 4. 恢复按钮状态
+      _loadingButtons[buttonId] = false;
+      if (action.successLabel != null) {
+        _buttonLabels[buttonId] = action.successLabel!;
+      } else {
+         final originalButton = _config.layout.buttons.firstWhere((btn) => btn.id == buttonId);
+        _buttonLabels[buttonId] = originalButton.label;
+      }
+      notifyListeners();
+    }
+  }
+
+  // 🆕 新增：获取按钮标签的方法
+  String getButtonLabel(CalculatorButton button) {
+    return _buttonLabels[button.id] ?? button.label;
+  }
+
+  ButtonStyle getThemeForButton(CalculatorButton button) {
+    // 这是一个示例实现，您可以根据需要进行扩展
+    // 例如，从 CalculatorTheme 中获取颜色
+    Color backgroundColor;
+    Color foregroundColor;
+
+    switch (button.type) {
+      case 'operator':
+        backgroundColor = Colors.orange;
+        foregroundColor = Colors.white;
+        break;
+      case 'secondary':
+        backgroundColor = Colors.grey[700]!;
+        foregroundColor = Colors.white;
+        break;
+      default: // primary
+        backgroundColor = Colors.grey[850]!;
+        foregroundColor = Colors.white;
+    }
+
+    return ElevatedButton.styleFrom(
+      backgroundColor: backgroundColor,
+      foregroundColor: foregroundColor,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8.0),
+      ),
+      padding: const EdgeInsets.all(20),
+      textStyle: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+    );
   }
 } 

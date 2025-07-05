@@ -632,4 +632,40 @@ class AIService {
       return null;
     }
   }
+
+  /// 🆕 新增：获取实时汇率
+  static Future<double?> getExchangeRate({
+    required String fromCurrency,
+    required String toCurrency,
+  }) async {
+    try {
+      print('💱 正在请求汇率... $fromCurrency -> $toCurrency');
+      final url = Uri.parse('$_baseUrl/get-exchange-rate');
+      final headers = {'Content-Type': 'application/json'};
+      final body = json.encode({
+        'from_currency': fromCurrency,
+        'to_currency': toCurrency,
+      });
+
+      final response = await http.post(
+        url,
+        headers: headers,
+        body: body,
+      ).timeout(const Duration(seconds: 15));
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['success'] == true) {
+          final rate = data['rate'];
+          print('✅ 成功获取汇率: $rate');
+          return (rate as num).toDouble();
+        }
+      }
+      print('❌ 获取汇率失败: ${response.body}');
+      return null;
+    } catch (e) {
+      print('❌ 调用获取汇率API时出错: $e');
+      return null;
+    }
+  }
 } 

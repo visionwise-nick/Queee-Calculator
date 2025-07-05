@@ -2,118 +2,7 @@ import 'dart:math' as math;
 import 'dart:math' show Random;
 import 'package:math_expressions/math_expressions.dart';
 import '../widgets/calculation_history_dialog.dart';
-
-/// 计算器操作类型 - 简化版本
-enum CalculatorActionType {
-  input,      // 输入数字
-  operator,   // 运算符 (+, -, *, /)
-  equals,     // 等号
-  clear,      // 清除
-  clearAll,   // 全部清除
-  backspace,  // 退格
-  decimal,    // 小数点
-  negate,     // 正负号
-  expression, // 表达式计算 - 新的通用类型
-  multiParamFunction, // 多参数函数
-  parameterSeparator, // 参数分隔符 (逗号)
-  functionExecute,    // 执行函数
-  customFunction,     // 自定义复合功能
-}
-
-/// 计算器操作定义
-class CalculatorAction {
-  final CalculatorActionType type;
-  final String? value;
-  final String? expression; // 新增：数学表达式
-  final Map<String, dynamic>? parameters; // 新增：自定义功能的预设参数
-
-  const CalculatorAction({
-    required this.type,
-    this.value,
-    this.expression,
-    this.parameters,
-  });
-
-  factory CalculatorAction.fromJson(Map<String, dynamic> json) {
-    final actionType = _parseActionType(json['type']?.toString());
-    String? expression = json['expression']?.toString();
-    
-    // 为特殊类型自动设置表达式
-    if (expression == null) {
-      final typeString = json['type']?.toString().toLowerCase();
-      if (typeString == 'percentage' || typeString == 'percent') {
-        expression = 'x*0.01';
-      }
-    }
-    
-    return CalculatorAction(
-      type: actionType,
-      value: json['value']?.toString(),
-      expression: expression,
-      parameters: json['parameters'] as Map<String, dynamic>?,
-    );
-  }
-
-  static CalculatorActionType _parseActionType(String? typeString) {
-    if (typeString == null) return CalculatorActionType.input;
-    
-    // 处理不同的类型字符串格式
-    final cleanType = typeString.toLowerCase().replaceAll('calculatoractiontype.', '');
-    print('🔍 解析action类型: $typeString -> $cleanType');
-    
-    switch (cleanType) {
-      case 'input':
-        return CalculatorActionType.input;
-      case 'operator':
-        return CalculatorActionType.operator;
-      case 'equals':
-        return CalculatorActionType.equals;
-      case 'clear':
-        return CalculatorActionType.clear;
-      case 'clearall':
-        return CalculatorActionType.clearAll;
-      case 'backspace':
-        return CalculatorActionType.backspace;
-      case 'decimal':
-        return CalculatorActionType.decimal;
-      case 'negate':
-        return CalculatorActionType.negate;
-      case 'expression':
-        return CalculatorActionType.expression;
-      case 'multiparamfunction':
-        return CalculatorActionType.multiParamFunction;
-      case 'parameterseparator':
-        return CalculatorActionType.parameterSeparator;
-      case 'functionexecute':
-        return CalculatorActionType.functionExecute;
-      case 'customfunction':
-        return CalculatorActionType.customFunction;
-      // 处理特殊的类型别名
-      case 'percentage':
-      case 'percent':
-        // 百分比按钮应该是表达式类型，表达式为 x*0.01
-        return CalculatorActionType.expression;
-      case 'memory':
-      case 'memoryrecall':
-      case 'memoryclear':
-      case 'memorystore':
-        // 内存相关功能暂时当作表达式处理
-        return CalculatorActionType.expression;
-      default:
-        print('⚠️ 未知的action类型: $typeString，使用默认input类型');
-        return CalculatorActionType.input;
-    }
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'type': type.toString().split('.').last,
-      if (value != null) 'value': value,
-      if (expression != null) 'expression': expression,
-      if (parameters != null) 'parameters': parameters,
-    };
-  }
-}
+import '../models/calculator_dsl.dart'; // 导入模型
 
 /// 计算器状态
 class CalculatorState {
@@ -306,32 +195,35 @@ class CalculatorEngine {
     print('🔍 执行计算器操作: type=${action.type}, value=${action.value}, expression=${action.expression}');
     try {
       switch (action.type) {
-        case CalculatorActionType.input:
+        case 'input':
           return _handleInput(action.value!);
-        case CalculatorActionType.operator:
+        case 'operator':
           return _handleOperator(action.value!);
-        case CalculatorActionType.equals:
+        case 'equals':
           return _handleEquals();
-        case CalculatorActionType.clear:
+        case 'clear':
           return _handleClear();
-        case CalculatorActionType.clearAll:
+        case 'clearAll':
           return _handleClearAll();
-        case CalculatorActionType.backspace:
+        case 'backspace':
           return _handleBackspace();
-        case CalculatorActionType.decimal:
+        case 'decimal':
           return _handleDecimal();
-        case CalculatorActionType.negate:
+        case 'negate':
           return _handleNegate();
-        case CalculatorActionType.expression:
+        case 'expression':
           return _handleExpression(action.expression!);
-        case CalculatorActionType.multiParamFunction:
+        case 'multiparamfunction':
           return _handleMultiParamFunction(action.value!);
-        case CalculatorActionType.parameterSeparator:
+        case 'parameterseparator':
           return _handleParameterSeparator();
-        case CalculatorActionType.functionExecute:
+        case 'functionexecute':
           return _handleFunctionExecute();
-        case CalculatorActionType.customFunction:
+        case 'customfunction':
           return _handleCustomFunction(action.value!, action.parameters);
+        default:
+          print("⚠️ 未知或不支持的Action类型: ${action.type}");
+          return state; // 增加默认处理分支，返回当前状态
       }
     } catch (e) {
       print('❌ 计算器错误：$e');

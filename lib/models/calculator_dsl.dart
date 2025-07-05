@@ -700,28 +700,28 @@ class CalculatorConfig {
           CalculatorButton(
             id: 'clear',
             label: 'AC',
-            action: const CalculatorAction(type: CalculatorActionType.clearAll),
+            action: const CalculatorAction(type: 'clearAll'),
             gridPosition: const GridPosition(row: 1, column: 0),
             type: 'secondary',
           ),
           CalculatorButton(
             id: 'negate',
             label: '±',
-            action: const CalculatorAction(type: CalculatorActionType.negate),
+            action: const CalculatorAction(type: 'negate'),
             gridPosition: const GridPosition(row: 1, column: 1),
             type: 'secondary',
           ),
           CalculatorButton(
             id: 'percent',
             label: '%',
-            action: const CalculatorAction(type: CalculatorActionType.expression, expression: 'x*0.01'),
+            action: const CalculatorAction(type: 'expression', expression: 'x*0.01'),
             gridPosition: const GridPosition(row: 1, column: 2),
             type: 'secondary',
           ),
           CalculatorButton(
             id: 'divide',
             label: '÷',
-            action: const CalculatorAction(type: CalculatorActionType.operator, value: '/'),
+            action: const CalculatorAction(type: 'operator', value: '/'),
             gridPosition: const GridPosition(row: 1, column: 3),
             type: 'operator',
           ),
@@ -729,28 +729,28 @@ class CalculatorConfig {
           CalculatorButton(
             id: 'seven',
             label: '7',
-            action: const CalculatorAction(type: CalculatorActionType.input, value: '7'),
+            action: const CalculatorAction(type: 'input', value: '7'),
             gridPosition: const GridPosition(row: 2, column: 0),
             type: 'primary',
           ),
           CalculatorButton(
             id: 'eight',
             label: '8',
-            action: const CalculatorAction(type: CalculatorActionType.input, value: '8'),
+            action: const CalculatorAction(type: 'input', value: '8'),
             gridPosition: const GridPosition(row: 2, column: 1),
             type: 'primary',
           ),
           CalculatorButton(
             id: 'nine',
             label: '9',
-            action: const CalculatorAction(type: CalculatorActionType.input, value: '9'),
+            action: const CalculatorAction(type: 'input', value: '9'),
             gridPosition: const GridPosition(row: 2, column: 2),
             type: 'primary',
           ),
           CalculatorButton(
             id: 'multiply',
             label: '×',
-            action: const CalculatorAction(type: CalculatorActionType.operator, value: '*'),
+            action: const CalculatorAction(type: 'operator', value: '*'),
             gridPosition: const GridPosition(row: 2, column: 3),
             type: 'operator',
           ),
@@ -758,28 +758,28 @@ class CalculatorConfig {
           CalculatorButton(
             id: 'four',
             label: '4',
-            action: const CalculatorAction(type: CalculatorActionType.input, value: '4'),
+            action: const CalculatorAction(type: 'input', value: '4'),
             gridPosition: const GridPosition(row: 3, column: 0),
             type: 'primary',
           ),
           CalculatorButton(
             id: 'five',
             label: '5',
-            action: const CalculatorAction(type: CalculatorActionType.input, value: '5'),
+            action: const CalculatorAction(type: 'input', value: '5'),
             gridPosition: const GridPosition(row: 3, column: 1),
             type: 'primary',
           ),
           CalculatorButton(
             id: 'six',
             label: '6',
-            action: const CalculatorAction(type: CalculatorActionType.input, value: '6'),
+            action: const CalculatorAction(type: 'input', value: '6'),
             gridPosition: const GridPosition(row: 3, column: 2),
             type: 'primary',
           ),
           CalculatorButton(
             id: 'subtract',
             label: '-',
-            action: const CalculatorAction(type: CalculatorActionType.operator, value: '-'),
+            action: const CalculatorAction(type: 'operator', value: '-'),
             gridPosition: const GridPosition(row: 3, column: 3),
             type: 'operator',
           ),
@@ -787,28 +787,28 @@ class CalculatorConfig {
           CalculatorButton(
             id: 'one',
             label: '1',
-            action: const CalculatorAction(type: CalculatorActionType.input, value: '1'),
+            action: const CalculatorAction(type: 'input', value: '1'),
             gridPosition: const GridPosition(row: 4, column: 0),
             type: 'primary',
           ),
           CalculatorButton(
             id: 'two',
             label: '2',
-            action: const CalculatorAction(type: CalculatorActionType.input, value: '2'),
+            action: const CalculatorAction(type: 'input', value: '2'),
             gridPosition: const GridPosition(row: 4, column: 1),
             type: 'primary',
           ),
           CalculatorButton(
             id: 'three',
             label: '3',
-            action: const CalculatorAction(type: CalculatorActionType.input, value: '3'),
+            action: const CalculatorAction(type: 'input', value: '3'),
             gridPosition: const GridPosition(row: 4, column: 2),
             type: 'primary',
           ),
           CalculatorButton(
             id: 'add',
             label: '+',
-            action: const CalculatorAction(type: CalculatorActionType.operator, value: '+'),
+            action: const CalculatorAction(type: 'operator', value: '+'),
             gridPosition: const GridPosition(row: 4, column: 3),
             type: 'operator',
           ),
@@ -816,7 +816,7 @@ class CalculatorConfig {
           CalculatorButton(
             id: 'zero',
             label: '0',
-            action: const CalculatorAction(type: CalculatorActionType.input, value: '0'),
+            action: const CalculatorAction(type: 'input', value: '0'),
             gridPosition: const GridPosition(row: 5, column: 0, columnSpan: 2),
             type: 'primary',
             isWide: true,
@@ -825,14 +825,14 @@ class CalculatorConfig {
           CalculatorButton(
             id: 'decimal',
             label: '.',
-            action: const CalculatorAction(type: CalculatorActionType.decimal),
+            action: const CalculatorAction(type: 'decimal'),
             gridPosition: const GridPosition(row: 5, column: 2),
             type: 'primary',
           ),
           CalculatorButton(
             id: 'equals',
             label: '=',
-            action: const CalculatorAction(type: CalculatorActionType.equals),
+            action: const CalculatorAction(type: 'equals'),
             gridPosition: const GridPosition(row: 5, column: 3),
             type: 'operator',
           ),
@@ -840,4 +840,52 @@ class CalculatorConfig {
       ),
     );
   }
+}
+
+class CalculatorAction {
+  final String type;
+  final String? value;
+  final String? expression;
+  final Map<String, dynamic>? parameters;
+
+  // 🆕 新增：网络请求相关字段
+  final String? url;
+  final String? method;
+  final String? loadingLabel;
+  final String? successLabel;
+
+  const CalculatorAction({
+    required this.type,
+    this.value,
+    this.expression,
+    this.parameters,
+    this.url,
+    this.method,
+    this.loadingLabel,
+    this.successLabel,
+  });
+
+  factory CalculatorAction.fromJson(Map<String, dynamic> json) {
+    return CalculatorAction(
+      type: json['type'] as String,
+      value: json['value'] as String?,
+      expression: json['expression'] as String?,
+      parameters: json['parameters'] as Map<String, dynamic>?,
+      url: json['url'] as String?,
+      method: json['method'] as String?,
+      loadingLabel: json['loadingLabel'] as String?,
+      successLabel: json['successLabel'] as String?,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'type': type,
+    'value': value,
+    'expression': expression,
+    'parameters': parameters,
+    'url': url,
+    'method': method,
+    'loadingLabel': loadingLabel,
+    'successLabel': successLabel,
+  };
 } 
