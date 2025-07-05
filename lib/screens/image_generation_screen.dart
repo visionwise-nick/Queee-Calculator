@@ -643,22 +643,32 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
     
     final sortedRows = buttonsByRow.keys.toList()..sort();
     
-    return Column(
-      children: sortedRows.map((rowIndex) {
-        final rowButtons = buttonsByRow[rowIndex] ?? [];
-        rowButtons.sort((a, b) => a.gridPosition.column.compareTo(b.gridPosition.column));
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // 计算可用宽度
+        final availableWidth = constraints.maxWidth - 32; // 减去左右边距
+        final buttonSize = (availableWidth - (layout.columns - 1) * 6) / layout.columns; // 减去间距
+        final finalButtonSize = buttonSize.clamp(40.0, 70.0); // 限制按钮大小
         
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 8),
-          child: Row(
-            children: _buildRowButtons(rowButtons, layout.columns),
-          ),
+        return Column(
+          children: sortedRows.map((rowIndex) {
+            final rowButtons = buttonsByRow[rowIndex] ?? [];
+            rowButtons.sort((a, b) => a.gridPosition.column.compareTo(b.gridPosition.column));
+            
+            return Container(
+              margin: const EdgeInsets.only(bottom: 6),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: _buildRowButtons(rowButtons, layout.columns, finalButtonSize),
+              ),
+            );
+          }).toList(),
         );
-      }).toList(),
+      },
     );
   }
 
-  List<Widget> _buildRowButtons(List<CalculatorButton> rowButtons, int totalColumns) {
+  List<Widget> _buildRowButtons(List<CalculatorButton> rowButtons, int totalColumns, double buttonSize) {
     List<Widget> rowWidgets = [];
     
     for (int col = 0; col < totalColumns; col++) {
@@ -674,13 +684,13 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
       if (button != null) {
         final isSelected = _selectedButtonBgIds.contains(button.id);
         final width = button.widthMultiplier > 1 ? 
-            (60.0 * button.widthMultiplier) + (8.0 * (button.widthMultiplier - 1)) : 60.0;
+            (buttonSize * button.widthMultiplier) + (6.0 * (button.widthMultiplier - 1)) : buttonSize;
         
         rowWidgets.add(
           Container(
             width: width,
-            height: 60.0,
-            margin: const EdgeInsets.only(right: 8),
+            height: buttonSize,
+            margin: const EdgeInsets.symmetric(horizontal: 3),
             child: Material(
               color: Colors.transparent,
               child: InkWell(
@@ -694,13 +704,13 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
                     _selectAllBg = _selectedButtonBgIds.length == widget.currentConfig.layout.buttons.length;
                   });
                 },
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(6),
                 child: Container(
                   decoration: BoxDecoration(
                     color: isSelected
                         ? Colors.orange.withOpacity(0.1)
                         : Colors.grey.shade50,
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(6),
                     border: Border.all(
                       color: isSelected
                           ? Colors.orange
@@ -715,24 +725,28 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
                         Icon(
                           Icons.check_circle,
                           color: Colors.orange,
-                          size: 16,
+                          size: 12,
                         ),
-                      Text(
-                        button.label,
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: isSelected
-                              ? Colors.orange
-                              : Colors.grey.shade700,
-                          fontSize: 12,
+                      Flexible(
+                        child: Text(
+                          button.label,
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: isSelected
+                                ? Colors.orange
+                                : Colors.grey.shade700,
+                            fontSize: 10,
+                          ),
+                          textAlign: TextAlign.center,
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 2,
                         ),
-                        textAlign: TextAlign.center,
                       ),
                       if (isSelected)
                         Text(
                           '已选择',
                           style: TextStyle(
-                            fontSize: 8,
+                            fontSize: 6,
                             color: Colors.orange,
                           ),
                         ),
@@ -752,13 +766,13 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
         // 空位置
         rowWidgets.add(
           Container(
-            width: 60.0,
-            height: 60.0,
-            margin: const EdgeInsets.only(right: 8),
+            width: buttonSize,
+            height: buttonSize,
+            margin: const EdgeInsets.symmetric(horizontal: 3),
             child: Container(
               decoration: BoxDecoration(
                 color: Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(6),
                 border: Border.all(
                   color: Colors.grey.shade300,
                   width: 1,
