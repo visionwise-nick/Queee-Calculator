@@ -725,6 +725,7 @@ class CalculatorConfig {
             gridPosition: const GridPosition(row: 5, column: 0, columnSpan: 2),
             type: 'primary',
             isWide: true,
+            // 🔧 使用columnSpan机制，不需要widthMultiplier，会自动计算正确宽度包含间隙
           ),
           CalculatorButton(
             id: 'decimal',

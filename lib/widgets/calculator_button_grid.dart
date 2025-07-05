@@ -144,8 +144,17 @@ class CalculatorButtonGrid extends StatelessWidget {
       }
       
       if (button != null) {
-        // 计算按钮的实际宽度（考虑宽度倍数）
-        final buttonWidth = baseButtonWidth * button.widthMultiplier;
+        // 🔧 修复：正确计算跨列按键的宽度，包含间隙
+        double buttonWidth;
+        final columnSpan = button.gridPosition.columnSpan ?? 1;
+        
+        if (columnSpan > 1) {
+          // 跨列按键：基础宽度×列数 + 间隙×(列数-1)
+          buttonWidth = baseButtonWidth * columnSpan + buttonGap * (columnSpan - 1);
+        } else {
+          // 普通按键：使用宽度倍数
+          buttonWidth = baseButtonWidth * button.widthMultiplier;
+        }
         
         rowWidgets.add(
           SizedBox(
@@ -158,6 +167,11 @@ class CalculatorButtonGrid extends StatelessWidget {
             ),
           ),
         );
+        
+        // 🔧 跨列按键跳过被占用的列位置
+        if (columnSpan > 1) {
+          col += columnSpan - 1; // 跳过被占用的列
+        }
       } else {
         // 空位置
         rowWidgets.add(
