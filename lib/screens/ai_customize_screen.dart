@@ -4,8 +4,11 @@ import 'package:provider/provider.dart';
 import '../providers/calculator_provider.dart';
 import '../services/ai_service.dart';
 import '../services/conversation_service.dart';
+import '../services/task_service.dart'; // 🔧 新增：导入任务服务
 import '../models/calculator_dsl.dart';
 import '../widgets/thinking_process_dialog.dart';
+import '../widgets/generation_status_widget.dart'; // 🔧 新增：导入状态显示组件
+import 'dart:convert';
 
 class AICustomizeScreen extends StatefulWidget {
   const AICustomizeScreen({super.key});
@@ -174,7 +177,6 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
 
     setState(() {
       _messages.add(userMessage);
-      _isLoading = true;
     });
     
     // 立即保存用户消息到存储
@@ -189,27 +191,132 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
       final provider = Provider.of<CalculatorProvider>(context, listen: false);
       final currentConfig = provider.config;
       
-      // AIService会自动处理AI消息记录，跳过用户消息记录
-      final config = await AIService.generateCalculatorFromPrompt(
-        userInput,
+      // 🔧 使用异步任务服务提交生成任务
+      final taskId = await TaskService.submitAiDesignerTask(
+        userInput: userInput,
+        conversationHistory: await _getConversationHistory(),
         currentConfig: currentConfig,
-        skipUserMessage: true, // 跳过用户消息记录
       );
-
-      if (config != null) {
-        await provider.applyConfig(config);
-        // 重新加载会话以获取AI记录的消息
-        await _reloadSession();
-      } else {
-        // 只有在失败时才手动添加错误消息
-        await _addAssistantMessage('😅 抱歉，我遇到了一些困难。能换个方式描述你的想法吗？');
-      }
-    } catch (e) {
-      await _addAssistantMessage('😓 出现了一个小问题：$e\n\n不用担心，我们再试一次！');
-    } finally {
-      setState(() {
-        _isLoading = false;
+      
+      // 立即添加"正在生成"的助手消息
+      await _addAssistantMessage('🤖 收到您的需求！正在为您设计计算器功能...\n\n⏱️ 生成过程将在后台进行，您可以继续使用其他功能，完成后会自动应用到计算器。');
+      
+      // 注册任务完成回调
+      TaskService.registerTaskCallback(taskId, (task) {
+        if (task.status == TaskStatus.completed && task.result != null) {
+          _onAiGenerationCompleted(task);
+        } else if (task.status == TaskStatus.failed) {
+          _onAiGenerationFailed(task);
+        }
       });
+      
+    } catch (e) {
+      // 任务提交失败，回退到同步方式
+      print('异步任务提交失败，回退到同步方式: $e');
+      await _addAssistantMessage('⚠️ 后台服务暂时不可用，正在为您同步处理...');
+      
+      try {
+        setState(() {
+          _isLoading = true;
+        });
+        
+        final provider = Provider.of<CalculatorProvider>(context, listen: false);
+        final currentConfig = provider.config;
+        
+        // 回退到同步AI生成
+        final config = await AIService.generateCalculatorFromPrompt(
+          userInput,
+          currentConfig: currentConfig,
+          skipUserMessage: true,
+        );
+
+        if (config != null) {
+          await provider.applyConfig(config);
+          await _reloadSession();
+        } else {
+          await _addAssistantMessage('😅 抱歉，我遇到了一些困难。能换个方式描述你的想法吗？');
+        }
+      } catch (syncError) {
+        await _addAssistantMessage('😓 出现了一个小问题：$syncError\n\n不用担心，我们再试一次！');
+      } finally {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  /// 🔧 新增：AI生成任务完成回调
+  void _onAiGenerationCompleted(GenerationTask task) async {
+    if (!mounted) return;
+    
+    try {
+      // 解析生成结果
+      final resultData = json.decode(task.result!);
+      final config = CalculatorConfig.fromJson(resultData);
+      
+      // 应用配置
+      final provider = Provider.of<CalculatorProvider>(context, listen: false);
+      await provider.applyConfig(config);
+      
+      // 添加成功消息
+      await _addAssistantMessage(
+        '✅ 功能设计完成！已为您自动应用到计算器。\n\n🎯 新功能：${config.name}\n💡 ${config.description}\n\n您可以立即开始使用新功能，或继续告诉我其他需求！',
+        config: config,
+      );
+      
+      // 重新加载会话
+      await _reloadSession();
+      
+      // 显示成功提示
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('✅ ${config.name} 已自动应用！'),
+            backgroundColor: Colors.green,
+            action: SnackBarAction(
+              label: '查看',
+              textColor: Colors.white,
+              onPressed: () {
+                Navigator.of(context).pop(); // 返回计算器界面
+              },
+            ),
+          ),
+        );
+      }
+      
+    } catch (e) {
+      print('解析AI生成结果失败: $e');
+      await _addAssistantMessage('😅 生成完成，但应用时遇到了小问题：$e\n\n请重新描述您的需求。');
+    }
+  }
+
+  /// 🔧 新增：AI生成任务失败回调
+  void _onAiGenerationFailed(GenerationTask task) async {
+    if (!mounted) return;
+    
+    final errorMsg = task.error ?? '未知错误';
+    await _addAssistantMessage('😓 生成失败：$errorMsg\n\n不用担心，请重新描述您的需求，我会再次为您设计！');
+  }
+
+  /// 🔧 新增：获取对话历史
+  Future<List<Map<String, String>>> _getConversationHistory() async {
+    try {
+      final session = await ConversationService.getCurrentSession();
+      if (session == null) return [];
+
+      // 只取最近的10条消息，避免上下文过长
+      final recentMessages = session.messages.length > 10 
+          ? session.messages.sublist(session.messages.length - 10)
+          : session.messages;
+
+      return recentMessages.map((msg) => {
+        'role': msg.type == MessageType.user ? 'user' : 'assistant',
+        'content': msg.content,
+      }).toList();
+    } catch (e) {
+      print('获取对话历史失败: $e');
+      return [];
     }
   }
 
@@ -325,10 +432,10 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
   void _showQuickReplies() {
     final quickReplies = [
       // 🐾 Level 1：宠物年龄计算器 - 新增首个实用功能
-      '添加"宠物年龄"按键，输入宠物年龄计算相当于人类多少岁：狗年龄×7+人类基础年龄16，猫年龄×5+人类基础年龄20，预设常见宠物换算公式（在原有基础上增加功能，不影响现有按键功能）',
+      '添加"宠物年龄"按键，输入狗狗年龄计算相当于人类多少岁，使用现在最主流和精准的计算方式：人类年龄 = 16×ln(狗狗年龄X)+31（在原有基础上增加功能，不影响现有按键功能）',
       
       // 💱 Level 2：汇率转换计算器 - 添加货币转换功能
-      '新增"汇率转换"按键，输入金额自动转换货币：美元→人民币×7.2，欧元→人民币×7.8，日元→人民币÷15，预设主流汇率实时换算（在原有基础上增加功能，不影响现有按键功能）',
+      '新增多个汇率转换按键，输入金额自动转换货币：美元→人民币，欧元→人民币，日元→人民币，英镑→人民币，港币→人民币，澳币→人民币，加币→人民币，预设主流汇率实时换算（在原有基础上增加功能，不影响现有按键功能）',
       
       // 📏 Level 3：单位转换计算器 - 添加度量衡转换
       '增加"单位转换"按键组，长度转换：英寸↔厘米、英尺↔米，重量转换：磅↔公斤、盎司↔克，温度转换：华氏度↔摄氏度，覆盖日常单位换算需求（在原有基础上增加功能，不影响现有按键功能）',
@@ -1284,12 +1391,15 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
       ),
       body: Column(
         children: [
-                Expanded(
-                  child: ListView.builder(
+          // 🔧 新增：全局生成状态栏
+          const GlobalGenerationStatusBar(),
+          
+          Expanded(
+            child: ListView.builder(
               controller: _scrollController,
               padding: const EdgeInsets.only(bottom: 16),
               itemCount: _messages.length + (_isLoading ? 1 : 0),
-                    itemBuilder: (context, index) {
+              itemBuilder: (context, index) {
                 if (index == _messages.length) {
                   return _buildTypingIndicator();
                 }
