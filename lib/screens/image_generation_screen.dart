@@ -1145,6 +1145,7 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
       description: provider.config.description,
       theme: provider.config.theme,
       layout: updatedLayout,
+      appBackground: provider.config.appBackground, // 🔧 保留原有的APP背景设置，不要清空
       version: provider.config.version,
       createdAt: provider.config.createdAt,
       authorPrompt: provider.config.authorPrompt,

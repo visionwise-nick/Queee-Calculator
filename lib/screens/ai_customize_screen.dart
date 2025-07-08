@@ -672,10 +672,82 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
             onPressed: () async {
               Navigator.of(context).pop();
               
-              // 重置为默认计算器配置
+              // 重置为默认计算器配置，但保留图像工坊的内容
               final provider = Provider.of<CalculatorProvider>(context, listen: false);
+              final currentConfig = provider.config;
+              
+              // 创建默认配置
               final defaultConfig = CalculatorConfig.createDefault();
-              await provider.applyConfig(defaultConfig);
+              
+              // 🔧 保留图像工坊的内容：APP背景图和按键背景图
+              final preservedConfig = CalculatorConfig(
+                id: defaultConfig.id,
+                name: defaultConfig.name,
+                description: defaultConfig.description,
+                theme: defaultConfig.theme,
+                layout: CalculatorLayout(
+                  name: defaultConfig.layout.name,
+                  rows: defaultConfig.layout.rows,
+                  columns: defaultConfig.layout.columns,
+                  buttons: defaultConfig.layout.buttons.map((defaultButton) {
+                    // 查找原配置中对应的按键，保留背景图
+                    final originalButton = currentConfig.layout.buttons.firstWhere(
+                      (b) => b.id == defaultButton.id,
+                      orElse: () => defaultButton,
+                    );
+                    
+                    // 只保留背景图，其他属性使用默认值
+                    return CalculatorButton(
+                      id: defaultButton.id,
+                      label: defaultButton.label,
+                      action: defaultButton.action,
+                      gridPosition: defaultButton.gridPosition,
+                      type: defaultButton.type,
+                      customColor: defaultButton.customColor,
+                      isWide: defaultButton.isWide,
+                      widthMultiplier: defaultButton.widthMultiplier,
+                      heightMultiplier: defaultButton.heightMultiplier,
+                      gradientColors: defaultButton.gradientColors,
+                      backgroundImage: originalButton.backgroundImage, // 🔧 保留背景图
+                      fontSize: defaultButton.fontSize,
+                      borderRadius: defaultButton.borderRadius,
+                      elevation: defaultButton.elevation,
+                      width: defaultButton.width,
+                      height: defaultButton.height,
+                      backgroundColor: defaultButton.backgroundColor,
+                      textColor: defaultButton.textColor,
+                      borderColor: defaultButton.borderColor,
+                      borderWidth: defaultButton.borderWidth,
+                      shadowColor: defaultButton.shadowColor,
+                      shadowOffset: defaultButton.shadowOffset,
+                      shadowRadius: defaultButton.shadowRadius,
+                      opacity: defaultButton.opacity,
+                      rotation: defaultButton.rotation,
+                      scale: defaultButton.scale,
+                      backgroundPattern: defaultButton.backgroundPattern,
+                      patternColor: defaultButton.patternColor,
+                      patternOpacity: defaultButton.patternOpacity,
+                      animation: defaultButton.animation,
+                      animationDuration: defaultButton.animationDuration,
+                      customIcon: defaultButton.customIcon,
+                      iconSize: defaultButton.iconSize,
+                      iconColor: defaultButton.iconColor,
+                    );
+                  }).toList(),
+                  description: defaultConfig.layout.description,
+                  minButtonSize: defaultConfig.layout.minButtonSize,
+                  maxButtonSize: defaultConfig.layout.maxButtonSize,
+                  gridSpacing: defaultConfig.layout.gridSpacing,
+                ),
+                appBackground: currentConfig.appBackground, // 🔧 保留APP背景图
+                version: defaultConfig.version,
+                createdAt: defaultConfig.createdAt,
+                authorPrompt: defaultConfig.authorPrompt,
+                thinkingProcess: defaultConfig.thinkingProcess,
+                aiResponse: defaultConfig.aiResponse,
+              );
+              
+              await provider.applyConfig(preservedConfig);
               
               // 完全重置计算器状态，包括清除所有计算数据
               provider.resetCalculatorState();
@@ -692,7 +764,7 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: const Text('✅ 已重置为默认计算器，开始新的设计对话！'),
+                    content: const Text('✅ 已重置为默认计算器功能，保留了图像工坊的背景图！'),
                     backgroundColor: Colors.green.shade600,
                     duration: const Duration(seconds: 2),
                   ),

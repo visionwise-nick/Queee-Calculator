@@ -66,6 +66,7 @@ class CalculatorScreen extends StatelessWidget {
           child: CalculatorDisplay(
             state: provider.state,
             theme: provider.config.theme,
+            appBackground: provider.config.appBackground, // 🔧 传递APP背景配置，用于透明度控制
             onParameterInput: (paramId) {
               _handleParameterInput(context, provider, paramId);
             },

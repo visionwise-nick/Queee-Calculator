@@ -8,12 +8,14 @@ import 'dart:math' as math;
 class CalculatorDisplay extends StatelessWidget {
   final CalculatorState state;
   final CalculatorTheme theme;
+  final AppBackgroundConfig? appBackground; // 🔧 新增：APP背景配置用于透明度控制
   final Function(String)? onParameterInput;
 
   const CalculatorDisplay({
     super.key,
     required this.state,
     required this.theme,
+    this.appBackground, // 🔧 新增参数
     this.onParameterInput,
   });
 
@@ -30,10 +32,12 @@ class CalculatorDisplay extends StatelessWidget {
       margin: const EdgeInsets.all(4),
       decoration: BoxDecoration(
         color: theme.displayBackgroundGradient == null && theme.backgroundImage == null 
-            ? _parseColor(theme.displayBackgroundColor) 
+            ? _parseColor(theme.displayBackgroundColor).withValues(
+                alpha: appBackground?.displayOpacity ?? 1.0, // 🔧 应用显示区域透明度
+              )
             : null,
         gradient: theme.displayBackgroundGradient != null 
-            ? _buildGradient(theme.displayBackgroundGradient!) 
+            ? _buildGradient(theme.displayBackgroundGradient!, appBackground?.displayOpacity ?? 1.0)
             : null,
         borderRadius: BorderRadius.circular(borderRadius),
         boxShadow: [
@@ -88,11 +92,11 @@ class CalculatorDisplay extends StatelessWidget {
   }
 
   /// 构建渐变色
-  LinearGradient _buildGradient(List<String> gradientColors) {
+  LinearGradient _buildGradient(List<String> gradientColors, double opacity) {
     return LinearGradient(
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
-      colors: gradientColors.map((color) => _parseColor(color)).toList(),
+      colors: gradientColors.map((color) => _parseColor(color).withValues(alpha: opacity)).toList(),
     );
   }
 
