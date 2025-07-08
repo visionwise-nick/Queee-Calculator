@@ -447,7 +447,7 @@ class _CalculatorButtonWidgetState extends State<CalculatorButtonWidget>
     }
   }
 
-  /// 🔧 构建背景图像 - 使用缓存机制避免闪烁
+  /// 构建背景图像
   DecorationImage? _buildBackgroundImage(String? backgroundImage) {
     if (backgroundImage != null) {
       // 过滤掉明显无效的URL格式
@@ -462,7 +462,8 @@ class _CalculatorButtonWidgetState extends State<CalculatorButtonWidget>
         if (_cachedMemoryImage != null && _lastBackgroundImageData == backgroundImage) {
           return DecorationImage(
             image: _cachedMemoryImage!,
-            fit: BoxFit.cover,
+            fit: BoxFit.contain, // 🔧 改为contain模式，避免背景图片过度拉伸
+            opacity: 0.7, // 🔧 添加透明度，避免背景图片过于突出，保证文字可读性
           );
         } else {
           // 如果缓存不匹配，重新加载
@@ -470,7 +471,8 @@ class _CalculatorButtonWidgetState extends State<CalculatorButtonWidget>
           if (_cachedMemoryImage != null) {
             return DecorationImage(
               image: _cachedMemoryImage!,
-              fit: BoxFit.cover,
+              fit: BoxFit.contain, // 🔧 改为contain模式，避免背景图片过度拉伸
+              opacity: 0.7, // 🔧 添加透明度，避免背景图片过于突出，保证文字可读性
             );
           }
           return null;
@@ -479,7 +481,8 @@ class _CalculatorButtonWidgetState extends State<CalculatorButtonWidget>
         // 处理有效的URL格式
         return DecorationImage(
           image: NetworkImage(backgroundImage),
-          fit: BoxFit.cover,
+          fit: BoxFit.contain, // 🔧 改为contain模式，避免背景图片过度拉伸
+          opacity: 0.7, // 🔧 添加透明度，避免背景图片过于突出，保证文字可读性
           onError: (exception, stackTrace) {
             print('Failed to load button background image: $backgroundImage');
           },
@@ -495,7 +498,7 @@ class _CalculatorButtonWidgetState extends State<CalculatorButtonWidget>
     if (widget.button.backgroundPattern != null) {
       return DecorationImage(
         image: _generatePatternImage(widget.button.backgroundPattern!),
-        fit: BoxFit.cover,
+        fit: BoxFit.contain, // 🔧 改为contain模式，避免背景图片过度拉伸
         opacity: widget.button.patternOpacity ?? 0.3,
       );
     }
@@ -548,16 +551,12 @@ class _CalculatorButtonWidgetState extends State<CalculatorButtonWidget>
     }
   }
 
+  /// 构建按钮内容
   Widget _buildButtonContent(Color textColor, CalculatorTheme theme) {
     // 优先使用按钮独立的字体大小，否则使用主题的全局字体大小
     final fontSize = widget.button.fontSize ?? theme.fontSize;
 
-    // 🚫 检查是否有背景图片（光影文字图片）- 如果有，不显示任何文字内容
-    if (widget.button.backgroundImage != null && widget.button.backgroundImage!.isNotEmpty) {
-      // 返回透明的空内容，完全不显示文字，让背景图片完全展示
-      return const SizedBox.shrink();
-    }
-
+    // 🔧 修复：有背景图片时，文字内容应该正常显示在背景图片上方
     // 检查是否有自定义图标
     if (widget.button.customIcon != null && widget.button.customIcon!.isNotEmpty) {
       // 在这里返回一个图标控件，或者其他你想要显示的自定义内容
@@ -568,7 +567,44 @@ class _CalculatorButtonWidgetState extends State<CalculatorButtonWidget>
         size: widget.button.iconSize ?? fontSize,
       );
     } else {
-      // 默认显示文本
+      // 🔧 修复：无论是否有背景图片，都应该显示文字内容
+      // 如果有背景图片，文字可能需要更好的对比度
+      Color finalTextColor = textColor;
+      
+      // 如果有背景图片，增强文字对比度
+      if (widget.button.backgroundImage != null && widget.button.backgroundImage!.isNotEmpty) {
+        // 添加文字阴影效果，增强可读性
+        return Container(
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              widget.button.label,
+              style: TextStyle(
+                color: finalTextColor,
+                fontSize: fontSize, // 应用动态字体大小
+                fontWeight: FontWeight.w600, // 🔧 增加字体粗细，提高可读性
+                fontFamily: widget.button.fontFamily, // 应用字体
+                shadows: [
+                  // 🔧 添加文字阴影，增强背景图片上的文字可读性
+                  Shadow(
+                    color: Colors.black.withValues(alpha: 0.8),
+                    offset: const Offset(0, 1),
+                    blurRadius: 2,
+                  ),
+                  Shadow(
+                    color: Colors.white.withValues(alpha: 0.8),
+                    offset: const Offset(0, -1),
+                    blurRadius: 2,
+                  ),
+                ],
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        );
+      }
+      
+      // 默认显示文本（无背景图片）
       return FittedBox(
         fit: BoxFit.scaleDown,
         child: Text(
