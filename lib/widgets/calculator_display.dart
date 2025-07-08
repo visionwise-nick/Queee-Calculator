@@ -24,6 +24,14 @@ class CalculatorDisplay extends StatelessWidget {
     // 使用主题指定的显示区圆角或默认值
     final borderRadius = theme.displayBorderRadius ?? theme.buttonBorderRadius;
     
+    // 🔧 添加调试信息
+    print('🔧 构建计算器显示区：');
+    print('  - APP背景配置: ${appBackground != null ? "存在" : "无"}');
+    if (appBackground != null) {
+      print('  - 显示区域透明度: ${appBackground!.displayOpacity ?? 1.0}');
+      print('  - 按键透明度: ${appBackground!.buttonOpacity ?? 1.0}');
+    }
+    
     return Container(
       width: theme.displayWidth != null 
           ? MediaQuery.of(context).size.width * theme.displayWidth!

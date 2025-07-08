@@ -46,6 +46,18 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this); // 改为2个tab
+    
+    // 🔧 从现有配置中加载透明度设置
+    final appBackground = widget.currentConfig.appBackground;
+    if (appBackground != null) {
+      _buttonOpacity = appBackground.buttonOpacity ?? 0.7;
+      _displayOpacity = appBackground.displayOpacity ?? 0.7;
+      _generatedAppBgUrl = appBackground.backgroundImageUrl; // 加载现有背景图
+    }
+    
+    // 🔧 添加调试信息
+    print('🔧 透明度初始化：按键透明度=${_buttonOpacity}，显示区域透明度=${_displayOpacity}');
+    print('🔧 现有背景图：${_generatedAppBgUrl != null ? "存在(${_generatedAppBgUrl!.length}字符)" : "无"}');
   }
 
   @override
@@ -1397,6 +1409,9 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
   void _applyAppBackground() {
     if (_generatedAppBgUrl == null) return;
 
+    // 🔧 添加调试信息
+    print('🔧 应用APP背景图，URL长度：${_generatedAppBgUrl!.length}');
+    
     final newAppBackground = AppBackgroundConfig(
       backgroundImageUrl: _generatedAppBgUrl,
       backgroundType: 'image',
@@ -1419,7 +1434,15 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
       aiResponse: widget.currentConfig.aiResponse,
     );
 
+    // 🔧 强制更新provider配置
+    final provider = Provider.of<CalculatorProvider>(context, listen: false);
+    provider.applyConfig(updatedConfig);
+    
+    // 🔧 同时更新父组件配置
     widget.onConfigUpdated(updatedConfig);
+    
+    // 🔧 添加调试信息
+    print('🔧 APP背景图应用成功：按键透明度=${_buttonOpacity}，显示区域透明度=${_displayOpacity}');
     
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -1651,38 +1674,41 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
 
   /// 🔧 新增：应用透明度变化
   void _applyOpacityChanges() {
-    // 如果有现有的APP背景，更新透明度设置
+    // 获取当前provider和配置
     final provider = Provider.of<CalculatorProvider>(context, listen: false);
     final currentAppBackground = provider.config.appBackground;
     
-    if (currentAppBackground != null) {
-      final updatedAppBackground = AppBackgroundConfig(
-        backgroundImageUrl: currentAppBackground.backgroundImageUrl,
-        backgroundType: currentAppBackground.backgroundType,
-        backgroundColor: currentAppBackground.backgroundColor,
-        backgroundGradient: currentAppBackground.backgroundGradient,
-        backgroundOpacity: currentAppBackground.backgroundOpacity ?? 1.0,
-        buttonOpacity: _buttonOpacity,
-        displayOpacity: _displayOpacity,
-      );
+    // 🔧 创建或更新APP背景配置，即使没有背景图也应该应用透明度
+    final updatedAppBackground = AppBackgroundConfig(
+      backgroundImageUrl: currentAppBackground?.backgroundImageUrl, // 可以为null
+      backgroundType: currentAppBackground?.backgroundType ?? 'color',
+      backgroundColor: currentAppBackground?.backgroundColor,
+      backgroundGradient: currentAppBackground?.backgroundGradient,
+      backgroundOpacity: currentAppBackground?.backgroundOpacity ?? 1.0,
+      buttonOpacity: _buttonOpacity,      // 🔧 总是应用按键透明度
+      displayOpacity: _displayOpacity,    // 🔧 总是应用显示区域透明度
+    );
 
-      final updatedConfig = CalculatorConfig(
-        id: provider.config.id,
-        name: provider.config.name,
-        description: provider.config.description,
-        theme: provider.config.theme,
-        layout: provider.config.layout,
-        appBackground: updatedAppBackground,
-        version: provider.config.version,
-        createdAt: provider.config.createdAt,
-        authorPrompt: provider.config.authorPrompt,
-        thinkingProcess: provider.config.thinkingProcess,
-        aiResponse: provider.config.aiResponse,
-      );
+    final updatedConfig = CalculatorConfig(
+      id: provider.config.id,
+      name: provider.config.name,
+      description: provider.config.description,
+      theme: provider.config.theme,
+      layout: provider.config.layout,
+      appBackground: updatedAppBackground, // 🔧 总是更新APP背景配置
+      version: provider.config.version,
+      createdAt: provider.config.createdAt,
+      authorPrompt: provider.config.authorPrompt,
+      thinkingProcess: provider.config.thinkingProcess,
+      aiResponse: provider.config.aiResponse,
+    );
 
-      provider.applyConfig(updatedConfig);
-      widget.onConfigUpdated(updatedConfig);
-    }
+    // 🔧 强制刷新provider配置
+    provider.applyConfig(updatedConfig);
+    widget.onConfigUpdated(updatedConfig);
+    
+    // 🔧 添加调试信息
+    print('🔧 透明度应用成功：按键透明度=${_buttonOpacity}，显示区域透明度=${_displayOpacity}');
     
     // 显示应用成功提示
     ScaffoldMessenger.of(context).showSnackBar(

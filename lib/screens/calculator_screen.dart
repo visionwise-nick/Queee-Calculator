@@ -229,8 +229,19 @@ class CalculatorScreen extends StatelessWidget {
     final theme = config.theme;
     final appBackground = config.appBackground;
     
+    // 🔧 添加调试信息
+    print('🔧 构建背景装饰：');
+    print('  - APP背景配置: ${appBackground != null ? "存在" : "无"}');
+    if (appBackground != null) {
+      print('  - 背景图URL: ${appBackground.backgroundImageUrl != null ? "存在(${appBackground.backgroundImageUrl!.length}字符)" : "无"}');
+      print('  - 背景透明度: ${appBackground.backgroundOpacity ?? 1.0}');
+      print('  - 按键透明度: ${appBackground.buttonOpacity ?? 1.0}');
+      print('  - 显示区域透明度: ${appBackground.displayOpacity ?? 1.0}');
+    }
+    
     // 优先使用APP背景配置
     if (appBackground?.backgroundImageUrl != null) {
+      print('🔧 使用APP背景图');
       return BoxDecoration(
         image: DecorationImage(
           image: _getCachedBackgroundImage(appBackground!.backgroundImageUrl!),
@@ -245,6 +256,7 @@ class CalculatorScreen extends StatelessWidget {
       );
     }
     
+    print('🔧 使用主题背景');
     // 回退到主题背景
     return BoxDecoration(
       color: theme.backgroundGradient == null && theme.backgroundImage == null 
@@ -306,19 +318,44 @@ class CalculatorScreen extends StatelessWidget {
 
   /// 获取缓存的背景图片，避免重复解码造成闪烁
   MemoryImage _getCachedBackgroundImage(String base64String) {
+    // 🔧 添加调试信息
+    print('🔧 获取缓存背景图，URL长度：${base64String.length}');
+    
     if (!_backgroundImageCache.containsKey(base64String)) {
-      final bytes = _base64ToBytes(base64String);
-      _backgroundImageCache[base64String] = MemoryImage(bytes);
+      print('🔧 背景图不在缓存中，开始解码...');
+      try {
+        final bytes = _base64ToBytes(base64String);
+        _backgroundImageCache[base64String] = MemoryImage(bytes);
+        print('🔧 背景图解码成功，字节数：${bytes.length}');
+      } catch (e) {
+        print('🔧 背景图解码失败：$e');
+        // 如果解码失败，返回一个默认图片或抛出异常
+        rethrow;
+      }
+    } else {
+      print('🔧 使用缓存的背景图');
     }
     return _backgroundImageCache[base64String]!;
   }
 
   /// 将base64字符串转换为字节数组
   Uint8List _base64ToBytes(String base64String) {
+    // 🔧 添加调试信息
+    print('🔧 转换base64字符串，原始长度：${base64String.length}');
+    
     if (base64String.startsWith('data:')) {
       base64String = base64String.split(',')[1];
+      print('🔧 移除data前缀后长度：${base64String.length}');
     }
-    return base64Decode(base64String);
+    
+    try {
+      final bytes = base64Decode(base64String);
+      print('🔧 base64解码成功，字节数：${bytes.length}');
+      return bytes;
+    } catch (e) {
+      print('🔧 base64解码失败：$e');
+      rethrow;
+    }
   }
 
   /// 构建渐变色

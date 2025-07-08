@@ -16,6 +16,13 @@ class CalculatorButtonGrid extends StatelessWidget {
         final theme = provider.config.theme;
         final appBackground = provider.config.appBackground; // 🔧 获取APP背景配置
         
+        // 🔧 添加调试信息
+        print('🔧 构建按键网格：');
+        print('  - APP背景配置: ${appBackground != null ? "存在" : "无"}');
+        if (appBackground != null) {
+          print('  - 按键透明度: ${appBackground.buttonOpacity ?? 1.0}');
+        }
+        
         return LayoutBuilder(
           builder: (context, constraints) {
             // 🔧 应用按键透明度 - 在整个按键网格外层包装Opacity
@@ -28,10 +35,13 @@ class CalculatorButtonGrid extends StatelessWidget {
             
             // 如果有按键透明度设置，应用Opacity包装
             if (appBackground?.buttonOpacity != null && appBackground!.buttonOpacity! < 1.0) {
+              print('🔧 应用按键透明度: ${appBackground.buttonOpacity}');
               gridWidget = Opacity(
                 opacity: appBackground.buttonOpacity!,
                 child: gridWidget,
               );
+            } else {
+              print('🔧 不应用按键透明度（透明度为1.0或未设置）');
             }
             
             return gridWidget;
