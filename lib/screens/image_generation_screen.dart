@@ -130,11 +130,15 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 自定义生成区域（移到上面）
+          // 🔧 新增：独立的透明度控制区域（放在最上面）
+          _buildOpacityControlCard(),
+          const SizedBox(height: 20),
+          
+          // 自定义生成区域
           _buildCustomGenerationCard(),
           const SizedBox(height: 20),
           
-          // 快速选择区域（移到下面）
+          // 快速选择区域
           _buildQuickSelectionCard(),
           const SizedBox(height: 20),
           
@@ -400,66 +404,6 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
                 ),
                 contentPadding: const EdgeInsets.all(16),
               ),
-            ),
-            const SizedBox(height: 20),
-            
-            // 🔧 修正透明度控制区域
-            Text(
-              '界面透明度控制',
-              style: TextStyle(
-                fontWeight: FontWeight.w600,
-                color: Colors.grey.shade700,
-              ),
-            ),
-            const SizedBox(height: 12),
-            
-            // 显示区域透明度滑块
-            Row(
-              children: [
-                Icon(Icons.monitor, color: Colors.grey.shade600, size: 20),
-                const SizedBox(width: 8),
-                Text('显示区域透明度', style: TextStyle(color: Colors.grey.shade700)),
-                const Spacer(),
-                Text('${(_displayOpacity * 100).round()}%', 
-                     style: TextStyle(color: Colors.grey.shade700, fontWeight: FontWeight.w600)),
-              ],
-            ),
-            Slider(
-              value: _displayOpacity,
-              min: 0.1,
-              max: 1.0,
-              divisions: 9,
-              activeColor: const Color(0xFF6366F1),
-              onChanged: (value) {
-                setState(() {
-                  _displayOpacity = value;
-                });
-              },
-            ),
-            const SizedBox(height: 8),
-            
-            // 按键透明度滑块
-            Row(
-              children: [
-                Icon(Icons.keyboard, color: Colors.grey.shade600, size: 20),
-                const SizedBox(width: 8),
-                Text('按键透明度', style: TextStyle(color: Colors.grey.shade700)),
-                const Spacer(),
-                Text('${(_buttonOpacity * 100).round()}%', 
-                     style: TextStyle(color: Colors.grey.shade700, fontWeight: FontWeight.w600)),
-              ],
-            ),
-            Slider(
-              value: _buttonOpacity,
-              min: 0.1,
-              max: 1.0,
-              divisions: 9,
-              activeColor: const Color(0xFF6366F1),
-              onChanged: (value) {
-                setState(() {
-                  _buttonOpacity = value;
-                });
-              },
             ),
             const SizedBox(height: 20),
             
@@ -1065,13 +1009,13 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
       final taskIds = <String>[];
       
       for (final button in selectedButtons) {
-        // 🔧 包含按键文字符号的提示词
-        final prompt = '$basePrompt - 为按键"${button.label}"生成背景图案，图案中要包含"${button.label}"文字';
+        // 🔧 优化提示词，强调简洁性和文字可读性
+        final prompt = '$basePrompt - 简洁的背景图案，为按键"${button.label}"设计，确保文字"${button.label}"清晰突出显示，背景图案简单不抢夺文字焦点';
         
         final taskId = await TaskService.submitButtonPatternTask(
           prompt: prompt,
-          style: 'minimal',
-          size: '48x48',
+          style: 'simple', // 🔧 改为simple风格，降低复杂度，让文字更突出
+          size: '32x32',   // 🔧 降低分辨率从48x48到32x32，减少过度细节
         );
         
         taskIds.add(taskId);
@@ -1114,14 +1058,14 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
       // 回退到同步生成
       for (int i = 0; i < selectedButtons.length; i++) {
         final button = selectedButtons[i];
-        // 🔧 包含按键文字符号的提示词
-        final prompt = '$basePrompt - 为按键"${button.label}"生成背景图案，图案中要包含"${button.label}"文字';
+        // 🔧 优化提示词，强调简洁性和文字可读性
+        final prompt = '$basePrompt - 简洁的背景图案，为按键"${button.label}"设计，确保文字"${button.label}"清晰突出显示，背景图案简单不抢夺文字焦点';
         
         try {
           final result = await AIService.generatePattern(
             prompt: prompt,
-            style: 'minimal',
-            size: '48x48',
+            style: 'simple', // 🔧 改为simple风格，保持一致性
+            size: '32x32',   // 🔧 降低分辨率，保持一致性
           );
 
           if (result['success'] == true && result['pattern_url'] != null) {
@@ -1160,24 +1104,35 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
       if (patternUrl != null) {
         _updateButtonPattern(button, patternUrl);
         
+        // 🔧 强制刷新界面状态以确保按键背景图更新显示
+        if (mounted) {
+          setState(() {
+            // 触发widget重建，确保按键背景图更新显示
+          });
+        }
+        
         // 显示成功提示
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('✅ 按键"${button.label}"背景图生成完成并已自动应用！'),
-            backgroundColor: Colors.green,
-            duration: const Duration(seconds: 2),
-          ),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('✅ 按键"${button.label}"背景图生成完成并已自动应用！'),
+              backgroundColor: Colors.green,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
       }
       
     } catch (e) {
       print('解析按键背景图生成结果失败: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('😅 按键"${button.label}"背景图生成完成，但应用时遇到问题：$e'),
-          backgroundColor: Colors.orange,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('😅 按键"${button.label}"背景图生成完成，但应用时遇到问题：$e'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
     }
   }
 
@@ -1280,8 +1235,8 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
       final taskId = await TaskService.submitAppBackgroundTask(
         prompt: _appBgPromptController.text.trim(),
         style: 'modern',
-        size: '1080x1920',
-        quality: 'high',
+        size: '1440x2560', // 🔧 提高分辨率从1080x1920到1440x2560，解决模糊问题
+        quality: 'ultra', // 🔧 提升质量从high到ultra，获得更清晰的背景图
         theme: 'calculator',
       );
       
@@ -1326,8 +1281,8 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
         final result = await AIService.generateAppBackground(
           prompt: _appBgPromptController.text.trim(),
           style: 'modern',
-          size: '1080x1920',
-          quality: 'high',
+          size: '1440x2560', // 🔧 提高分辨率，保持一致性
+          quality: 'ultra',  // 🔧 提升质量，保持一致性
           theme: 'calculator',
         );
 
@@ -1371,37 +1326,51 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
       final backgroundUrl = resultData['background_url'];
       
       if (backgroundUrl != null) {
-        setState(() {
-          _generatedAppBgUrl = backgroundUrl;
-        });
+        // 🔧 强制刷新界面状态
+        if (mounted) {
+          setState(() {
+            _generatedAppBgUrl = backgroundUrl;
+          });
+        }
         
         // 自动应用背景
         _applyAppBackground();
         
+        // 🔧 强制刷新整个页面以确保更新生效
+        if (mounted) {
+          setState(() {
+            // 触发完整的widget重建
+          });
+        }
+        
         // 显示成功提示
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('✅ APP背景图生成完成并已自动应用！'),
-            backgroundColor: Colors.green,
-            action: SnackBarAction(
-              label: '查看',
-              textColor: Colors.white,
-              onPressed: () {
-                // 滚动到预览区域
-              },
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('✅ APP背景图生成完成并已自动应用！'),
+              backgroundColor: Colors.green,
+              action: SnackBarAction(
+                label: '查看',
+                textColor: Colors.white,
+                onPressed: () {
+                  // 滚动到预览区域
+                },
+              ),
             ),
-          ),
-        );
+          );
+        }
       }
       
     } catch (e) {
       print('解析APP背景图生成结果失败: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('😅 生成完成，但应用时遇到问题：$e'),
-          backgroundColor: Colors.orange,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('😅 生成完成，但应用时遇到问题：$e'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
     }
   }
 
@@ -1460,6 +1429,270 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
     );
   }
 
+  /// 🔧 新增：独立的透明度控制卡片
+  Widget _buildOpacityControlCard() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 标题区域
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.purple.shade100,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(Icons.opacity, color: Colors.purple.shade700),
+                ),
+                const SizedBox(width: 12),
+                const Text(
+                  '透明度控制',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const Spacer(),
+                // 🔧 新增：快速预设按钮
+                PopupMenuButton<double>(
+                  icon: Icon(Icons.tune, color: Colors.purple.shade600),
+                  tooltip: '快速预设',
+                  onSelected: (value) {
+                    setState(() {
+                      _buttonOpacity = value;
+                      _displayOpacity = value;
+                    });
+                    _applyOpacityChanges();
+                  },
+                  itemBuilder: (context) => [
+                    const PopupMenuItem(
+                      value: 1.0,
+                      child: Text('完全不透明 (100%)'),
+                    ),
+                    const PopupMenuItem(
+                      value: 0.8,
+                      child: Text('轻微透明 (80%)'),
+                    ),
+                    const PopupMenuItem(
+                      value: 0.6,
+                      child: Text('中等透明 (60%)'),
+                    ),
+                    const PopupMenuItem(
+                      value: 0.4,
+                      child: Text('高度透明 (40%)'),
+                    ),
+                    const PopupMenuItem(
+                      value: 0.2,
+                      child: Text('极度透明 (20%)'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            
+            // 说明文字
+            Text(
+              '调节界面元素透明度，让APP背景图更好地显示',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey.shade600,
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 20),
+            
+            // 显示区域透明度滑块
+            Row(
+              children: [
+                Icon(Icons.monitor, color: Colors.grey.shade600, size: 20),
+                const SizedBox(width: 8),
+                Text('显示区域透明度', style: TextStyle(color: Colors.grey.shade700)),
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.purple.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    '${(_displayOpacity * 100).round()}%', 
+                    style: TextStyle(
+                      color: Colors.purple.shade700, 
+                      fontWeight: FontWeight.w600,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Slider(
+              value: _displayOpacity,
+              min: 0.1,
+              max: 1.0,
+              divisions: 9,
+              activeColor: Colors.purple.shade600,
+              inactiveColor: Colors.purple.shade100,
+              onChanged: (value) {
+                setState(() {
+                  _displayOpacity = value;
+                });
+              },
+              onChangeEnd: (value) {
+                _applyOpacityChanges();
+              },
+            ),
+            const SizedBox(height: 16),
+            
+            // 按键透明度滑块
+            Row(
+              children: [
+                Icon(Icons.keyboard, color: Colors.grey.shade600, size: 20),
+                const SizedBox(width: 8),
+                Text('按键透明度', style: TextStyle(color: Colors.grey.shade700)),
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.purple.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    '${(_buttonOpacity * 100).round()}%', 
+                    style: TextStyle(
+                      color: Colors.purple.shade700, 
+                      fontWeight: FontWeight.w600,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Slider(
+              value: _buttonOpacity,
+              min: 0.1,
+              max: 1.0,
+              divisions: 9,
+              activeColor: Colors.purple.shade600,
+              inactiveColor: Colors.purple.shade100,
+              onChanged: (value) {
+                setState(() {
+                  _buttonOpacity = value;
+                });
+              },
+              onChangeEnd: (value) {
+                _applyOpacityChanges();
+              },
+            ),
+            const SizedBox(height: 16),
+            
+            // 操作按钮
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      setState(() {
+                        _buttonOpacity = 1.0;
+                        _displayOpacity = 1.0;
+                      });
+                      _applyOpacityChanges();
+                    },
+                    icon: const Icon(Icons.refresh, size: 16),
+                    label: const Text('重置'),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: _applyOpacityChanges,
+                    icon: const Icon(Icons.check, size: 16),
+                    label: const Text('立即应用'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.purple.shade600,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 🔧 新增：应用透明度变化
+  void _applyOpacityChanges() {
+    // 如果有现有的APP背景，更新透明度设置
+    final provider = Provider.of<CalculatorProvider>(context, listen: false);
+    final currentAppBackground = provider.config.appBackground;
+    
+    if (currentAppBackground != null) {
+      final updatedAppBackground = AppBackgroundConfig(
+        backgroundImageUrl: currentAppBackground.backgroundImageUrl,
+        backgroundType: currentAppBackground.backgroundType,
+        backgroundColor: currentAppBackground.backgroundColor,
+        backgroundGradient: currentAppBackground.backgroundGradient,
+        backgroundOpacity: currentAppBackground.backgroundOpacity ?? 1.0,
+        buttonOpacity: _buttonOpacity,
+        displayOpacity: _displayOpacity,
+      );
+
+      final updatedConfig = CalculatorConfig(
+        id: provider.config.id,
+        name: provider.config.name,
+        description: provider.config.description,
+        theme: provider.config.theme,
+        layout: provider.config.layout,
+        appBackground: updatedAppBackground,
+        version: provider.config.version,
+        createdAt: provider.config.createdAt,
+        authorPrompt: provider.config.authorPrompt,
+        thinkingProcess: provider.config.thinkingProcess,
+        aiResponse: provider.config.aiResponse,
+      );
+
+      provider.applyConfig(updatedConfig);
+      widget.onConfigUpdated(updatedConfig);
+    }
+    
+    // 显示应用成功提示
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('✅ 透明度已应用！按键: ${(_buttonOpacity * 100).round()}%, 显示区域: ${(_displayOpacity * 100).round()}%'),
+        backgroundColor: Colors.purple.shade600,
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
 
 
   void _showResetDialog() {
