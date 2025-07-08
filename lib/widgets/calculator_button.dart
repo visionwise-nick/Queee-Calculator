@@ -462,8 +462,8 @@ class _CalculatorButtonWidgetState extends State<CalculatorButtonWidget>
         if (_cachedMemoryImage != null && _lastBackgroundImageData == backgroundImage) {
           return DecorationImage(
             image: _cachedMemoryImage!,
-            fit: BoxFit.contain, // 🔧 改为contain模式，避免背景图片过度拉伸
-            opacity: 0.7, // 🔧 添加透明度，避免背景图片过于突出，保证文字可读性
+            fit: BoxFit.cover, // 🔧 改为cover模式，完全覆盖按键区域
+            opacity: 0.8, // 🔧 增加透明度，避免背景图片过于突出，保证文字可读性
           );
         } else {
           // 如果缓存不匹配，重新加载
@@ -471,8 +471,8 @@ class _CalculatorButtonWidgetState extends State<CalculatorButtonWidget>
           if (_cachedMemoryImage != null) {
             return DecorationImage(
               image: _cachedMemoryImage!,
-              fit: BoxFit.contain, // 🔧 改为contain模式，避免背景图片过度拉伸
-              opacity: 0.7, // 🔧 添加透明度，避免背景图片过于突出，保证文字可读性
+              fit: BoxFit.cover, // 🔧 改为cover模式，完全覆盖按键区域
+              opacity: 0.8, // 🔧 增加透明度，避免背景图片过于突出，保证文字可读性
             );
           }
           return null;
@@ -481,8 +481,8 @@ class _CalculatorButtonWidgetState extends State<CalculatorButtonWidget>
         // 处理有效的URL格式
         return DecorationImage(
           image: NetworkImage(backgroundImage),
-          fit: BoxFit.contain, // 🔧 改为contain模式，避免背景图片过度拉伸
-          opacity: 0.7, // 🔧 添加透明度，避免背景图片过于突出，保证文字可读性
+          fit: BoxFit.cover, // 🔧 改为cover模式，完全覆盖按键区域
+          opacity: 0.8, // 🔧 增加透明度，避免背景图片过于突出，保证文字可读性
           onError: (exception, stackTrace) {
             print('Failed to load button background image: $backgroundImage');
           },
@@ -498,7 +498,7 @@ class _CalculatorButtonWidgetState extends State<CalculatorButtonWidget>
     if (widget.button.backgroundPattern != null) {
       return DecorationImage(
         image: _generatePatternImage(widget.button.backgroundPattern!),
-        fit: BoxFit.contain, // 🔧 改为contain模式，避免背景图片过度拉伸
+        fit: BoxFit.cover, // 🔧 改为cover模式，完全覆盖按键区域
         opacity: widget.button.patternOpacity ?? 0.3,
       );
     }

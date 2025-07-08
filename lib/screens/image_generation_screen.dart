@@ -1058,7 +1058,7 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
         final result = await AIService.generatePattern(
           prompt: prompt,
           style: 'minimal',
-          size: '16x16', // 🔧 进一步降低分辨率到16x16，更适合小按键显示，减少字体过小问题
+          size: '48x48', // 🔧 增加分辨率到48x48，提供更好的显示效果和细节
         );
 
         if (result['success'] == true && result['pattern_url'] != null) {

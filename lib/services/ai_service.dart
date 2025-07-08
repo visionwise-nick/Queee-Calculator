@@ -557,8 +557,18 @@ class AIService {
         'appBackground.backgroundType',
         'appBackground.backgroundColor',
         'appBackground.backgroundGradient',
-        'appBackground.backgroundOpacity'
+        'appBackground.backgroundOpacity',
+        'appBackground.buttonOpacity', // 🔧 新增：保护按键透明度
+        'appBackground.displayOpacity', // 🔧 新增：保护显示区域透明度
       ]);
+    }
+    
+    // 🔧 新增：即使没有背景图，也要保护透明度设置
+    if (config.appBackground?.buttonOpacity != null && config.appBackground!.buttonOpacity! < 1.0) {
+      protectedFields.add('appBackground.buttonOpacity');
+    }
+    if (config.appBackground?.displayOpacity != null && config.appBackground!.displayOpacity! < 1.0) {
+      protectedFields.add('appBackground.displayOpacity');
     }
     
     // 检查主题背景图
@@ -574,6 +584,12 @@ class AIService {
     for (final button in config.layout.buttons) {
       if (button.backgroundImage != null) {
         protectedFields.add('button.${button.id}.backgroundImage');
+        // 🔧 新增：如果按键有背景图，保护更多相关属性
+        protectedFields.addAll([
+          'button.${button.id}.backgroundColor',
+          'button.${button.id}.opacity',
+          'button.${button.id}.borderRadius',
+        ]);
       }
       // 检查按钮背景图案
       if (button.backgroundPattern != null) {
@@ -586,6 +602,12 @@ class AIService {
     }
     
     final hasWorkshopContent = protectedFields.isNotEmpty;
+    
+    // 🔧 新增：如果有工坊内容，添加通配符保护
+    if (hasWorkshopContent) {
+      protectedFields.add('*backgroundImage*'); // 保护所有背景图字段
+      protectedFields.add('*Opacity*'); // 保护所有透明度字段
+    }
     
     return (hasWorkshopContent, protectedFields);
   }
