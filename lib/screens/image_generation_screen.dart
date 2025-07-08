@@ -30,9 +30,9 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
   bool _isGeneratingButtonBg = false;
   String? _generatedAppBgUrl;
 
-  // 🔧 新增：透明度控制变量
-  double _backgroundOpacity = 0.7; // 背景透明度
-  double _buttonOpacity = 0.7;     // 按键透明度
+  // 🔧 修正透明度控制变量概念
+  double _buttonOpacity = 0.7;     // 按键透明度 - 让背景图可以透过来
+  double _displayOpacity = 0.7;    // 显示区域透明度 - 让背景图可以透过来
 
   // 按键背景图相关状态
   Set<String> _selectedButtonBgIds = {}; // 多选按键ID集合（按键背景图）
@@ -392,9 +392,9 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
             ),
             const SizedBox(height: 20),
             
-            // 🔧 新增：透明度控制区域
+            // 🔧 修正透明度控制区域
             Text(
-              '透明度控制',
+              '界面透明度控制',
               style: TextStyle(
                 fontWeight: FontWeight.w600,
                 color: Colors.grey.shade700,
@@ -402,26 +402,26 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
             ),
             const SizedBox(height: 12),
             
-            // 背景透明度滑块
+            // 显示区域透明度滑块
             Row(
               children: [
-                Icon(Icons.wallpaper, color: Colors.grey.shade600, size: 20),
+                Icon(Icons.monitor, color: Colors.grey.shade600, size: 20),
                 const SizedBox(width: 8),
-                Text('背景透明度', style: TextStyle(color: Colors.grey.shade700)),
+                Text('显示区域透明度', style: TextStyle(color: Colors.grey.shade700)),
                 const Spacer(),
-                Text('${(_backgroundOpacity * 100).round()}%', 
+                Text('${(_displayOpacity * 100).round()}%', 
                      style: TextStyle(color: Colors.grey.shade700, fontWeight: FontWeight.w600)),
               ],
             ),
             Slider(
-              value: _backgroundOpacity,
+              value: _displayOpacity,
               min: 0.1,
               max: 1.0,
               divisions: 9,
               activeColor: const Color(0xFF6366F1),
               onChanged: (value) {
                 setState(() {
-                  _backgroundOpacity = value;
+                  _displayOpacity = value;
                 });
               },
             ),
@@ -921,18 +921,18 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
                   label: Text(example, style: const TextStyle(fontSize: 12)),
                   onPressed: () {
                     String prompt = '';
-                    if (example.contains('几何图案')) prompt = '简洁的几何图案背景，适合按键使用的现代设计';
-                    else if (example.contains('自然纹理')) prompt = '自然纹理背景，叶子或水波纹理，清新自然风格';
-                    else if (example.contains('科技线条')) prompt = '科技感线条图案，未来主义设计风格';
-                    else if (example.contains('抽象艺术')) prompt = '抽象艺术图案，色彩丰富的创意设计';
-                    else if (example.contains('金属质感')) prompt = '金属质感纹理，工业风格的按键背景';
-                    else if (example.contains('木纹材质')) prompt = '真实木纹纹理，自然温暖的木质感';
-                    else if (example.contains('水晶质感')) prompt = '透明水晶质感，带有光泽和折射效果的现代设计';
-                    else if (example.contains('霓虹风格')) prompt = '霓虹灯风格，充满活力的发光效果，适合动感按键';
-                    else if (example.contains('机械风格')) prompt = '机械工业风格，齿轮和螺丝纹理，精密感设计';
-                    else if (example.contains('大理石纹')) prompt = '优雅的大理石纹理，自然石材质感，高档奢华风格';
-                    else if (example.contains('渐变色彩')) prompt = '平滑的渐变色彩，现代时尚的色彩过渡效果';
-                    else if (example.contains('极简风格')) prompt = '极简主义设计，纯净的色彩和线条，现代简约风格';
+                    if (example.contains('几何图案')) prompt = '简洁的几何图案背景，文字清晰可读，适合按键使用的现代设计';
+                    else if (example.contains('自然纹理')) prompt = '自然纹理背景，叶子或水波纹理，清新自然风格，确保文字清晰';
+                    else if (example.contains('科技线条')) prompt = '科技感线条图案，未来主义设计风格，文字突出显示';
+                    else if (example.contains('抽象艺术')) prompt = '抽象艺术图案，色彩丰富的创意设计，文字对比度高';
+                    else if (example.contains('金属质感')) prompt = '金属质感纹理，工业风格的按键背景，文字有光泽效果';
+                    else if (example.contains('木纹材质')) prompt = '真实木纹纹理，自然温暖的木质感，文字清晰可见';
+                    else if (example.contains('水晶质感')) prompt = '透明水晶质感，带有光泽和折射效果的现代设计，文字有反光效果';
+                    else if (example.contains('霓虹风格')) prompt = '霓虹灯风格，充满活力的发光效果，适合动感按键，文字发光';
+                    else if (example.contains('机械风格')) prompt = '机械工业风格，齿轮和螺丝纹理，精密感设计，文字有金属感';
+                    else if (example.contains('大理石纹')) prompt = '优雅的大理石纹理，自然石材质感，高档奢华风格，文字有质感';
+                    else if (example.contains('渐变色彩')) prompt = '平滑的渐变色彩，现代时尚的色彩过渡效果，文字有渐变效果';
+                    else if (example.contains('极简风格')) prompt = '极简主义设计，纯净的色彩和线条，现代简约风格，文字简洁明了';
                     _buttonPatternPromptController.text = prompt;
                   },
                   backgroundColor: Colors.grey.shade100,
@@ -946,7 +946,7 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
               controller: _buttonPatternPromptController,
               maxLines: 3,
               decoration: InputDecoration(
-                hintText: '描述你想要的按键背景图案...\n例如：简洁的几何图案，适合计算器按键的现代设计',
+                hintText: '描述你想要的按键背景图案...\n例如：简洁的几何图案，适合计算器按键的现代设计\n\n🔧 注意：生成的图案会包含按键文字符号',
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide(color: Colors.grey.shade300),
@@ -1051,13 +1051,14 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
     
     for (int i = 0; i < selectedButtons.length; i++) {
       final button = selectedButtons[i];
-      final prompt = '$basePrompt - 为按键"${button.label}"生成背景图案';
+      // 🔧 包含按键文字符号的提示词
+      final prompt = '$basePrompt - 为按键"${button.label}"生成背景图案，图案中要包含"${button.label}"文字';
       
       try {
         final result = await AIService.generatePattern(
           prompt: prompt,
           style: 'minimal',
-          size: '64x64', // 🔧 降低分辨率，从128x128改为64x64，更适合按键显示
+          size: '32x32', // 🔧 进一步降低分辨率到32x32，更适合按键显示
         );
 
         if (result['success'] == true && result['pattern_url'] != null) {
@@ -1211,8 +1212,9 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
     final newAppBackground = AppBackgroundConfig(
       backgroundImageUrl: _generatedAppBgUrl,
       backgroundType: 'image',
-      backgroundOpacity: _backgroundOpacity, // 🔧 使用透明度变量
-      buttonOpacity: _buttonOpacity,    // 🔧 使用透明度变量
+      backgroundOpacity: 1.0, // 🔧 背景图保持不透明，让背景图清晰可见
+      buttonOpacity: _buttonOpacity,    // 🔧 按键透明度，让背景图透过来
+      displayOpacity: _displayOpacity,  // 🔧 显示区域透明度，让背景图透过来
     );
 
     final updatedConfig = CalculatorConfig(
@@ -1233,7 +1235,7 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
     
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('✅ 背景已应用！背景透明度：${(_backgroundOpacity * 100).round()}%，按键透明度：${(_buttonOpacity * 100).round()}%'),
+        content: Text('✅ 背景已应用！按键透明度：${(_buttonOpacity * 100).round()}%，显示区域透明度：${(_displayOpacity * 100).round()}%'),
         backgroundColor: Colors.green,
       ),
     );

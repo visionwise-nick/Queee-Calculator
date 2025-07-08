@@ -9,7 +9,8 @@ class AppBackgroundConfig {
   final List<String>? backgroundGradient;
   final String? backgroundPattern;
   final double? backgroundOpacity;
-  final double? buttonOpacity; // 🔧 新增：按键透明度控制
+  final double? buttonOpacity; // �� 新增：按键透明度控制
+  final double? displayOpacity; // 🔧 新增：显示区域透明度控制
   final String? backgroundBlendMode; // multiply, overlay, screen, etc.
   final bool? parallaxEffect;
   final double? parallaxIntensity;
@@ -22,6 +23,7 @@ class AppBackgroundConfig {
     this.backgroundPattern,
     this.backgroundOpacity = 1.0,
     this.buttonOpacity = 1.0, // 🔧 新增：默认按键透明度为100%
+    this.displayOpacity = 1.0, // 🔧 新增：默认显示区域透明度为100%
     this.backgroundBlendMode,
     this.parallaxEffect = false,
     this.parallaxIntensity = 0.1,
@@ -36,6 +38,7 @@ class AppBackgroundConfig {
       backgroundPattern: json['backgroundPattern'] as String?,
       backgroundOpacity: (json['backgroundOpacity'] as num?)?.toDouble() ?? 1.0,
       buttonOpacity: (json['buttonOpacity'] as num?)?.toDouble() ?? 1.0, // 🔧 新增
+      displayOpacity: (json['displayOpacity'] as num?)?.toDouble() ?? 1.0, // 🔧 新增
       backgroundBlendMode: json['backgroundBlendMode'] as String?,
       parallaxEffect: json['parallaxEffect'] as bool? ?? false,
       parallaxIntensity: (json['parallaxIntensity'] as num?)?.toDouble() ?? 0.1,
@@ -51,6 +54,7 @@ class AppBackgroundConfig {
       'backgroundPattern': backgroundPattern,
       'backgroundOpacity': backgroundOpacity,
       'buttonOpacity': buttonOpacity, // 🔧 新增
+      'displayOpacity': displayOpacity, // 🔧 新增
       'backgroundBlendMode': backgroundBlendMode,
       'parallaxEffect': parallaxEffect,
       'parallaxIntensity': parallaxIntensity,
@@ -65,6 +69,7 @@ class AppBackgroundConfig {
     String? backgroundPattern,
     double? backgroundOpacity,
     double? buttonOpacity, // 🔧 新增
+    double? displayOpacity, // 🔧 新增
     String? backgroundBlendMode,
     bool? parallaxEffect,
     double? parallaxIntensity,
@@ -77,6 +82,7 @@ class AppBackgroundConfig {
       backgroundPattern: backgroundPattern ?? this.backgroundPattern,
       backgroundOpacity: backgroundOpacity ?? this.backgroundOpacity,
       buttonOpacity: buttonOpacity ?? this.buttonOpacity, // 🔧 新增
+      displayOpacity: displayOpacity ?? this.displayOpacity, // 🔧 新增
       backgroundBlendMode: backgroundBlendMode ?? this.backgroundBlendMode,
       parallaxEffect: parallaxEffect ?? this.parallaxEffect,
       parallaxIntensity: parallaxIntensity ?? this.parallaxIntensity,
