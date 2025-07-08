@@ -30,6 +30,10 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
   bool _isGeneratingButtonBg = false;
   String? _generatedAppBgUrl;
 
+  // 🔧 新增：透明度控制变量
+  double _backgroundOpacity = 0.7; // 背景透明度
+  double _buttonOpacity = 0.7;     // 按键透明度
+
   // 按键背景图相关状态
   Set<String> _selectedButtonBgIds = {}; // 多选按键ID集合（按键背景图）
   bool _selectAllBg = false;
@@ -385,6 +389,66 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
                 ),
                 contentPadding: const EdgeInsets.all(16),
               ),
+            ),
+            const SizedBox(height: 20),
+            
+            // 🔧 新增：透明度控制区域
+            Text(
+              '透明度控制',
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: Colors.grey.shade700,
+              ),
+            ),
+            const SizedBox(height: 12),
+            
+            // 背景透明度滑块
+            Row(
+              children: [
+                Icon(Icons.wallpaper, color: Colors.grey.shade600, size: 20),
+                const SizedBox(width: 8),
+                Text('背景透明度', style: TextStyle(color: Colors.grey.shade700)),
+                const Spacer(),
+                Text('${(_backgroundOpacity * 100).round()}%', 
+                     style: TextStyle(color: Colors.grey.shade700, fontWeight: FontWeight.w600)),
+              ],
+            ),
+            Slider(
+              value: _backgroundOpacity,
+              min: 0.1,
+              max: 1.0,
+              divisions: 9,
+              activeColor: const Color(0xFF6366F1),
+              onChanged: (value) {
+                setState(() {
+                  _backgroundOpacity = value;
+                });
+              },
+            ),
+            const SizedBox(height: 8),
+            
+            // 按键透明度滑块
+            Row(
+              children: [
+                Icon(Icons.keyboard, color: Colors.grey.shade600, size: 20),
+                const SizedBox(width: 8),
+                Text('按键透明度', style: TextStyle(color: Colors.grey.shade700)),
+                const Spacer(),
+                Text('${(_buttonOpacity * 100).round()}%', 
+                     style: TextStyle(color: Colors.grey.shade700, fontWeight: FontWeight.w600)),
+              ],
+            ),
+            Slider(
+              value: _buttonOpacity,
+              min: 0.1,
+              max: 1.0,
+              divisions: 9,
+              activeColor: const Color(0xFF6366F1),
+              onChanged: (value) {
+                setState(() {
+                  _buttonOpacity = value;
+                });
+              },
             ),
             const SizedBox(height: 20),
             
@@ -993,7 +1057,7 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
         final result = await AIService.generatePattern(
           prompt: prompt,
           style: 'minimal',
-          size: '128x128',
+          size: '64x64', // 🔧 降低分辨率，从128x128改为64x64，更适合按键显示
         );
 
         if (result['success'] == true && result['pattern_url'] != null) {
@@ -1147,7 +1211,8 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
     final newAppBackground = AppBackgroundConfig(
       backgroundImageUrl: _generatedAppBgUrl,
       backgroundType: 'image',
-      backgroundOpacity: 1.0,
+      backgroundOpacity: _backgroundOpacity, // 🔧 使用透明度变量
+      buttonOpacity: _buttonOpacity,    // 🔧 使用透明度变量
     );
 
     final updatedConfig = CalculatorConfig(
@@ -1167,8 +1232,8 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
     widget.onConfigUpdated(updatedConfig);
     
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('✅ 背景已应用！'),
+      SnackBar(
+        content: Text('✅ 背景已应用！背景透明度：${(_backgroundOpacity * 100).round()}%，按键透明度：${(_buttonOpacity * 100).round()}%'),
         backgroundColor: Colors.green,
       ),
     );
