@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/calculator_dsl.dart';
 import '../services/ai_service.dart';
-import '../services/task_service.dart'; // 🔧 新增：导入任务服务
+ // 🔧 新增：导入任务服务
 import '../providers/calculator_provider.dart';
-import '../widgets/generation_status_widget.dart'; // 🔧 新增：导入状态显示组件
+
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -117,20 +117,11 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
           ],
         ),
       ),
-      body: Column(
+      body: TabBarView(
+        controller: _tabController,
         children: [
-          // 🔧 新增：全局生成状态栏
-          const GlobalGenerationStatusBar(),
-          
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                _buildButtonBackgroundTab(), // 按键背景tab放到第一个
-                _buildAppBackgroundTab(),    // APP背景tab放到第二个
-              ],
-            ),
-          ),
+          _buildButtonBackgroundTab(), // 按键背景tab放到第一个
+          _buildAppBackgroundTab(),    // APP背景tab放到第二个
         ],
       ),
     );
@@ -1017,57 +1008,14 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
     final basePrompt = _buttonPatternPromptController.text.trim();
     
     try {
-      // 🔧 使用异步任务服务提交按键背景图生成任务
-      final taskIds = <String>[];
-      
-      for (final button in selectedButtons) {
-        // 🔧 优化提示词，强调简洁性和文字可读性
-        final prompt = '$basePrompt - 简洁的背景图案，为按键"${button.label}"设计，确保文字"${button.label}"清晰突出显示，背景图案简单不抢夺文字焦点';
-        
-        final taskId = await TaskService.submitButtonPatternTask(
-          prompt: prompt,
-          style: 'simple', // 🔧 改为simple风格，降低复杂度，让文字更突出
-          size: '32x32',   // 🔧 降低分辨率从48x48到32x32，减少过度细节
-        );
-        
-        taskIds.add(taskId);
-        
-        // 注册任务完成回调
-        TaskService.registerTaskCallback(taskId, (task) {
-          if (task.status == TaskStatus.completed && task.result != null) {
-            _onButtonPatternGenerated(task, button);
-          } else if (task.status == TaskStatus.failed) {
-            _onButtonPatternGenerationFailed(task, button);
-          }
-        });
-        
-        // 添加短暂延迟避免任务提交过于频繁
-        await Future.delayed(const Duration(milliseconds: 100));
-      }
-      
-      // 显示提交成功消息
+      // 🔧 使用新的异步AIService方法
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('🎨 已提交 ${selectedButtons.length} 个按键背景图生成任务，正在后台处理...'),
+          content: Text('🎨 正在为 ${selectedButtons.length} 个按键生成背景图案...'),
           backgroundColor: Colors.blue,
-          action: SnackBarAction(
-            label: '查看进度',
-            textColor: Colors.white,
-            onPressed: () {
-              // 用户可以查看进度
-            },
-          ),
         ),
       );
       
-    } catch (e) {
-      // 任务提交失败，回退到同步方式
-      print('异步任务提交失败，回退到同步方式: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('⚠️ 后台服务不可用，正在同步处理...')),
-      );
-      
-      // 回退到同步生成
       for (int i = 0; i < selectedButtons.length; i++) {
         final button = selectedButtons[i];
         // 🔧 优化提示词，强调简洁性和文字可读性
@@ -1076,15 +1024,42 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
         try {
           final result = await AIService.generatePattern(
             prompt: prompt,
-            style: 'simple', // 🔧 改为simple风格，保持一致性
-            size: '32x32',   // 🔧 降低分辨率，保持一致性
+            style: 'simple', // 🔧 改为simple风格，降低复杂度，让文字更突出
+            size: '32x32',   // 🔧 降低分辨率从48x48到32x32，减少过度细节
+            onProgress: (progress) {
+              // 进度回调
+              print('按键${button.label}生成进度: ${(progress * 100).toInt()}%');
+            },
+            onStatusUpdate: (status) {
+              // 状态更新回调
+              print('按键${button.label}生成状态: $status');
+            },
           );
 
           if (result['success'] == true && result['pattern_url'] != null) {
             _updateButtonPattern(button, result['pattern_url']);
+            
+            // 显示成功提示
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('✅ 按键"${button.label}"背景图生成完成！'),
+                  backgroundColor: Colors.green,
+                  duration: const Duration(seconds: 2),
+                ),
+              );
+            }
           }
-        } catch (syncError) {
-          print('生成按键${button.label}背景图失败: $syncError');
+        } catch (e) {
+          print('生成按键${button.label}背景图失败: $e');
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('❌ 按键"${button.label}"背景图生成失败: $e'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
         }
         
         // 添加短暂延迟避免API限制
@@ -1093,6 +1068,7 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
         }
       }
 
+      // 显示最终完成消息
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -1101,66 +1077,20 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
           ),
         );
       }
-    }
-  }
-
-  /// 🔧 新增：按键背景图生成完成回调
-  void _onButtonPatternGenerated(GenerationTask task, CalculatorButton button) async {
-    if (!mounted) return;
-    
-    try {
-      // 解析生成结果
-      final resultData = json.decode(task.result!);
-      final patternUrl = resultData['pattern_url'];
-      
-      if (patternUrl != null) {
-        _updateButtonPattern(button, patternUrl);
-        
-        // 🔧 强制刷新界面状态以确保按键背景图更新显示
-        if (mounted) {
-          setState(() {
-            // 触发widget重建，确保按键背景图更新显示
-          });
-        }
-        
-        // 显示成功提示
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('✅ 按键"${button.label}"背景图生成完成并已自动应用！'),
-              backgroundColor: Colors.green,
-              duration: const Duration(seconds: 2),
-            ),
-          );
-        }
-      }
       
     } catch (e) {
-      print('解析按键背景图生成结果失败: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('😅 按键"${button.label}"背景图生成完成，但应用时遇到问题：$e'),
-            backgroundColor: Colors.orange,
+            content: Text('生成失败: $e'),
+            backgroundColor: Colors.red,
           ),
         );
       }
     }
   }
 
-  /// 🔧 新增：按键背景图生成失败回调
-  void _onButtonPatternGenerationFailed(GenerationTask task, CalculatorButton button) async {
-    if (!mounted) return;
-    
-    final errorMsg = task.error ?? '未知错误';
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('😓 按键"${button.label}"背景图生成失败：$errorMsg'),
-        backgroundColor: Colors.red,
-        duration: const Duration(seconds: 3),
-      ),
-    );
-  }
+
 
   void _updateButtonPattern(CalculatorButton button, String patternUrl) {
     final provider = Provider.of<CalculatorProvider>(context, listen: false);
@@ -1242,169 +1172,68 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
       return;
     }
 
+    setState(() {
+      _isGeneratingAppBg = true;
+      _generatedAppBgUrl = null;
+    });
+
     try {
-      // 🔧 使用异步任务服务提交APP背景图生成任务
-      final taskId = await TaskService.submitAppBackgroundTask(
+      final result = await AIService.generateAppBackground(
         prompt: _appBgPromptController.text.trim(),
         style: 'modern',
-        size: '1440x2560', // 🔧 提高分辨率从1080x1920到1440x2560，解决模糊问题
-        quality: 'ultra', // 🔧 提升质量从high到ultra，获得更清晰的背景图
+        size: '1440x2560', // 🔧 提高分辨率，保持一致性
+        quality: 'ultra',  // 🔧 提升质量，保持一致性
         theme: 'calculator',
-      );
-      
-      // 显示提交成功消息
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('🎨 APP背景图生成任务已提交，正在后台处理...'),
-          backgroundColor: Colors.blue,
-          action: SnackBarAction(
-            label: '查看进度',
-            textColor: Colors.white,
-            onPressed: () {
-              // 用户可以查看进度
-            },
-          ),
-        ),
-      );
-      
-      // 注册任务完成回调
-      TaskService.registerTaskCallback(taskId, (task) {
-        if (task.status == TaskStatus.completed && task.result != null) {
-          _onAppBackgroundGenerated(task);
-        } else if (task.status == TaskStatus.failed) {
-          _onAppBackgroundGenerationFailed(task);
-        }
-      });
-      
-    } catch (e) {
-      // 任务提交失败，回退到同步方式
-      print('异步任务提交失败，回退到同步方式: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('⚠️ 后台服务不可用，正在同步处理...')),
-      );
-      
-      // 回退到同步生成
-      setState(() {
-        _isGeneratingAppBg = true;
-        _generatedAppBgUrl = null;
-      });
-
-      try {
-        final result = await AIService.generateAppBackground(
-          prompt: _appBgPromptController.text.trim(),
-          style: 'modern',
-          size: '1440x2560', // 🔧 提高分辨率，保持一致性
-          quality: 'ultra',  // 🔧 提升质量，保持一致性
-          theme: 'calculator',
-        );
-
-        if (result['success'] == true && result['background_url'] != null) {
+        onProgress: (progress) {
           if (mounted) {
             setState(() {
-              _generatedAppBgUrl = result['background_url'];
+              // 可以在此处更新进度条
             });
-            // 生成成功后直接应用背景
-            _applyAppBackground();
           }
-        } else {
-          throw Exception(result['message'] ?? '生成失败');
-        }
-      } catch (syncError) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('生成失败: $syncError'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      } finally {
-        if (mounted) {
-          setState(() {
-            _isGeneratingAppBg = false;
-          });
-        }
-      }
-    }
-  }
-
-  /// 🔧 新增：APP背景图生成完成回调
-  void _onAppBackgroundGenerated(GenerationTask task) async {
-    if (!mounted) return;
-    
-    try {
-      // 解析生成结果
-      final resultData = json.decode(task.result!);
-      final backgroundUrl = resultData['background_url'];
-      
-      if (backgroundUrl != null) {
-        // 🔧 强制刷新界面状态
-        if (mounted) {
-          setState(() {
-            _generatedAppBgUrl = backgroundUrl;
-          });
-        }
-        
-        // 自动应用背景
-        _applyAppBackground();
-        
-        // 🔧 强制刷新整个页面以确保更新生效
-        if (mounted) {
-          setState(() {
-            // 触发完整的widget重建
-          });
-        }
-        
-        // 显示成功提示
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('✅ APP背景图生成完成并已自动应用！'),
-              backgroundColor: Colors.green,
-              action: SnackBarAction(
-                label: '查看',
-                textColor: Colors.white,
-                onPressed: () {
-                  // 滚动到预览区域
-                },
+        },
+        onStatusUpdate: (status) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('📊 $status'),
+                backgroundColor: Colors.blue,
+                duration: const Duration(seconds: 1),
               ),
-            ),
-          );
+            );
+          }
+        },
+      );
+
+      if (result['success'] == true && result['background_url'] != null) {
+        if (mounted) {
+          setState(() {
+            _generatedAppBgUrl = result['background_url'];
+          });
+          // 生成成功后直接应用背景
+          _applyAppBackground();
         }
+      } else {
+        throw Exception(result['message'] ?? '生成失败');
       }
-      
     } catch (e) {
-      print('解析APP背景图生成结果失败: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('😅 生成完成，但应用时遇到问题：$e'),
-            backgroundColor: Colors.orange,
+            content: Text('生成失败: $e'),
+            backgroundColor: Colors.red,
           ),
         );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isGeneratingAppBg = false;
+        });
       }
     }
   }
 
-  /// 🔧 新增：APP背景图生成失败回调
-  void _onAppBackgroundGenerationFailed(GenerationTask task) async {
-    if (!mounted) return;
-    
-    final errorMsg = task.error ?? '未知错误';
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('😓 APP背景图生成失败：$errorMsg'),
-        backgroundColor: Colors.red,
-        action: SnackBarAction(
-          label: '重试',
-          textColor: Colors.white,
-          onPressed: () {
-            _generateAppBackground();
-          },
-        ),
-      ),
-    );
-  }
+
 
   void _applyAppBackground() {
     if (_generatedAppBgUrl == null) return;

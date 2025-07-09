@@ -4,15 +4,56 @@ import '../models/calculator_dsl.dart';
 import 'conversation_service.dart';
 import 'dart:async';
 
+/// 🔧 新增：异步任务状态枚举
+enum AITaskStatus { pending, processing, completed, failed }
+
+/// 🔧 新增：任务结果类
+class TaskResult {
+  final String taskId;
+  final AITaskStatus status;
+  final dynamic result;
+  final String? error;
+  final double? progress;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+
+  TaskResult({
+    required this.taskId,
+    required this.status,
+    this.result,
+    this.error,
+    this.progress,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+
+  factory TaskResult.fromJson(Map<String, dynamic> json) {
+    return TaskResult(
+      taskId: json['task_id'],
+      status: AITaskStatus.values.firstWhere(
+        (e) => e.toString().split('.').last == json['status'],
+        orElse: () => AITaskStatus.pending,
+      ),
+      result: json['result'],
+      error: json['error'],
+      progress: json['progress']?.toDouble(),
+      createdAt: DateTime.parse(json['created_at']),
+      updatedAt: DateTime.parse(json['updated_at']),
+    );
+  }
+}
+
 class AIService {
   // Cloud Run 服务的 URL - 更新为新部署的服务
   static const String _baseUrl = 'https://queee-calculator-ai-backend-adecumh2za-uc.a.run.app';
 
-  /// 根据用户描述生成计算器配置
+  /// 🔧 新增：异步生成计算器配置
   static Future<CalculatorConfig?> generateCalculatorFromPrompt(
     String userPrompt, {
     CalculatorConfig? currentConfig,
     bool skipUserMessage = false,
+    Function(double)? onProgress,
+    Function(String)? onStatusUpdate,
   }) async {
     try {
       // 如果不跳过，则记录用户消息
@@ -20,11 +61,14 @@ class AIService {
         await _recordUserMessage(userPrompt);
       }
 
+      onStatusUpdate?.call('正在提交任务...');
+      onProgress?.call(0.1);
+
       // 获取对话历史作为上下文
       final conversationHistory = await _getConversationHistory();
 
       // 构建请求
-      final url = Uri.parse('$_baseUrl/customize');
+      final url = Uri.parse('$_baseUrl/tasks/submit/customize');
       final headers = {
         'Content-Type': 'application/json',
       };
@@ -51,63 +95,281 @@ class AIService {
       
       final body = json.encode(requestBody);
 
-      print('🚀 正在调用 AI 服务...');
+      print('🚀 正在提交异步任务...');
       print('URL: $url');
       print('请求内容: $userPrompt');
 
-      // 发送请求到 Cloud Run 服务
+      // 提交任务
       final response = await http.post(
         url,
         headers: headers,
         body: body,
-      ).timeout(const Duration(seconds: 300)); // 增加超时到300秒
+      ).timeout(const Duration(seconds: 30));
 
-      print('📡 收到响应: ${response.statusCode}');
+      print('📡 收到任务提交响应: ${response.statusCode}');
       
       if (response.statusCode == 200) {
-        // 解析响应
         final responseData = json.decode(response.body) as Map<String, dynamic>;
+        final taskId = responseData['task_id'] as String;
         
-        // 使用我们的 DSL 模型解析 AI 返回的配置
-        final config = CalculatorConfig.fromJson(responseData);
+        onStatusUpdate?.call('任务已提交，正在后台处理...');
+        onProgress?.call(0.2);
         
-        print('✅ AI 配置生成成功: ${config.name}');
+        print('✅ 任务已提交，任务ID: $taskId');
         
-        // 使用AI生成的智能回复消息
-        String responseMsg = '✅ 配置已生成完成'; // 默认消息
+        // 轮询任务状态
+        final result = await _pollTaskStatus(
+          taskId,
+          onProgress: onProgress,
+          onStatusUpdate: onStatusUpdate,
+        );
         
-        // 优先使用AI返回的自定义回复
-        final configJson = config.toJson();
-        if (configJson['aiResponse'] != null && configJson['aiResponse'].toString().isNotEmpty) {
-          responseMsg = configJson['aiResponse'].toString();
-        } else {
-          // 备用方案：根据上下文生成回复
-          if (currentConfig != null) {
-            responseMsg = '✅ 已按您的要求完成调整！';
-          } else {
-            responseMsg = '🎉 "${config.name}" 已准备就绪！\n\n💡 提示：您可以随时说出想要的调整，我会在保持现有设计基础上进行精确修改';
-          }
-        }
-        await _recordAssistantMessage(responseMsg);
-        
-        return config;
+                 if (result.status == AITaskStatus.completed && result.result != null) {
+           final configData = result.result['config'] as Map<String, dynamic>;
+           final config = CalculatorConfig.fromJson(configData);
+           
+           print('✅ AI 配置生成成功: ${config.name}');
+           
+           // 记录成功消息
+           String responseMsg = '✅ 配置已生成完成';
+           
+           // 优先使用AI返回的自定义回复
+           if (configData['aiResponse'] != null && configData['aiResponse'].toString().isNotEmpty) {
+             responseMsg = configData['aiResponse'].toString();
+           } else {
+             // 备用方案：根据上下文生成回复
+             if (currentConfig != null) {
+               responseMsg = '✅ 已按您的要求完成调整！';
+             } else {
+               responseMsg = '🎉 "${config.name}" 已准备就绪！\n\n💡 提示：您可以随时说出想要的调整，我会在保持现有设计基础上进行精确修改';
+             }
+           }
+           await _recordAssistantMessage(responseMsg);
+           
+           return config;
+         } else if (result.status == AITaskStatus.failed) {
+           throw Exception(result.error ?? '任务执行失败');
+         }
       } else {
-        print('❌ AI 服务响应错误: ${response.statusCode}');
+        print('❌ 任务提交失败: ${response.statusCode}');
         print('错误详情: ${response.body}');
         
-        // 记录错误
         await _recordAssistantMessage('生成失败: HTTP ${response.statusCode}');
         return null;
       }
     } on TimeoutException {
-      print('❌ AI 服务调用超时');
+      print('❌ 任务提交超时');
       await _recordAssistantMessage('生成失败: 服务超时');
-      throw Exception('AI 服务调用超时，请稍后重试');
+      throw Exception('任务提交超时，请稍后重试');
     } catch (e) {
-      print('❌ AI 服务调用失败: $e');
+      print('❌ 任务提交失败: $e');
       await _recordAssistantMessage('生成失败: $e');
-      throw Exception('调用 AI 服务失败: $e');
+      throw Exception('任务提交失败: $e');
     }
+    
+    return null;
+  }
+
+  /// 🔧 新增：轮询任务状态
+  static Future<TaskResult> _pollTaskStatus(
+    String taskId, {
+    Function(double)? onProgress,
+    Function(String)? onStatusUpdate,
+    Duration pollInterval = const Duration(seconds: 2),
+    Duration maxWaitTime = const Duration(minutes: 10),
+  }) async {
+    final startTime = DateTime.now();
+    
+    while (DateTime.now().difference(startTime) < maxWaitTime) {
+      try {
+        final url = Uri.parse('$_baseUrl/tasks/$taskId/status');
+        final response = await http.get(url).timeout(const Duration(seconds: 10));
+        
+        if (response.statusCode == 200) {
+          final taskResult = TaskResult.fromJson(json.decode(response.body));
+          
+          // 更新进度
+          if (taskResult.progress != null) {
+            onProgress?.call(taskResult.progress!);
+          }
+          
+                     // 更新状态消息
+           switch (taskResult.status) {
+             case AITaskStatus.pending:
+               onStatusUpdate?.call('任务等待中...');
+               break;
+             case AITaskStatus.processing:
+               onStatusUpdate?.call('AI正在处理中...');
+               break;
+             case AITaskStatus.completed:
+               onStatusUpdate?.call('任务完成！');
+               return taskResult;
+             case AITaskStatus.failed:
+               onStatusUpdate?.call('任务失败');
+               return taskResult;
+           }
+          
+          print('📊 任务状态: ${taskResult.status}, 进度: ${taskResult.progress}');
+        } else {
+          print('❌ 获取任务状态失败: ${response.statusCode}');
+        }
+      } catch (e) {
+        print('❌ 轮询任务状态失败: $e');
+      }
+      
+      // 等待下次轮询
+      await Future.delayed(pollInterval);
+    }
+    
+    throw Exception('任务超时，请稍后查看结果');
+  }
+
+  /// 🔧 新增：异步生成图像
+  static Future<Map<String, dynamic>> generateImage({
+    required String prompt,
+    String style = 'realistic',
+    String size = '1024x1024',
+    String quality = 'standard',
+    Function(double)? onProgress,
+    Function(String)? onStatusUpdate,
+  }) async {
+    return await _submitImageTask(
+      endpoint: 'generate-image',
+      params: {
+        'prompt': prompt,
+        'style': style,
+        'size': size,
+        'quality': quality,
+      },
+      taskName: '图像生成',
+      onProgress: onProgress,
+      onStatusUpdate: onStatusUpdate,
+    );
+  }
+
+  /// 🔧 新增：异步生成按键背景图案
+  static Future<Map<String, dynamic>> generatePattern({
+    required String prompt,
+    String style = 'minimal',
+    String size = '256x256',
+    Function(double)? onProgress,
+    Function(String)? onStatusUpdate,
+  }) async {
+    return await _submitImageTask(
+      endpoint: 'generate-pattern',
+      params: {
+        'prompt': prompt,
+        'style': style,
+        'size': size,
+      },
+      taskName: '按键背景图生成',
+      onProgress: onProgress,
+      onStatusUpdate: onStatusUpdate,
+    );
+  }
+
+  /// 🔧 新增：异步生成APP背景图
+  static Future<Map<String, dynamic>> generateAppBackground({
+    required String prompt,
+    String style = 'modern',
+    String size = '1080x1920',
+    String quality = 'high',
+    String theme = 'calculator',
+    Function(double)? onProgress,
+    Function(String)? onStatusUpdate,
+  }) async {
+    return await _submitImageTask(
+      endpoint: 'generate-app-background',
+      params: {
+        'prompt': prompt,
+        'style': style,
+        'size': size,
+        'quality': quality,
+        'theme': theme,
+      },
+      taskName: 'APP背景图生成',
+      onProgress: onProgress,
+      onStatusUpdate: onStatusUpdate,
+    );
+  }
+
+  /// 🔧 新增：异步生成光影文字图片
+  static Future<Map<String, dynamic>> generateTextImage({
+    required String prompt,
+    required String text,
+    String style = 'modern',
+    String size = '512x512',
+    String background = 'transparent',
+    List<String> effects = const [],
+    Function(double)? onProgress,
+    Function(String)? onStatusUpdate,
+  }) async {
+    return await _submitImageTask(
+      endpoint: 'generate-text-image',
+      params: {
+        'prompt': prompt,
+        'text': text,
+        'style': style,
+        'size': size,
+        'background': background,
+        'effects': effects,
+      },
+      taskName: '光影文字图片生成',
+      onProgress: onProgress,
+      onStatusUpdate: onStatusUpdate,
+    );
+  }
+
+  /// 🔧 新增：通用异步图像任务提交
+  static Future<Map<String, dynamic>> _submitImageTask({
+    required String endpoint,
+    required Map<String, dynamic> params,
+    required String taskName,
+    Function(double)? onProgress,
+    Function(String)? onStatusUpdate,
+  }) async {
+    try {
+      onStatusUpdate?.call('正在提交$taskName任务...');
+      onProgress?.call(0.1);
+
+      final url = Uri.parse('$_baseUrl/tasks/submit/$endpoint');
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(params),
+      ).timeout(const Duration(seconds: 30));
+
+      if (response.statusCode == 200) {
+        final responseData = json.decode(response.body);
+        final taskId = responseData['task_id'] as String;
+        
+        onStatusUpdate?.call('$taskName任务已提交，正在后台处理...');
+        onProgress?.call(0.2);
+        
+        print('✅ $taskName任务已提交，任务ID: $taskId');
+        
+        // 轮询任务状态
+        final result = await _pollTaskStatus(
+          taskId,
+          onProgress: onProgress,
+          onStatusUpdate: onStatusUpdate,
+        );
+        
+        if (result.status == AITaskStatus.completed && result.result != null) {
+          print('✅ $taskName成功');
+          return result.result;
+        } else if (result.status == AITaskStatus.failed) {
+          throw Exception(result.error ?? '$taskName失败');
+        }
+      } else {
+        throw Exception('$taskName任务提交失败: ${response.body}');
+      }
+    } catch (e) {
+      print('❌ $taskName失败: $e');
+      throw Exception('$taskName失败: $e');
+    }
+    
+    throw Exception('$taskName任务异常结束');
   }
 
   /// 记录用户消息
@@ -268,110 +530,7 @@ class AIService {
     }
   }
 
-  /// AI生成图像
-  static Future<Map<String, dynamic>> generateImage({
-    required String prompt,
-    String style = 'realistic',
-    String size = '1024x1024',
-    String quality = 'standard',
-  }) async {
-    try {
-      final response = await http.post(
-        Uri.parse('$_baseUrl/generate-image'),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          'prompt': prompt,
-          'style': style,
-          'size': size,
-          'quality': quality,
-        }),
-      );
 
-      if (response.statusCode == 200) {
-        return json.decode(response.body);
-      } else {
-        throw Exception('图像生成失败: ${response.body}');
-      }
-    } catch (e) {
-      throw Exception('网络请求失败: $e');
-    }
-  }
-
-  /// AI生成按钮背景图案
-  static Future<Map<String, dynamic>> generatePattern({
-    required String prompt,
-    String style = 'minimal',
-    String size = '256x256',
-  }) async {
-    try {
-      final response = await http.post(
-        Uri.parse('$_baseUrl/generate-pattern'),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          'prompt': prompt,
-          'style': style,
-          'size': size,
-        }),
-      );
-
-      if (response.statusCode == 200) {
-        return json.decode(response.body);
-      } else {
-        throw Exception('图案生成失败: ${response.body}');
-      }
-    } catch (e) {
-      throw Exception('网络请求失败: $e');
-    }
-  }
-
-  /// AI生成光影文字图片 - 用于按键文字
-  static Future<Map<String, dynamic>> generateTextImage({
-    required String prompt,
-    required String text,
-    String style = 'modern',
-    String size = '512x512',
-    String background = 'transparent',
-    List<String> effects = const [],
-  }) async {
-    try {
-      print('🎨 正在生成光影文字图片...');
-      print('文字内容: $text');
-      print('提示词: $prompt');
-      print('风格: $style');
-      
-      final response = await http.post(
-        Uri.parse('$_baseUrl/generate-text-image'),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          'prompt': prompt,
-          'text': text,
-          'style': style,
-          'size': size,
-          'background': background,
-          'effects': effects,
-        }),
-      ).timeout(const Duration(seconds: 60));
-
-      print('📡 收到响应: ${response.statusCode}');
-      
-      if (response.statusCode == 200) {
-        final result = json.decode(response.body);
-        if (result['success'] == true) {
-          print('✅ 光影文字图片生成成功: $text');
-          return result;
-        } else {
-          throw Exception(result['message'] ?? '生成失败');
-        }
-      } else {
-        print('❌ 光影文字图片生成失败: ${response.statusCode}');
-        print('错误详情: ${response.body}');
-        throw Exception('光影文字图片生成失败: ${response.body}');
-      }
-    } catch (e) {
-      print('❌ 光影文字图片生成请求失败: $e');
-      throw Exception('网络请求失败: $e');
-    }
-  }
 
   /// AI生成按键文字内容（保留备用方法）
   static Future<Map<String, dynamic>> generateButtonText({
@@ -473,47 +632,7 @@ class AIService {
     };
   }
 
-  /// AI生成APP背景图
-  static Future<Map<String, dynamic>> generateAppBackground({
-    required String prompt,
-    String style = 'modern',
-    String size = '1080x1920',
-    String quality = 'high',
-    String theme = 'calculator',
-  }) async {
-    try {
-      print('🎨 正在生成APP背景图...');
-      print('提示词: $prompt');
-      print('风格: $style');
-      
-      final response = await http.post(
-        Uri.parse('$_baseUrl/generate-app-background'),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          'prompt': prompt,
-          'style': style,
-          'size': size,
-          'quality': quality,
-          'theme': theme,
-        }),
-      ).timeout(const Duration(seconds: 60));
 
-      print('📡 收到响应: ${response.statusCode}');
-      
-      if (response.statusCode == 200) {
-        final result = json.decode(response.body);
-        print('✅ APP背景图生成成功');
-        return result;
-      } else {
-        print('❌ APP背景图生成失败: ${response.statusCode}');
-        print('错误详情: ${response.body}');
-        throw Exception('APP背景图生成失败: ${response.body}');
-      }
-    } catch (e) {
-      print('❌ APP背景图生成请求失败: $e');
-      throw Exception('网络请求失败: $e');
-    }
-  }
 
   /// 获取APP背景图预设风格
   static Future<Map<String, dynamic>> getBackgroundPresets() async {

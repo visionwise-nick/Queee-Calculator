@@ -211,9 +211,9 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
       });
       
     } catch (e) {
-      // 任务提交失败，回退到同步方式
-      print('异步任务提交失败，回退到同步方式: $e');
-      await _addAssistantMessage('⚠️ 后台服务暂时不可用，正在为您同步处理...');
+      // 异步任务提交失败，直接使用新的异步方式
+      print('异步任务提交失败，使用新的异步方式: $e');
+      await _addAssistantMessage('🔄 正在为您生成配置，请稍候...');
       
       try {
         setState(() {
@@ -223,25 +223,36 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
         final provider = Provider.of<CalculatorProvider>(context, listen: false);
         final currentConfig = provider.config;
         
-        // 回退到同步AI生成
+        // 使用新的异步AI生成
         final config = await AIService.generateCalculatorFromPrompt(
           userInput,
           currentConfig: currentConfig,
           skipUserMessage: true,
+          onProgress: (progress) {
+            // 可以在这里更新进度
+            print('AI生成进度: ${(progress * 100).toInt()}%');
+          },
+          onStatusUpdate: (status) {
+            // 可以在这里更新状态提示
+            print('AI生成状态: $status');
+          },
         );
 
         if (config != null) {
           await provider.applyConfig(config);
           await _reloadSession();
+          await _addAssistantMessage('✅ 功能设计完成！已为您自动应用到计算器。');
         } else {
           await _addAssistantMessage('😅 抱歉，我遇到了一些困难。能换个方式描述你的想法吗？');
         }
       } catch (syncError) {
         await _addAssistantMessage('😓 出现了一个小问题：$syncError\n\n不用担心，我们再试一次！');
       } finally {
-        setState(() {
-          _isLoading = false;
-        });
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
       }
     }
   }
