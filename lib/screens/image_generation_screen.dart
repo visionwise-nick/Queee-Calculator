@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/calculator_dsl.dart';
 import '../services/ai_service.dart';
- // 🔧 新增：导入任务服务
+import '../services/config_service.dart'; // 🔧 新增：导入配置服务
 import '../providers/calculator_provider.dart';
 
 import 'dart:convert';
@@ -31,6 +31,10 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
   bool _isGeneratingAppBg = false;
   bool _isGeneratingButtonBg = false;
   String? _generatedAppBgUrl;
+  double _appBgProgress = 0.0;
+  String _appBgStatusMessage = '';
+  double _buttonBgProgress = 0.0;
+  String _buttonBgStatusMessage = '';
 
   // 🔧 修正透明度控制变量概念
   double _buttonOpacity = 0.7;     // 按键透明度 - 让背景图可以透过来
@@ -424,13 +428,37 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
                   ),
                 ),
                 child: _isGeneratingAppBg
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                        ),
+                    ? Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              value: _appBgProgress > 0 ? _appBgProgress : null,
+                              valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            _appBgStatusMessage.isNotEmpty 
+                                ? _appBgStatusMessage 
+                                : '正在生成...',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Colors.white,
+                            ),
+                          ),
+                          if (_appBgProgress > 0)
+                            Text(
+                              '${(_appBgProgress * 100).toInt()}%',
+                              style: const TextStyle(
+                                fontSize: 10,
+                                color: Colors.white70,
+                              ),
+                            ),
+                        ],
                       )
                     : const Text(
                         '🎨 生成APP背景',
@@ -932,13 +960,38 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
                   ),
                 ),
                 child: _isGeneratingButtonPattern
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                        ),
+                    ? Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              value: _buttonBgProgress > 0 ? _buttonBgProgress : null,
+                              valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            _buttonBgStatusMessage.isNotEmpty 
+                                ? _buttonBgStatusMessage 
+                                : '正在生成...',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Colors.white,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          if (_buttonBgProgress > 0)
+                            Text(
+                              '${(_buttonBgProgress * 100).toInt()}%',
+                              style: const TextStyle(
+                                fontSize: 10,
+                                color: Colors.white70,
+                              ),
+                            ),
+                        ],
                       )
                     : const Text(
                         '🎨 生成按键背景图',
@@ -997,6 +1050,8 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
       if (mounted) {
         setState(() {
           _isGeneratingButtonPattern = false;
+          _buttonBgProgress = 0.0;
+          _buttonBgStatusMessage = '';
         });
       }
     }
@@ -1040,9 +1095,19 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
           style: 'simple',
           size: '32x32',
           onProgress: (progress) {
+            if (mounted) {
+              setState(() {
+                _buttonBgProgress = progress;
+              });
+            }
             print('按键${button.label}生成进度: ${(progress * 100).toInt()}%');
           },
           onStatusUpdate: (status) {
+            if (mounted) {
+              setState(() {
+                _buttonBgStatusMessage = '正在生成按键${button.label}：$status';
+              });
+            }
             print('按键${button.label}生成状态: $status');
           },
         );
@@ -1182,9 +1247,19 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
         quality: 'ultra',
         theme: 'calculator',
         onProgress: (progress) {
+          if (mounted) {
+            setState(() {
+              _appBgProgress = progress;
+            });
+          }
           print('APP背景图生成进度: ${(progress * 100).toInt()}%');
         },
         onStatusUpdate: (status) {
+          if (mounted) {
+            setState(() {
+              _appBgStatusMessage = status;
+            });
+          }
           print('APP背景图生成状态: $status');
         },
       );
@@ -1224,6 +1299,8 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
       if (mounted) {
         setState(() {
           _isGeneratingAppBg = false;
+          _appBgProgress = 0.0;
+          _appBgStatusMessage = '';
         });
       }
     }
@@ -1266,6 +1343,16 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
     // 🔧 同时更新父组件配置
     widget.onConfigUpdated(updatedConfig);
     
+    // 🔧 保存配置到本地存储
+    _saveConfigToStorage(updatedConfig);
+    
+    // 🔧 强制重建UI
+    if (mounted) {
+      setState(() {
+        // 触发UI重建
+      });
+    }
+    
     // 🔧 添加调试信息
     print('🔧 APP背景图应用成功：按键透明度=${_buttonOpacity}，显示区域透明度=${_displayOpacity}');
     
@@ -1275,6 +1362,16 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
         backgroundColor: Colors.green,
       ),
     );
+  }
+
+  // 🔧 新增：保存配置到本地存储
+  void _saveConfigToStorage(CalculatorConfig config) async {
+    try {
+      await ConfigService.saveCurrentConfig(config);
+      print('✅ 配置已保存到本地存储');
+    } catch (e) {
+      print('❌ 保存配置失败: $e');
+    }
   }
 
   /// 🔧 新增：独立的透明度控制卡片

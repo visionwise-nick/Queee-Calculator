@@ -45,7 +45,7 @@ class TaskResult {
 
 class AIService {
   // Cloud Run 服务的 URL - 更新为新部署的服务
-  static const String _baseUrl = 'https://queee-calculator-ai-backend-adecumh2za-uc.a.run.app';
+  static const String _baseUrl = 'https://queee-calculator-ai-backend-685339952769.us-central1.run.app';
 
   /// 🔧 新增：异步生成计算器配置
   static Future<CalculatorConfig?> generateCalculatorFromPrompt(

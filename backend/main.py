@@ -35,8 +35,11 @@ class TaskStatus(str, Enum):
     COMPLETED = "completed"
     FAILED = "failed"
 
-# 🔧 新增：任务存储
-tasks_storage = {}
+# 🔧 新增：任务存储 - 使用文件系统持久化
+import os
+import json
+TASKS_DIR = "/tmp/tasks"
+os.makedirs(TASKS_DIR, exist_ok=True)
 tasks_lock = threading.Lock()
 
 # 🔧 新增：任务模型
@@ -107,44 +110,102 @@ def create_task(task_type: str, request_data: Dict[str, Any]) -> str:
         updated_at=now
     )
     
+    # 保存到文件系统
+    task_file = os.path.join(TASKS_DIR, f"{task_id}.json")
     with tasks_lock:
-        tasks_storage[task_id] = task
+        with open(task_file, 'w', encoding='utf-8') as f:
+            task_dict = task.dict()
+            # 处理datetime序列化
+            task_dict['created_at'] = task_dict['created_at'].isoformat()
+            task_dict['updated_at'] = task_dict['updated_at'].isoformat()
+            json.dump(task_dict, f, ensure_ascii=False, indent=2)
     
     return task_id
 
 def get_task(task_id: str) -> Optional[Task]:
     """获取任务"""
-    with tasks_lock:
-        return tasks_storage.get(task_id)
+    task_file = os.path.join(TASKS_DIR, f"{task_id}.json")
+    
+    if not os.path.exists(task_file):
+        return None
+    
+    try:
+        with tasks_lock:
+            with open(task_file, 'r', encoding='utf-8') as f:
+                task_dict = json.load(f)
+                # 处理datetime反序列化
+                task_dict['created_at'] = datetime.fromisoformat(task_dict['created_at'])
+                task_dict['updated_at'] = datetime.fromisoformat(task_dict['updated_at'])
+                return Task(**task_dict)
+    except Exception as e:
+        print(f"❌ 读取任务文件失败 {task_id}: {e}")
+        return None
 
 def update_task_status(task_id: str, status: TaskStatus, result: Optional[Dict[str, Any]] = None, error: Optional[str] = None, progress: Optional[float] = None):
     """更新任务状态"""
-    with tasks_lock:
-        if task_id in tasks_storage:
-            task = tasks_storage[task_id]
-            task.status = status
-            task.updated_at = datetime.now()
-            if result is not None:
-                task.result = result
-            if error is not None:
-                task.error = error
-            if progress is not None:
-                task.progress = progress
+    task = get_task(task_id)
+    if task is None:
+        print(f"❌ 任务不存在: {task_id}")
+        return
+    
+    # 更新任务状态
+    task.status = status
+    task.updated_at = datetime.now()
+    if result is not None:
+        task.result = result
+    if error is not None:
+        task.error = error
+    if progress is not None:
+        task.progress = progress
+    
+    # 保存到文件系统
+    task_file = os.path.join(TASKS_DIR, f"{task_id}.json")
+    try:
+        with tasks_lock:
+            with open(task_file, 'w', encoding='utf-8') as f:
+                task_dict = task.dict()
+                # 处理datetime序列化
+                task_dict['created_at'] = task_dict['created_at'].isoformat()
+                task_dict['updated_at'] = task_dict['updated_at'].isoformat()
+                json.dump(task_dict, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print(f"❌ 保存任务状态失败 {task_id}: {e}")
 
 def cleanup_old_tasks():
     """清理超过24小时的旧任务"""
-    with tasks_lock:
+    try:
         now = datetime.now()
         to_remove = []
-        for task_id, task in tasks_storage.items():
-            if (now - task.created_at).total_seconds() > 24 * 3600:  # 24小时
-                to_remove.append(task_id)
         
-        for task_id in to_remove:
-            del tasks_storage[task_id]
-            
+        # 扫描任务目录
+        for filename in os.listdir(TASKS_DIR):
+            if not filename.endswith('.json'):
+                continue
+                
+            task_file = os.path.join(TASKS_DIR, filename)
+            try:
+                with open(task_file, 'r', encoding='utf-8') as f:
+                    task_dict = json.load(f)
+                    created_at = datetime.fromisoformat(task_dict['created_at'])
+                    
+                    if (now - created_at).total_seconds() > 24 * 3600:  # 24小时
+                        to_remove.append(task_file)
+            except Exception as e:
+                print(f"❌ 读取任务文件时出错 {filename}: {e}")
+                to_remove.append(task_file)  # 损坏的文件也删除
+        
+        # 删除过期任务文件
+        with tasks_lock:
+            for task_file in to_remove:
+                try:
+                    os.remove(task_file)
+                except Exception as e:
+                    print(f"❌ 删除任务文件失败 {task_file}: {e}")
+                    
         if to_remove:
             print(f"🧹 清理了 {len(to_remove)} 个过期任务")
+    except Exception as e:
+        print(f"❌ 清理任务时出错: {e}")
 
 # 🔧 新增：后台任务处理函数
 def process_task_in_background(task_id: str):
@@ -302,6 +363,8 @@ class AppBackground(BaseModel):
     backgroundBlendMode: Optional[str] = None  # 背景混合模式
     parallaxEffect: Optional[bool] = None  # 是否启用视差效果
     parallaxIntensity: Optional[float] = None  # 视差强度 (0.0-1.0)
+    buttonOpacity: Optional[float] = None  # 🔧 新增：按键透明度控制
+    displayOpacity: Optional[float] = None  # 🔧 新增：显示区域透明度控制
 
 class CalculatorLayout(BaseModel):
     name: str
@@ -334,14 +397,44 @@ class CustomizationRequest(BaseModel):
     has_image_workshop_content: Optional[bool] = Field(default=False, description="是否有图像生成工坊生成的内容")
     workshop_protected_fields: Optional[List[str]] = Field(default=[], description="受图像生成工坊保护的字段列表")
 
-# 修复后的AI系统提示 - 纯功能设计
-SYSTEM_PROMPT = """你是专业的计算器功能设计大师。你只负责按钮布局和功能逻辑设计。
+# 修复后的AI系统提示 - 继承式功能设计
+SYSTEM_PROMPT = """你是专业的计算器功能设计大师。你负责按钮布局和功能逻辑设计，但必须遵循严格的继承式修改原则。
 
 🎯 你的核心任务：
 1. **输出完整的计算器配置JSON**：包含theme、layout和buttons的功能配置
-2. **功能专精**：只负责按钮功能逻辑和布局结构
-3. **功能增强**：根据用户需求添加或修改按钮功能
-4. **自定义复合功能**：能够根据用户具体需求生成预设参数的专用计算器
+2. **继承式修改**：基于用户提供的当前配置进行增量修改，不是重新创建
+3. **功能专精**：只负责按钮功能逻辑和布局结构
+4. **功能增强**：根据用户需求添加或修改按钮功能
+5. **自定义复合功能**：能够根据用户具体需求生成预设参数的专用计算器
+
+🚨 **继承式修改的核心原则**：
+```
+✅ 必须遵循：
+1. 按键ID绝对不能更改 - 这是保持图像内容关联的关键
+2. 只修改用户明确要求的部分
+3. 保持现有按钮的位置、样式和功能不变（除非用户要求）
+4. 新增功能在现有布局基础上添加
+5. 保持主题一致性，不要随意改变颜色或样式
+
+❌ 严格禁止：
+1. 更改现有按钮的ID（如btn_1, btn_add等）
+2. 删除现有按钮（除非用户明确要求）
+3. 重新设计整个计算器布局
+4. 改变未被用户提及的任何属性
+5. 随意调整按钮位置或样式
+
+📋 操作指南：
+- 用户说"添加sin函数" → 只添加sin按钮，保持其他按钮不变
+- 用户说"改成蓝色主题" → 只修改主题颜色，保持按钮布局不变
+- 用户说"修改加号按钮" → 只修改btn_add按钮，保持其他按钮不变
+- 用户说"重新排列" → 保持按钮ID，只调整gridPosition
+
+🛡️ 图像工坊保护：
+绝对不能修改任何受图像生成工坊保护的字段，包括：
+- backgroundImage（按钮背景图）
+- backgroundImageUrl（APP背景图）
+- 任何透明度和混合模式设置
+```
 
 🚨 **关键原则 - 禁止无效按键**：
 ```
@@ -601,7 +694,7 @@ BMI计算：   "BMI(身高175)"
 ✅ hex2dec(x) - 十六进制转十进制
 ```
 
-📐 **精确布局规则（无废按键）**：
+📐 **精确布局规则（支持大型布局）**：
 ```
 标准计算器布局（推荐5行×4列）：
 行1: [AC] [±] [%] [÷]      - 功能行
@@ -610,13 +703,18 @@ BMI计算：   "BMI(身高175)"
 行4: [1] [2] [3] [+]       - 数字+运算符
 行5: [0] [.] [=] [功能]     - 底行
 
-科学计算器（最多8行×6列）：
-在标准布局基础上添加科学函数：
-行1-5: [...] [sin/cos/tan/log/sqrt等科学函数]
-行6-8: 可选择性添加更多高级函数或自定义功能
+扩展布局（支持任意行列数）：
+✅ 支持最多12行×10列（120个按键）
+✅ 根据用户需求动态扩展布局
+✅ 可以添加大量专业功能按键
+✅ 支持复杂的科学计算器和专业计算器
 
-⚠️ 关键：只在用户明确需要科学函数时才扩展布局！
-⚠️ 禁止：为了填满空间而创建无用按键！
+布局扩展策略：
+- 行1-5: 保持基础数字和运算符
+- 行6-8: 科学函数（sin/cos/tan/log/sqrt等）
+- 行9-10: 工程函数和单位转换
+- 行11-12: 专业功能和自定义功能
+- 列5-10: 按功能分组扩展
 ```
 
 🔧 **按钮类型和位置建议**：
@@ -629,19 +727,20 @@ BMI计算：   "BMI(身高175)"
 
 🚨 **gridPosition精确定义**：
 - 标准布局：5行×4列 (row: 1-5, column: 0-3)
-- 扩展布局：最多8行×6列 (row: 1-8, column: 0-5)
-- 核心数字位置（必须保持）：
+- 扩展布局：支持最多12行×10列 (row: 1-12, column: 0-9)
+- 核心数字位置（建议保持）：
   * 数字0: row=5,col=0  1: row=4,col=0  2: row=4,col=1  3: row=4,col=2
   * 数字4: row=3,col=0  5: row=3,col=1  6: row=3,col=2
   * 数字7: row=2,col=0  8: row=2,col=1  9: row=2,col=2
-- 运算符位置（必须保持）：
+- 运算符位置（建议保持）：
   * ÷: row=1,col=3  ×: row=2,col=3  -: row=3,col=3  +: row=4,col=3  =: row=5,col=2
 - 功能按键：AC: row=1,col=0  ±: row=1,col=1  %: row=1,col=2  .: row=5,col=1
 
-🚫 **严禁超出边界**：
-- 不得超过8行6列的网格范围
-- 不得创建超出实际需要的按键
-- 每个位置必须有明确的功能意义
+✅ **大型布局支持**：
+- 支持最多12行×10列（120个按键）
+- 可以根据用户需求动态扩展
+- 每个位置都可以放置有用的功能按键
+- 支持专业计算器和复杂功能布局
 
 🎨 **自适应大小功能**：
 - 对于长文本按钮（如"sin", "cos", "sqrt"等），可设置 `"adaptiveSize": true`
@@ -743,6 +842,9 @@ BMI计算：   "BMI(身高175)"
 - 对于长文本按钮，启用自适应大小功能
 - 如果需要替换现有按钮，选择最不常用的位置
 - 保持布局的逻辑性和易用性
+- ✅ **鼓励创建丰富的功能按键**：当用户需要专业功能时，大胆扩展布局
+- ✅ **支持大型布局**：可以创建包含50+、100+按键的专业计算器
+- ✅ **功能优先**：优先满足用户的功能需求，而不是限制按键数量
 
 🎯 **自定义功能生成规则**：
 1. **识别用户需求**：从用户描述中提取关键参数（利率、年限、汇率等）
@@ -822,20 +924,26 @@ VALIDATION_PROMPT = """你是配置修复专家。检查并修复生成的计算
 - gridPosition格式：{"row": 数字, "column": 数字}
 - action格式：{"type": "类型", "value": "值"} 或 {"type": "expression", "expression": "表达式"}
 
-📐 **严格布局规则（禁止无效按键）**：
+📐 **布局规则（支持大型布局）**：
 ```
-标准布局（5行×4列 = 20个位置最多）：
+标准布局（5行×4列 = 20个位置）：
 行1: [AC] [±] [%] [÷]      - 功能行
 行2: [7] [8] [9] [×]       - 数字+运算符
 行3: [4] [5] [6] [-]       - 数字+运算符  
 行4: [1] [2] [3] [+]       - 数字+运算符
 行5: [0] [.] [=] [功能]     - 底行
 
-扩展布局（最多6行×5列 = 30个位置）：
-只在用户明确需要科学函数时才使用第5列和第6行
+扩展布局（支持最多12行×10列 = 120个位置）：
+✅ 可以根据用户需求扩展到任意合理大小
+✅ 支持专业计算器和复杂功能布局
+✅ 每个位置都可以放置有用的功能按键
 
-⚠️ 严禁超出6行×5列的限制
-⚠️ 必须清理所有无效和空的按键
+布局扩展建议：
+- 行1-5: 基础数字和运算符（保持传统布局）
+- 行6-8: 科学函数区域
+- 行9-10: 工程函数和单位转换
+- 行11-12: 专业功能和自定义功能
+- 列5-10: 按功能分组扩展
 ```
 
 🔧 **位置建议**：
@@ -922,33 +1030,40 @@ async def customize_calculator(request: CustomizationRequest) -> CalculatorConfi
         workshop_protection_info = ""
         
         if request.current_config and request.has_image_workshop_content:
-            # 检测图像生成工坊生成的内容
-            theme = request.current_config.get('theme', {})
-            layout = request.current_config.get('layout', {})
-            app_background = request.current_config.get('appBackground', {})
-            
-            # 🎨 检查APP背景配置（优先级最高）
-            if app_background.get('backgroundImageUrl'):
-                protected_fields.extend([
-                    'appBackground.backgroundImageUrl',
-                    'appBackground.backgroundType',
-                    'appBackground.backgroundColor',
-                    'appBackground.backgroundGradient',
-                    'appBackground.backgroundOpacity'
-                ])
-            
-            # 检查主题背景图
-            if theme.get('backgroundImage'):
-                protected_fields.extend(['theme.backgroundImage', 'theme.backgroundColor', 'theme.backgroundGradient'])
-            
-            # 检查背景图案
-            if theme.get('backgroundPattern'):
-                protected_fields.extend(['theme.backgroundPattern', 'theme.patternColor', 'theme.patternOpacity'])
-            
-            # 检查按钮背景图
-            for button in layout.get('buttons', []):
-                if button.get('backgroundImage'):
-                    protected_fields.append(f'button.{button.get("id", "unknown")}.backgroundImage')
+            # 优先使用用户明确指定的保护字段
+            if request.workshop_protected_fields:
+                protected_fields = request.workshop_protected_fields.copy()
+                print(f"🛡️ 使用用户指定的保护字段: {protected_fields}")
+            else:
+                # 自动检测图像生成工坊生成的内容
+                theme = request.current_config.get('theme', {})
+                layout = request.current_config.get('layout', {})
+                app_background = request.current_config.get('appBackground', {})
+                
+                # 🎨 检查APP背景配置（优先级最高）
+                if app_background.get('backgroundImageUrl'):
+                    protected_fields.extend([
+                        'appBackground.backgroundImageUrl',
+                        'appBackground.backgroundType',
+                        'appBackground.backgroundColor',
+                        'appBackground.backgroundGradient',
+                        'appBackground.backgroundOpacity'
+                    ])
+                
+                # 检查主题背景图
+                if theme.get('backgroundImage'):
+                    protected_fields.extend(['theme.backgroundImage', 'theme.backgroundColor', 'theme.backgroundGradient'])
+                
+                # 检查背景图案
+                if theme.get('backgroundPattern'):
+                    protected_fields.extend(['theme.backgroundPattern', 'theme.patternColor', 'theme.patternOpacity'])
+                
+                # 检查按钮背景图
+                for button in layout.get('buttons', []):
+                    if button.get('backgroundImage'):
+                        protected_fields.append(f'button.{button.get("id", "unknown")}.backgroundImage')
+                
+                print(f"🛡️ 自动检测的保护字段: {protected_fields}")
             
             if protected_fields:
                 workshop_protection_info = f"""
@@ -967,42 +1082,36 @@ AI设计师只能修改按钮功能逻辑，不能覆盖工坊生成的图像内
         
         # 检查是否有当前配置（最重要的继承依据）
         if request.current_config:
+            # 🔧 完整传递当前配置JSON，确保AI能准确继承
+            current_config_json = json.dumps(request.current_config, ensure_ascii=False, indent=2)
             theme = request.current_config.get('theme', {})
             layout = request.current_config.get('layout', {})
             buttons = layout.get('buttons', [])
             
             current_config_info = f"""
-📋 【当前计算器配置 - 必须继承】
-名称: {request.current_config.get('name', '未知')}
-描述: {request.current_config.get('description', '未知')}
-布局: {layout.get('rows', 0)}行 × {layout.get('columns', 0)}列，共{len(buttons)}个按钮
+📋 【当前计算器完整配置 - 必须严格继承】
+```json
+{current_config_json}
+```
 
-🎨 【当前主题配置 - 保持不变除非用户要求】
-- 主题名称: {theme.get('name', '默认')}
-- 背景颜色: {theme.get('backgroundColor', '#000000')}
-- 背景渐变: {theme.get('backgroundGradient', '无')}
-- 背景图片: {theme.get('backgroundImage', '无')}
-- 显示区背景: {theme.get('displayBackgroundColor', '#222222')}
-- 显示区渐变: {theme.get('displayBackgroundGradient', '无')}
-- 显示文字颜色: {theme.get('displayTextColor', '#FFFFFF')}
-- 主按钮颜色: {theme.get('primaryButtonColor', '#333333')}
-- 主按钮渐变: {theme.get('primaryButtonGradient', '无')}
-- 次按钮颜色: {theme.get('secondaryButtonColor', '#555555')}
-- 次按钮渐变: {theme.get('secondaryButtonGradient', '无')}
-- 运算符颜色: {theme.get('operatorButtonColor', '#FF9F0A')}
-- 运算符渐变: {theme.get('operatorButtonGradient', '无')}
-- 字体大小: {theme.get('fontSize', 24.0)}
-- 按钮圆角: {theme.get('buttonBorderRadius', 8.0)}
-- 发光效果: {theme.get('hasGlowEffect', False)}
-- 阴影颜色: {theme.get('shadowColor', '无')}
-- 按钮阴影: {theme.get('buttonElevation', '无')}
-- 多层阴影: {theme.get('buttonShadowColors', '无')}
-- 按钮间距: {theme.get('buttonSpacing', '默认')}
-- 自适应布局: {theme.get('adaptiveLayout', True)}
+🚨 【严格继承要求】
+1. **按键ID保持一致**: 所有现有按键的ID绝对不能更改，这样可以保持图像内容关联
+2. **只修改用户要求的部分**: 如果用户只说"添加sin函数"，就只添加sin按钮，其他按钮保持原样
+3. **保持布局结构**: 不要随意改变现有按钮的位置，除非用户明确要求
+4. **保持主题一致**: 除非用户明确要求改变颜色或样式，否则保持所有主题设置不变
+5. **增量修改**: 在现有基础上添加或修改，而不是重新设计
 
-🔄 【继承要求】
-请严格保持以上所有配置不变，除非用户明确要求修改某个特定属性。
-用户只是想要增加功能或微调，不要重新设计整个主题！
+🎯 【操作策略】
+- 如果用户要求添加功能：在现有布局基础上添加新按钮
+- 如果用户要求修改某个按钮：只修改该按钮的属性，保持其他按钮不变
+- 如果用户要求改变样式：只修改明确提到的样式属性
+- 如果用户要求改变布局：保持现有按钮ID，只调整位置
+
+⚠️ 【禁止操作】
+- 不要更改现有按钮的ID
+- 不要删除现有按钮，除非用户明确要求
+- 不要改变未被用户提及的任何属性
+- 不要重新设计整个计算器，只做增量改进
 """
             is_iterative_request = True
         
@@ -1075,23 +1184,32 @@ AI设计师只能修改按钮功能逻辑，不能覆盖工坊生成的图像内
             # 🧹 清理AI生成的格式问题（如渐变色格式）
             ai_generated_config = clean_gradient_format(ai_generated_config)
             
-            # 🛡️ 图像生成工坊保护：直接移除AI输出中的受保护字段
-            if request.has_image_workshop_content:
-                ai_generated_config = remove_protected_fields_from_ai_output(ai_generated_config, protected_fields)
-            
-            # 🛡️ 图像生成工坊保护：强制保持受保护的字段
+            # 🛡️ 图像生成工坊保护：优先保护字段，然后清理
             if request.current_config and protected_fields:
                 final_config = copy.deepcopy(ai_generated_config)
                 current_theme = request.current_config.get('theme', {})
                 current_layout = request.current_config.get('layout', {})
                 current_app_background = request.current_config.get('appBackground', {})
                 
-                # 🎨 保护APP背景配置（优先级最高）
+                # 🎨 保护APP背景配置（优先级最高）- 字段级别保护
                 app_bg_fields = ['appBackground.backgroundImageUrl', 'appBackground.backgroundType', 
                                 'appBackground.backgroundColor', 'appBackground.backgroundGradient', 
-                                'appBackground.backgroundOpacity']
-                if any(field in protected_fields for field in app_bg_fields):
-                    final_config['appBackground'] = current_app_background
+                                'appBackground.backgroundOpacity', 'appBackground.buttonOpacity',
+                                'appBackground.displayOpacity']
+                
+                # 检查是否有APP背景字段需要保护
+                protected_app_bg_fields = [field for field in app_bg_fields if field in protected_fields]
+                if protected_app_bg_fields:
+                    # 🔧 字段级别保护 - 确保AI生成的配置中有完整的appBackground
+                    if 'appBackground' not in final_config:
+                        final_config['appBackground'] = {}
+                    
+                    # 逐个保护字段
+                    for field in protected_app_bg_fields:
+                        field_name = field.split('.')[1]  # 去掉appBackground.前缀
+                        if field_name in current_app_background:
+                            final_config['appBackground'][field_name] = current_app_background[field_name]
+                            print(f"🛡️ 保护APP背景字段: {field} = {current_app_background[field_name]}")
                 
                 # 保护主题中的图像字段
                 if 'theme.backgroundImage' in protected_fields:
@@ -1119,34 +1237,92 @@ AI设计师只能修改按钮功能逻辑，不能覆盖工坊生成的图像内
                 if not request.current_config:
                     final_config = ai_generated_config
                 else:
-                    # 有当前配置但没有保护字段，进行智能合并
-                    # 这里的问题：AI虽然不输出样式字段，但AI输出的JSON结构可能包含空的样式字段
-                    # 我们需要只合并AI实际有内容的字段，而不是全量覆盖
+                    # 🔧 新的继承式合并策略：严格基于现有配置进行增量修改
+                    print("🔧 开始继承式配置合并...")
                     final_config = copy.deepcopy(request.current_config)
                     
-                    # 智能合并AI生成的主题更改（只合并非空字段）
+                    # 🔧 更新基本信息（如果AI修改了的话）
+                    if 'name' in ai_generated_config and ai_generated_config['name']:
+                        final_config['name'] = ai_generated_config['name']
+                    if 'description' in ai_generated_config and ai_generated_config['description']:
+                        final_config['description'] = ai_generated_config['description']
+                    
+                    # 🔧 智能合并主题更改（只合并AI实际修改的非空字段）
                     if 'theme' in ai_generated_config and ai_generated_config['theme']:
                         current_theme = final_config.setdefault('theme', {})
                         ai_theme = ai_generated_config['theme']
                         
                         # 只更新AI实际输出的非空字段
                         for key, value in ai_theme.items():
-                            if value is not None and value != "":
+                            if value is not None and value != "" and value != "无":
                                 current_theme[key] = value
+                                print(f"🔧 更新主题属性: {key} = {value}")
                     
-                    # 智能合并AI生成的布局更改
+                    # 🔧 智能合并布局更改（最关键的部分）
                     if 'layout' in ai_generated_config and ai_generated_config['layout']:
                         current_layout = final_config.setdefault('layout', {})
                         ai_layout = ai_generated_config['layout']
                         
-                        # 对于布局，我们主要关心buttons数组的更新
-                        if 'buttons' in ai_layout:
-                            current_layout['buttons'] = ai_layout['buttons']
+                        # 🔧 更新布局基本信息
+                        if 'rows' in ai_layout and ai_layout['rows']:
+                            current_layout['rows'] = ai_layout['rows']
+                        if 'columns' in ai_layout and ai_layout['columns']:
+                            current_layout['columns'] = ai_layout['columns']
+                        
+                        # 🔧 按键合并策略：保持现有按键ID，智能合并新按键
+                        if 'buttons' in ai_layout and ai_layout['buttons']:
+                            current_buttons = {btn['id']: btn for btn in current_layout.get('buttons', [])}
+                            ai_buttons = {btn['id']: btn for btn in ai_layout['buttons']}
+                            
+                            # 🔧 合并按键：现有按键保持不变，新按键添加进来
+                            merged_buttons = []
+                            
+                            # 1. 保持所有现有按键（可能被AI修改了某些属性）
+                            for btn_id, current_btn in current_buttons.items():
+                                if btn_id in ai_buttons:
+                                    # AI修改了该按键，合并修改
+                                    ai_btn = ai_buttons[btn_id]
+                                    merged_btn = copy.deepcopy(current_btn)
+                                    
+                                    # 只更新AI实际修改的字段
+                                    for key, value in ai_btn.items():
+                                        if key == 'id':
+                                            continue  # ID绝对不能改
+                                        if value is not None and value != "":
+                                            merged_btn[key] = value
+                                            print(f"🔧 更新按键{btn_id}属性: {key} = {value}")
+                                    
+                                    merged_buttons.append(merged_btn)
+                                else:
+                                    # AI没有修改该按键，保持原样
+                                    merged_buttons.append(current_btn)
+                            
+                            # 2. 添加AI新增的按键
+                            for btn_id, ai_btn in ai_buttons.items():
+                                if btn_id not in current_buttons:
+                                    merged_buttons.append(ai_btn)
+                                    print(f"🔧 添加新按键: {btn_id} - {ai_btn.get('label', '未知')}")
+                            
+                            current_layout['buttons'] = merged_buttons
+                            print(f"🔧 按键合并完成: {len(current_buttons)} 个现有 + {len(ai_buttons) - len(current_buttons)} 个新增 = {len(merged_buttons)} 个总计")
                         
                         # 其他布局字段只在非空时更新
                         for key, value in ai_layout.items():
-                            if key != 'buttons' and value is not None and value != "":
+                            if key not in ['buttons', 'rows', 'columns'] and value is not None and value != "":
                                 current_layout[key] = value
+                    
+                    # 🔧 合并APP背景配置（如果AI修改了的话）
+                    if 'appBackground' in ai_generated_config and ai_generated_config['appBackground']:
+                        current_app_bg = final_config.setdefault('appBackground', {})
+                        ai_app_bg = ai_generated_config['appBackground']
+                        
+                        # 只更新AI实际修改的非空字段
+                        for key, value in ai_app_bg.items():
+                            if value is not None and value != "":
+                                current_app_bg[key] = value
+                                print(f"🔧 更新APP背景属性: {key} = {value}")
+                    
+                    print("🔧 继承式配置合并完成")
             
             # 🧹 首先清理无效按键
             final_config = clean_invalid_buttons(final_config)
@@ -1157,6 +1333,51 @@ AI设计师只能修改按钮功能逻辑，不能覆盖工坊生成的图像内
                 request.current_config, # 传入旧配置以供参考
                 final_config # 传入清理并合并后的配置进行修复
             )
+            
+            # 🛡️ 重新应用保护逻辑（防止fix_calculator_config覆盖保护字段）
+            if request.current_config and protected_fields:
+                print(f"🛡️ 修复后重新应用保护逻辑: {protected_fields}")
+                current_theme = request.current_config.get('theme', {})
+                current_layout = request.current_config.get('layout', {})
+                current_app_background = request.current_config.get('appBackground', {})
+                
+                # 重新保护APP背景字段
+                app_bg_fields = ['appBackground.backgroundImageUrl', 'appBackground.backgroundType', 
+                                'appBackground.backgroundColor', 'appBackground.backgroundGradient', 
+                                'appBackground.backgroundOpacity', 'appBackground.buttonOpacity',
+                                'appBackground.displayOpacity']
+                
+                protected_app_bg_fields = [field for field in app_bg_fields if field in protected_fields]
+                if protected_app_bg_fields:
+                    if 'appBackground' not in fixed_config:
+                        fixed_config['appBackground'] = {}
+                    
+                    for field in protected_app_bg_fields:
+                        field_name = field.split('.')[1]
+                        if field_name in current_app_background:
+                            fixed_config['appBackground'][field_name] = current_app_background[field_name]
+                            print(f"🛡️ 重新保护APP背景字段: {field} = {current_app_background[field_name]}")
+                
+                # 重新保护主题字段
+                if 'theme.backgroundImage' in protected_fields:
+                    fixed_config.setdefault('theme', {})['backgroundImage'] = current_theme.get('backgroundImage')
+                if 'theme.backgroundColor' in protected_fields:
+                    fixed_config.setdefault('theme', {})['backgroundColor'] = current_theme.get('backgroundColor')
+                if 'theme.backgroundGradient' in protected_fields:
+                    fixed_config.setdefault('theme', {})['backgroundGradient'] = current_theme.get('backgroundGradient')
+                
+                # 重新保护按钮背景图
+                current_buttons = {btn.get('id'): btn for btn in current_layout.get('buttons', [])}
+                fixed_buttons = fixed_config.get('layout', {}).get('buttons', [])
+                for button in fixed_buttons:
+                    button_id = button.get('id')
+                    if f'button.{button_id}.backgroundImage' in protected_fields:
+                        current_button = current_buttons.get(button_id, {})
+                        if current_button.get('backgroundImage'):
+                            button['backgroundImage'] = current_button['backgroundImage']
+                            print(f"🛡️ 重新保护按钮背景图: button.{button_id}.backgroundImage")
+                
+                print("🛡️ 重新应用保护逻辑完成")
             
         except json.JSONDecodeError as e:
             print(f"❌ JSON解析失败: {str(e)}")
@@ -1207,7 +1428,7 @@ def remove_protected_fields_from_ai_output(config_dict: dict, protected_fields: 
     app_bg_protected_fields = [
         'backgroundImageUrl', 'backgroundType', 'backgroundColor',
         'backgroundGradient', 'backgroundOpacity', 'backgroundBlendMode',
-        'parallaxEffect', 'parallaxIntensity'
+        'parallaxEffect', 'parallaxIntensity', 'buttonOpacity', 'displayOpacity'
     ]
     
     if 'appBackground' in cleaned_config:
@@ -1335,8 +1556,8 @@ def clean_invalid_buttons(config_dict: dict) -> dict:
         else:
             row = grid_pos.get("row", 0)
             col = grid_pos.get("column", 0)
-            # 限制在合理范围内：最多6行×5列
-            if row < 1 or row > 6 or col < 0 or col > 4:
+            # 限制在合理范围内：最多12行×10列
+            if row < 1 or row > 12 or col < 0 or col > 9:
                 is_valid = False
                 invalid_reasons.append(f"位置超出范围(row={row}, col={col})")
         
@@ -2084,32 +2305,51 @@ async def get_task_status(task_id: str) -> TaskStatusResponse:
 @app.get("/tasks")
 async def list_tasks() -> Dict[str, Any]:
     """列出所有任务（调试用）"""
-    with tasks_lock:
+    try:
         tasks = []
-        for task in tasks_storage.values():
-            tasks.append({
-                "id": task.id,
-                "type": task.type,
-                "status": task.status,
-                "created_at": task.created_at,
-                "updated_at": task.updated_at,
-                "progress": task.progress
-            })
+        
+        # 扫描任务目录
+        for filename in os.listdir(TASKS_DIR):
+            if not filename.endswith('.json'):
+                continue
+                
+            task_file = os.path.join(TASKS_DIR, filename)
+            try:
+                with open(task_file, 'r', encoding='utf-8') as f:
+                    task_dict = json.load(f)
+                    tasks.append({
+                        "id": task_dict["id"],
+                        "type": task_dict["type"],
+                        "status": task_dict["status"],
+                        "created_at": task_dict["created_at"],
+                        "updated_at": task_dict["updated_at"],
+                        "progress": task_dict.get("progress")
+                    })
+            except Exception as e:
+                print(f"❌ 读取任务文件时出错 {filename}: {e}")
         
         return {
             "total_tasks": len(tasks),
             "tasks": sorted(tasks, key=lambda x: x["created_at"], reverse=True)
         }
+    except Exception as e:
+        print(f"❌ 列出任务时出错: {e}")
+        return {"total_tasks": 0, "tasks": []}
 
 @app.delete("/tasks/{task_id}")
 async def delete_task(task_id: str) -> Dict[str, str]:
     """删除任务"""
-    with tasks_lock:
-        if task_id in tasks_storage:
-            del tasks_storage[task_id]
-            return {"message": f"任务 {task_id} 已删除"}
-        else:
-            raise HTTPException(status_code=404, detail="任务不存在")
+    task_file = os.path.join(TASKS_DIR, f"{task_id}.json")
+    
+    if not os.path.exists(task_file):
+        raise HTTPException(status_code=404, detail="任务不存在")
+    
+    try:
+        with tasks_lock:
+            os.remove(task_file)
+        return {"message": f"任务 {task_id} 已删除"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"删除任务失败: {e}")
 
 # 🔧 新增：具体的任务处理函数
 def process_customize_task(task_id: str, request_data: Dict[str, Any]) -> Dict[str, Any]:
@@ -2131,33 +2371,69 @@ def process_customize_task(task_id: str, request_data: Dict[str, Any]) -> Dict[s
             layout = current_config.get('layout', {})
             app_background = current_config.get('appBackground', {})
             
+            # 🔧 加强APP背景保护
             if app_background.get('backgroundImageUrl'):
                 protected_fields.extend([
                     'appBackground.backgroundImageUrl',
                     'appBackground.backgroundType',
                     'appBackground.backgroundColor',
                     'appBackground.backgroundGradient',
-                    'appBackground.backgroundOpacity'
+                    'appBackground.backgroundOpacity',
+                    'appBackground.buttonOpacity',      # 🔧 新增：保护按键透明度
+                    'appBackground.displayOpacity',     # 🔧 新增：保护显示区域透明度
+                    'appBackground.backgroundBlendMode',
+                    'appBackground.parallaxEffect',
+                    'appBackground.parallaxIntensity'
                 ])
             
+            # 🔧 即使没有背景图，也要保护透明度设置
+            if app_background.get('buttonOpacity') is not None:
+                protected_fields.append('appBackground.buttonOpacity')
+            if app_background.get('displayOpacity') is not None:
+                protected_fields.append('appBackground.displayOpacity')
+            
+            # 🔧 加强主题背景保护
             if theme.get('backgroundImage'):
-                protected_fields.extend(['theme.backgroundImage', 'theme.backgroundColor', 'theme.backgroundGradient'])
+                protected_fields.extend([
+                    'theme.backgroundImage', 
+                    'theme.backgroundColor', 
+                    'theme.backgroundGradient',
+                    'theme.backgroundPattern'
+                ])
             
             if theme.get('backgroundPattern'):
-                protected_fields.extend(['theme.backgroundPattern', 'theme.patternColor', 'theme.patternOpacity'])
+                protected_fields.extend([
+                    'theme.backgroundPattern', 
+                    'theme.patternColor', 
+                    'theme.patternOpacity'
+                ])
             
+            # 🔧 加强按键背景保护
             if layout.get('buttons'):
                 for button in layout['buttons']:
+                    button_id = button.get('id', '')
                     if button.get('backgroundImage'):
-                        protected_fields.append(f'layout.buttons[{button.get("id", "")}].backgroundImage')
+                        protected_fields.extend([
+                            f'layout.buttons[{button_id}].backgroundImage',
+                            f'layout.buttons[{button_id}].backgroundColor',
+                            f'layout.buttons[{button_id}].opacity',
+                            f'layout.buttons[{button_id}].borderRadius'
+                        ])
+                    if button.get('backgroundPattern'):
+                        protected_fields.extend([
+                            f'layout.buttons[{button_id}].backgroundPattern',
+                            f'layout.buttons[{button_id}].patternColor',
+                            f'layout.buttons[{button_id}].patternOpacity'
+                        ])
             
             if protected_fields:
                 workshop_protection_info = f"""
 🛡️ **图像生成工坊保护提醒**：
 检测到以下由图像生成工坊生成的内容将被保护，不会被修改：
-{chr(10).join([f"• {field}" for field in protected_fields[:5]])}
-{'• ...' if len(protected_fields) > 5 else ''}
+{chr(10).join([f"• {field}" for field in protected_fields[:8]])}
+{'• ...' if len(protected_fields) > 8 else ''}
 
+⚠️ **重要**：AI设计师将保持所有图像内容和透明度设置不变，只修改功能性配置。
 如需修改这些视觉元素，请前往图像生成工坊进行调整。
                 """
 
@@ -2278,22 +2554,86 @@ def process_generate_image_task(task_id: str, request_data: Dict[str, Any]) -> D
         size = request_data.get("size", "1024x1024")
         quality = request_data.get("quality", "standard")
         
-        update_task_status(task_id, TaskStatus.PROCESSING, progress=0.3)
+        update_task_status(task_id, TaskStatus.PROCESSING, progress=0.2)
         
-        # 这里实现原有的图像生成逻辑
-        # 由于代码太长，这里返回一个示例结果
-        # 实际实现需要复制原有的generate_image逻辑
+        # 构建优化的图像生成提示词
+        enhanced_prompt = f"""
+        Generate a high-quality image for calculator theme:
+        {prompt}
+        
+        Style: {style}
+        Requirements:
+        - High resolution and professional quality
+        - Suitable for calculator app background or button design
+        - Clean, modern aesthetic
+        - Good contrast for readability
+        """
+        
+        print(f"🎨 开始生成图像，提示词: {enhanced_prompt}")
+        
+        update_task_status(task_id, TaskStatus.PROCESSING, progress=0.4)
+        
+        # 初始化AI模型
+        initialize_genai()
+        
+        # 使用Gemini 2.0 Flash图像生成模型
+        image_model = genai.GenerativeModel("gemini-2.0-flash-preview-image-generation")
+        
+        # 生成图像 - 使用正确的配置
+        generation_config = {
+            "response_modalities": ["TEXT", "IMAGE"]
+        }
+        
+        update_task_status(task_id, TaskStatus.PROCESSING, progress=0.6)
+        
+        response = image_model.generate_content(
+            contents=[enhanced_prompt],
+            generation_config=generation_config
+        )
         
         update_task_status(task_id, TaskStatus.PROCESSING, progress=0.8)
         
-        # 模拟图像生成结果
-        result = {
-            "success": True,
-            "image_url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
-            "message": "图像生成成功"
-        }
+        # 检查响应中是否包含图像
+        if hasattr(response, 'parts') and response.parts:
+            for part in response.parts:
+                if hasattr(part, 'inline_data') and part.inline_data:
+                    # 获取生成的图像数据
+                    image_data = part.inline_data.data
+                    mime_type = part.inline_data.mime_type
+                    
+                    # 检查数据是否已经是base64格式
+                    if isinstance(image_data, bytes):
+                        # 如果是bytes，需要转换为base64
+                        import base64
+                        image_base64_data = base64.b64encode(image_data).decode('utf-8')
+                    else:
+                        # 如果已经是字符串，直接使用
+                        image_base64_data = str(image_data)
+                    
+                    # 将图像数据转换为base64 URL
+                    image_base64 = f"data:{mime_type};base64,{image_base64_data}"
+                    
+                    print(f"✅ 图像生成成功，MIME类型: {mime_type}")
+                    
+                    return {
+                        "success": True,
+                        "image_url": image_base64,
+                        "image_data": image_base64_data,
+                        "mime_type": mime_type,
+                        "original_prompt": prompt,
+                        "enhanced_prompt": enhanced_prompt,
+                        "style": style,
+                        "size": size,
+                        "quality": quality,
+                        "message": "图像生成成功"
+                    }
         
-        return result
+        # 如果没有图像数据，检查文本响应
+        if response.text:
+            print(f"🤖 AI响应: {response.text}")
+            
+        # 如果没有生成图像，返回错误
+        raise Exception("未能生成图像，请检查提示词或稍后重试")
         
     except Exception as e:
         print(f"❌ 图像生成任务失败: {str(e)}")
@@ -2306,16 +2646,87 @@ def process_generate_pattern_task(task_id: str, request_data: Dict[str, Any]) ->
         style = request_data.get("style", "minimal")
         size = request_data.get("size", "48x48")
         
-        update_task_status(task_id, TaskStatus.PROCESSING, progress=0.3)
+        update_task_status(task_id, TaskStatus.PROCESSING, progress=0.2)
         
-        # 实现按键背景图生成逻辑
-        result = {
-            "success": True,
-            "pattern_url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
-            "message": "按键背景图生成成功"
+        # 针对按钮图案的特殊处理
+        pattern_prompt = f"""
+        Generate a seamless pattern for calculator button background:
+        {prompt}
+        
+        Requirements:
+        - Seamless and tileable pattern
+        - Suitable for button background use
+        - Subtle and not distracting from text
+        - Style: {style}
+        - High contrast for text readability
+        - Professional and clean design
+        - 256x256 pixels optimal size
+        """
+        
+        print(f"🎨 开始生成图案，提示词: {pattern_prompt}")
+        
+        update_task_status(task_id, TaskStatus.PROCESSING, progress=0.4)
+        
+        # 初始化AI模型
+        initialize_genai()
+        
+        # 使用Gemini 2.0 Flash图像生成模型
+        image_model = genai.GenerativeModel("gemini-2.0-flash-preview-image-generation")
+        
+        # 生成图案 - 使用正确的配置
+        generation_config = {
+            "response_modalities": ["TEXT", "IMAGE"]
         }
         
-        return result
+        update_task_status(task_id, TaskStatus.PROCESSING, progress=0.6)
+        
+        response = image_model.generate_content(
+            contents=[pattern_prompt],
+            generation_config=generation_config
+        )
+        
+        update_task_status(task_id, TaskStatus.PROCESSING, progress=0.8)
+        
+        # 检查响应中是否包含图像
+        if hasattr(response, 'parts') and response.parts:
+            for part in response.parts:
+                if hasattr(part, 'inline_data') and part.inline_data:
+                    # 获取生成的图像数据
+                    image_data = part.inline_data.data
+                    mime_type = part.inline_data.mime_type
+                    
+                    # 检查数据是否已经是base64格式
+                    if isinstance(image_data, bytes):
+                        # 如果是bytes，需要转换为base64
+                        import base64
+                        pattern_base64_data = base64.b64encode(image_data).decode('utf-8')
+                    else:
+                        # 如果已经是字符串，直接使用
+                        pattern_base64_data = str(image_data)
+                    
+                    # 将图像数据转换为base64 URL
+                    pattern_base64 = f"data:{mime_type};base64,{pattern_base64_data}"
+                    
+                    print(f"✅ 图案生成成功，MIME类型: {mime_type}")
+                    
+                    return {
+                        "success": True,
+                        "pattern_url": pattern_base64,
+                        "image_data": pattern_base64_data,
+                        "mime_type": mime_type,
+                        "original_prompt": prompt,
+                        "enhanced_prompt": pattern_prompt,
+                        "style": style,
+                        "is_seamless": True,
+                        "message": "图案生成成功"
+                    }
+        
+        # 如果没有图像数据，检查文本响应
+        if response.text:
+            print(f"🤖 AI响应: {response.text}")
+            
+        # 如果没有生成图案，返回错误
+        raise Exception("未能生成图案，请检查提示词或稍后重试")
         
     except Exception as e:
         print(f"❌ 按键背景图生成任务失败: {str(e)}")
@@ -2330,16 +2741,94 @@ def process_generate_app_background_task(task_id: str, request_data: Dict[str, A
         quality = request_data.get("quality", "high")
         theme = request_data.get("theme", "calculator")
         
-        update_task_status(task_id, TaskStatus.PROCESSING, progress=0.3)
+        update_task_status(task_id, TaskStatus.PROCESSING, progress=0.2)
         
-        # 实现APP背景图生成逻辑
-        result = {
-            "success": True,
-            "background_url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
-            "message": "APP背景图生成成功"
+        # 构建专门的APP背景图生成提示词
+        background_prompt = f"""
+        Generate a beautiful background image for a calculator mobile app:
+        {prompt}
+        
+        Requirements:
+        - Mobile app background (portrait orientation {size})
+        - Style: {style} with {theme} theme
+        - Subtle and elegant, won't interfere with UI elements
+        - Good contrast for calculator buttons and display
+        - Professional and modern aesthetic
+        - High quality and resolution
+        - Colors should complement calculator interface
+        - Avoid too busy patterns that distract from functionality
+        
+        Theme context: {theme}
+        Quality: {quality}
+        """
+        
+        print(f"🎨 开始生成APP背景图，提示词: {background_prompt}")
+        
+        update_task_status(task_id, TaskStatus.PROCESSING, progress=0.4)
+        
+        # 初始化AI模型
+        initialize_genai()
+        
+        # 使用Gemini 2.0 Flash图像生成模型
+        image_model = genai.GenerativeModel("gemini-2.0-flash-preview-image-generation")
+        
+        # 生成背景图 - 使用正确的配置
+        generation_config = {
+            "response_modalities": ["TEXT", "IMAGE"]
         }
         
-        return result
+        update_task_status(task_id, TaskStatus.PROCESSING, progress=0.6)
+        
+        response = image_model.generate_content(
+            contents=[background_prompt],
+            generation_config=generation_config
+        )
+        
+        update_task_status(task_id, TaskStatus.PROCESSING, progress=0.8)
+        
+        # 检查响应中是否包含图像
+        if hasattr(response, 'parts') and response.parts:
+            for part in response.parts:
+                if hasattr(part, 'inline_data') and part.inline_data:
+                    # 获取生成的图像数据
+                    image_data = part.inline_data.data
+                    mime_type = part.inline_data.mime_type
+                    
+                    # 检查数据是否已经是base64格式
+                    if isinstance(image_data, bytes):
+                        # 如果是bytes，需要转换为base64
+                        import base64
+                        background_base64_data = base64.b64encode(image_data).decode('utf-8')
+                    else:
+                        # 如果已经是字符串，直接使用
+                        background_base64_data = str(image_data)
+                    
+                    # 将图像数据转换为base64 URL
+                    background_base64 = f"data:{mime_type};base64,{background_base64_data}"
+                    
+                    print(f"✅ APP背景图生成成功，MIME类型: {mime_type}")
+                    
+                    return {
+                        "success": True,
+                        "background_url": background_base64,
+                        "image_data": background_base64_data,
+                        "mime_type": mime_type,
+                        "original_prompt": prompt,
+                        "enhanced_prompt": background_prompt,
+                        "style": style,
+                        "theme": theme,
+                        "size": size,
+                        "quality": quality,
+                        "message": "APP背景图生成成功",
+                        "usage_tips": "此背景图已优化用于计算器应用，确保UI元素的可读性"
+                    }
+        
+        # 如果没有图像数据，检查文本响应
+        if response.text:
+            print(f"🤖 AI响应: {response.text}")
+            
+        # 如果没有生成背景图，返回错误
+        raise Exception("未能生成APP背景图，请检查提示词或稍后重试")
         
     except Exception as e:
         print(f"❌ APP背景图生成任务失败: {str(e)}")
@@ -2355,16 +2844,144 @@ def process_generate_text_image_task(task_id: str, request_data: Dict[str, Any])
         background = request_data.get("background", "transparent")
         effects = request_data.get("effects", [])
         
-        update_task_status(task_id, TaskStatus.PROCESSING, progress=0.3)
+        update_task_status(task_id, TaskStatus.PROCESSING, progress=0.2)
         
-        # 实现文字图像生成逻辑
-        result = {
-            "success": True,
-            "image_url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
-            "message": "文字图像生成成功"
+        print(f"🎨 正在生成创意字符图片...")
+        print(f"字符内容: {text}")
+        print(f"原始创意描述: {prompt}")
+        print(f"风格: {style}")
+        
+        # 🧹 清理用户输入，去除描述性文字，只保留创意核心
+        def clean_user_prompt(prompt: str) -> str:
+            """清理用户输入的提示词，去除描述性文字，只保留创意核心"""
+            if not prompt:
+                return ""
+            
+            # 需要过滤的描述性词汇和短语
+            descriptive_phrases = [
+                "生成", "图片", "效果", "光影", "文字", "数字", "字符", "符号",
+                "为", "的", "进行", "制作", "创建", "设计", "绘制",
+                "生成光影效果", "光影效果图片", "效果图片", "文字图片", 
+                "数字图片", "字符图片", "背景图", "按键", "按钮",
+                "白底", "透明", "背景", "底色", "不能有其他字出现",
+                "生成光影效果的图片", "为文字.*?生成.*?图片", "光影文字", "特效"
+            ]
+            
+            cleaned = prompt.strip()
+            
+            # 移除描述性短语
+            import re
+            for phrase in descriptive_phrases:
+                # 使用正则表达式匹配包含这些短语的部分
+                pattern = f"[，。、]*{re.escape(phrase)}[^，。]*"
+                cleaned = re.sub(pattern, "", cleaned, flags=re.IGNORECASE)
+                
+                # 移除完整短语
+                cleaned = cleaned.replace(phrase, "")
+            
+            # 清理多余的标点符号和空格
+            cleaned = re.sub(r'[，。、；：！？\s]+', ' ', cleaned)
+            cleaned = re.sub(r'^[，。、；：！？\s]+|[，。、；：！？\s]+$', '', cleaned)
+            cleaned = re.sub(r'\s+', ' ', cleaned).strip()
+            
+            return cleaned
+        
+        # 清理用户输入
+        cleaned_prompt = clean_user_prompt(prompt) if prompt else ""
+        print(f"清理后创意描述: {cleaned_prompt}")
+        
+        update_task_status(task_id, TaskStatus.PROCESSING, progress=0.4)
+        
+        # 🎨 构建创意字符生成提示词，用指定元素构造字符形状
+        # 根据风格选择不同的视觉风格描述
+        style_effects = {
+            "modern": "in sleek modern style",
+            "neon": "in vibrant neon style with bright colors",
+            "gold": "in luxurious golden metallic style", 
+            "silver": "in polished silver metallic style",
+            "fire": "in fiery red/orange style",
+            "ice": "in crystal clear ice style",
+            "galaxy": "in cosmic space style with stars",
+            "glass": "in transparent glass crystal style"
         }
         
-        return result
+        # 获取对应风格的效果描述，默认为现代风格
+        style_effect = style_effects.get(style, style_effects["modern"])
+        
+        # 🎨 创意字符构造：极简提示词，避免AI误解指令为显示内容
+        if cleaned_prompt and cleaned_prompt.strip():
+            # 极简直接指令，避免任何可能被误解的英文描述
+            detailed_prompt = f"""Show number "{text}" made from {cleaned_prompt}. Pure visual art only. No text anywhere. Clean {background} background."""
+        else:
+            # 标准设计，同样极简
+            detailed_prompt = f"""Show number "{text}" {style_effect}. Pure visual art only. No text anywhere. Clean {background} background."""
+
+        print(f"🚀 使用提示词: {detailed_prompt}")
+        
+        update_task_status(task_id, TaskStatus.PROCESSING, progress=0.6)
+        
+        # 初始化AI模型
+        initialize_genai()
+        
+        # 使用图像生成专用模型
+        image_model = genai.GenerativeModel("gemini-2.0-flash-preview-image-generation")
+        
+        # 生成配置
+        generation_config = {
+            "response_modalities": ["TEXT", "IMAGE"]
+        }
+        
+        # 生成图像
+        response = image_model.generate_content(
+            contents=[detailed_prompt],
+            generation_config=generation_config
+        )
+        
+        update_task_status(task_id, TaskStatus.PROCESSING, progress=0.8)
+        
+        # 检查响应中是否包含图像
+        if hasattr(response, 'parts') and response.parts:
+            for part in response.parts:
+                if hasattr(part, 'inline_data') and part.inline_data:
+                    # 获取生成的图像数据
+                    image_data = part.inline_data.data
+                    mime_type = part.inline_data.mime_type
+                    
+                    # 检查数据是否已经是base64格式
+                    if isinstance(image_data, bytes):
+                        # 如果是bytes，需要转换为base64
+                        import base64
+                        text_image_base64_data = base64.b64encode(image_data).decode('utf-8')
+                    else:
+                        # 如果已经是字符串，直接使用
+                        text_image_base64_data = str(image_data)
+                    
+                    # 将图像数据转换为base64 URL
+                    text_image_base64 = f"data:{mime_type};base64,{text_image_base64_data}"
+                    
+                    print(f"✅ 创意字符图片生成成功: '{text}'，MIME类型: {mime_type}")
+                    
+                    return {
+                        "success": True,
+                        "image_url": text_image_base64,
+                        "text": text,
+                        "style": style,
+                        "size": size,
+                        "background": background,
+                        "effects": effects,
+                        "mime_type": mime_type,
+                        "original_prompt": prompt,
+                        "cleaned_prompt": cleaned_prompt,
+                        "enhanced_prompt": detailed_prompt,
+                        "message": f"创意字符 '{text}' 生成成功"
+                    }
+        
+        # 检查是否有文本响应
+        if hasattr(response, 'text') and response.text:
+            print(f"🤖 AI响应: {response.text}")
+            
+        # 如果没有生成图像，返回错误
+        raise Exception("未找到生成的图像数据")
         
     except Exception as e:
         print(f"❌ 文字图像生成任务失败: {str(e)}")
