@@ -1371,6 +1371,86 @@ def clean_gradient_format(config_dict: dict) -> dict:
     
     return config_dict
 
+def merge_background_data(current_config: dict, generated_config: dict, protected_fields: list) -> dict:
+    """
+    强制合并现有配置中的背景图像数据到新生成的配置中，确保AI不会清空背景
+    """
+    if not current_config:
+        return generated_config
+    
+    print(f"🔧 开始强制合并背景数据，保护字段: {len(protected_fields)}")
+    
+    # 确保生成的配置有正确的结构
+    if 'theme' not in generated_config:
+        generated_config['theme'] = {}
+    if 'appBackground' not in generated_config:
+        generated_config['appBackground'] = {}
+    if 'layout' not in generated_config:
+        generated_config['layout'] = {}
+    if 'buttons' not in generated_config['layout']:
+        generated_config['layout']['buttons'] = []
+    
+    # 🔧 强制合并APP背景数据
+    current_app_bg = current_config.get('appBackground', {})
+    if current_app_bg:
+        generated_app_bg = generated_config['appBackground']
+        
+        # 强制保留所有背景相关字段
+        background_fields = [
+            'backgroundImageUrl', 'backgroundType', 'backgroundColor', 
+            'backgroundGradient', 'backgroundOpacity', 'backgroundBlendMode',
+            'parallaxEffect', 'parallaxIntensity', 'buttonOpacity', 'displayOpacity'
+        ]
+        
+        for field in background_fields:
+            if field in current_app_bg:
+                generated_app_bg[field] = current_app_bg[field]
+                print(f"🔧 强制保留APP背景字段: appBackground.{field}")
+    
+    # 🔧 强制合并主题背景数据
+    current_theme = current_config.get('theme', {})
+    if current_theme:
+        generated_theme = generated_config['theme']
+        
+        # 强制保留主题背景相关字段
+        theme_background_fields = [
+            'backgroundImage', 'backgroundColor', 'backgroundGradient',
+            'backgroundPattern', 'patternColor', 'patternOpacity'
+        ]
+        
+        for field in theme_background_fields:
+            if field in current_theme:
+                generated_theme[field] = current_theme[field]
+                print(f"🔧 强制保留主题背景字段: theme.{field}")
+    
+    # 🔧 强制合并按键背景数据
+    current_buttons = current_config.get('layout', {}).get('buttons', [])
+    generated_buttons = generated_config['layout']['buttons']
+    
+    # 创建现有按键的字典以便快速查找
+    current_buttons_dict = {btn.get('id', ''): btn for btn in current_buttons}
+    
+    for i, generated_button in enumerate(generated_buttons):
+        button_id = generated_button.get('id', '')
+        if button_id in current_buttons_dict:
+            current_button = current_buttons_dict[button_id]
+            
+            # 强制保留按键背景相关字段
+            button_background_fields = [
+                'backgroundImage', 'backgroundColor', 'backgroundPattern',
+                'patternColor', 'patternOpacity', 'opacity', 'borderRadius',
+                'gradientColors', 'customIcon', 'iconColor', 'iconSize',
+                'shadowColor', 'shadowOffset', 'shadowRadius'
+            ]
+            
+            for field in button_background_fields:
+                if field in current_button:
+                    generated_buttons[i][field] = current_button[field]
+                    print(f"🔧 强制保留按键背景字段: button.{button_id}.{field}")
+    
+    print(f"✅ 背景数据强制合并完成")
+    return generated_config
+
 def clean_invalid_buttons(config_dict: dict, preserve_button_ids: list = None) -> dict:
     """清理无效按键，确保所有按键都有实际功能，同时保护现有按键"""
     if "layout" not in config_dict or "buttons" not in config_dict["layout"]:
@@ -2316,12 +2396,13 @@ def process_customize_task(task_id: str, request_data: Dict[str, Any]) -> Dict[s
         protected_fields = []
         workshop_protection_info = ""
         
-        if current_config and has_image_workshop_content:
+        # 🔧 自动检测并保护现有背景图像，无论是否来自图像生成工坊
+        if current_config:
             theme = current_config.get('theme', {})
             layout = current_config.get('layout', {})
             app_background = current_config.get('appBackground', {})
             
-            # 🔧 加强APP背景保护
+            # 🔧 自动检测APP背景并保护
             if app_background.get('backgroundImageUrl'):
                 protected_fields.extend([
                     'appBackground.backgroundImageUrl',
@@ -2335,14 +2416,17 @@ def process_customize_task(task_id: str, request_data: Dict[str, Any]) -> Dict[s
                     'appBackground.parallaxEffect',
                     'appBackground.parallaxIntensity'
                 ])
+                print(f"🛡️ 自动检测到APP背景图像，已加入保护列表")
             
-            # 🔧 即使没有背景图，也要保护透明度设置
+            # 🔧 保护透明度设置（即使没有背景图）
             if app_background.get('buttonOpacity') is not None:
                 protected_fields.append('appBackground.buttonOpacity')
+                print(f"🛡️ 自动检测到按键透明度设置，已加入保护列表")
             if app_background.get('displayOpacity') is not None:
                 protected_fields.append('appBackground.displayOpacity')
+                print(f"🛡️ 自动检测到显示区域透明度设置，已加入保护列表")
             
-            # 🔧 加强主题背景保护
+            # 🔧 自动检测主题背景并保护
             if theme.get('backgroundImage'):
                 protected_fields.extend([
                     'theme.backgroundImage', 
@@ -2350,6 +2434,7 @@ def process_customize_task(task_id: str, request_data: Dict[str, Any]) -> Dict[s
                     'theme.backgroundGradient',
                     'theme.backgroundPattern'
                 ])
+                print(f"🛡️ 自动检测到主题背景图像，已加入保护列表")
             
             if theme.get('backgroundPattern'):
                 protected_fields.extend([
@@ -2357,8 +2442,9 @@ def process_customize_task(task_id: str, request_data: Dict[str, Any]) -> Dict[s
                     'theme.patternColor', 
                     'theme.patternOpacity'
                 ])
+                print(f"🛡️ 自动检测到主题背景图案，已加入保护列表")
             
-            # 🔧 加强按键背景保护
+            # 🔧 自动检测按键背景并保护
             if layout.get('buttons'):
                 for button in layout['buttons']:
                     button_id = button.get('id', '')
@@ -2369,21 +2455,28 @@ def process_customize_task(task_id: str, request_data: Dict[str, Any]) -> Dict[s
                             f'layout.buttons[{button_id}].opacity',
                             f'layout.buttons[{button_id}].borderRadius'
                         ])
+                        print(f"🛡️ 自动检测到按键背景图像: {button_id}，已加入保护列表")
                     if button.get('backgroundPattern'):
                         protected_fields.extend([
                             f'layout.buttons[{button_id}].backgroundPattern',
                             f'layout.buttons[{button_id}].patternColor',
                             f'layout.buttons[{button_id}].patternOpacity'
                         ])
+                        print(f"🛡️ 自动检测到按键背景图案: {button_id}，已加入保护列表")
+            
+            # 🔧 自动检测其他图像相关属性
+            if theme.get('backgroundGradient'):
+                protected_fields.append('theme.backgroundGradient')
+                print(f"🛡️ 自动检测到主题背景渐变，已加入保护列表")
             
             if protected_fields:
                 workshop_protection_info = f"""
-🛡️ **图像生成工坊保护提醒**：
-检测到以下由图像生成工坊生成的内容将被保护，不会被修改：
+🛡️ **自动背景保护提醒**：
+检测到以下背景图像和视觉效果将被自动保护，不会被修改：
 {chr(10).join([f"• {field}" for field in protected_fields[:8]])}
 {'• ...' if len(protected_fields) > 8 else ''}
 
-⚠️ **重要**：AI设计师将保持所有图像内容和透明度设置不变，只修改功能性配置。
+⚠️ **重要**：AI设计师将保持所有现有背景图像和视觉效果不变，只修改功能性配置。
 如需修改这些视觉元素，请前往图像生成工坊进行调整。
                 """
 
@@ -2533,6 +2626,10 @@ def process_customize_task(task_id: str, request_data: Dict[str, Any]) -> Dict[s
                 generated_config = asyncio.run(fix_calculator_config(user_input, current_config, generated_config))
         except Exception as fix_error:
             print(f"⚠️ AI修复失败，使用原始生成结果: {fix_error}")
+
+        # 🔧 强制合并现有配置中的背景图像数据，确保不被AI覆盖
+        if current_config:
+            generated_config = merge_background_data(current_config, generated_config, protected_fields)
 
         if not generated_config.get('layout', {}).get('buttons'):
             raise Exception("生成的配置缺少按键布局")
