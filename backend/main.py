@@ -885,32 +885,32 @@ async def customize_calculator(request: CustomizationRequest) -> CalculatorConfi
                 print(f"🛡️ 使用用户指定的保护字段: {protected_fields}")
             else:
                 # 自动检测图像生成工坊生成的内容
-                theme = request.current_config.get('theme', {})
-                layout = request.current_config.get('layout', {})
-                app_background = request.current_config.get('appBackground', {})
-                
-                # 🎨 检查APP背景配置（优先级最高）
-                if app_background.get('backgroundImageUrl'):
-                    protected_fields.extend([
-                        'appBackground.backgroundImageUrl',
-                        'appBackground.backgroundType',
-                        'appBackground.backgroundColor',
-                        'appBackground.backgroundGradient',
-                        'appBackground.backgroundOpacity'
-                    ])
-                
-                # 检查主题背景图
-                if theme.get('backgroundImage'):
-                    protected_fields.extend(['theme.backgroundImage', 'theme.backgroundColor', 'theme.backgroundGradient'])
-                
-                # 检查背景图案
-                if theme.get('backgroundPattern'):
-                    protected_fields.extend(['theme.backgroundPattern', 'theme.patternColor', 'theme.patternOpacity'])
-                
-                # 检查按钮背景图
-                for button in layout.get('buttons', []):
-                    if button.get('backgroundImage'):
-                        protected_fields.append(f'button.{button.get("id", "unknown")}.backgroundImage')
+            theme = request.current_config.get('theme', {})
+            layout = request.current_config.get('layout', {})
+            app_background = request.current_config.get('appBackground', {})
+            
+            # 🎨 检查APP背景配置（优先级最高）
+            if app_background.get('backgroundImageUrl'):
+                protected_fields.extend([
+                    'appBackground.backgroundImageUrl',
+                    'appBackground.backgroundType',
+                    'appBackground.backgroundColor',
+                    'appBackground.backgroundGradient',
+                    'appBackground.backgroundOpacity'
+                ])
+            
+            # 检查主题背景图
+            if theme.get('backgroundImage'):
+                protected_fields.extend(['theme.backgroundImage', 'theme.backgroundColor', 'theme.backgroundGradient'])
+            
+            # 检查背景图案
+            if theme.get('backgroundPattern'):
+                protected_fields.extend(['theme.backgroundPattern', 'theme.patternColor', 'theme.patternOpacity'])
+            
+            # 检查按钮背景图
+            for button in layout.get('buttons', []):
+                if button.get('backgroundImage'):
+                    protected_fields.append(f'button.{button.get("id", "unknown")}.backgroundImage')
                 
                 print(f"🛡️ 自动检测的保护字段: {protected_fields}")
             
@@ -1423,32 +1423,98 @@ def merge_background_data(current_config: dict, generated_config: dict, protecte
                 generated_theme[field] = current_theme[field]
                 print(f"🔧 强制保留主题背景字段: theme.{field}")
     
-    # 🔧 强制合并按键背景数据
+    # 🔧 强制重新应用按键背景图 - 参考图像生成工坊逻辑
+    generated_config = force_reapply_button_background_images(current_config, generated_config)
+    
+    print(f"✅ 背景数据强制合并完成")
+    return generated_config
+
+def force_reapply_button_background_images(current_config: dict, generated_config: dict) -> dict:
+    """
+    强制重新应用按键背景图，参考图像生成工坊的实现逻辑
+    确保现有按键背景图在AI生成后100%保留
+    """
+    print(f"🔧 开始强制重新应用按键背景图")
+    
     current_buttons = current_config.get('layout', {}).get('buttons', [])
     generated_buttons = generated_config['layout']['buttons']
     
     # 创建现有按键的字典以便快速查找
     current_buttons_dict = {btn.get('id', ''): btn for btn in current_buttons}
     
+    # 统计有背景图的按键
+    buttons_with_background = []
+    for btn in current_buttons:
+        btn_id = btn.get('id', '')
+        if btn.get('backgroundImage'):
+            buttons_with_background.append(btn_id)
+    
+    if not buttons_with_background:
+        print("🔧 没有发现需要保护的按键背景图")
+        return generated_config
+    
+    print(f"🔧 发现 {len(buttons_with_background)} 个按键有背景图需要保护: {buttons_with_background}")
+    
+    # 对每个生成的按键强制重新应用背景图
     for i, generated_button in enumerate(generated_buttons):
         button_id = generated_button.get('id', '')
+        
         if button_id in current_buttons_dict:
             current_button = current_buttons_dict[button_id]
             
-            # 强制保留按键背景相关字段
-            button_background_fields = [
-                'backgroundImage', 'backgroundColor', 'backgroundPattern',
-                'patternColor', 'patternOpacity', 'opacity', 'borderRadius',
-                'gradientColors', 'customIcon', 'iconColor', 'iconSize',
-                'shadowColor', 'shadowOffset', 'shadowRadius'
-            ]
-            
-            for field in button_background_fields:
-                if field in current_button:
-                    generated_buttons[i][field] = current_button[field]
-                    print(f"🔧 强制保留按键背景字段: button.{button_id}.{field}")
+            # 🔧 参考图像生成工坊 _updateButtonPattern 的逻辑
+            # 如果当前按键有背景图，强制重新应用
+            if current_button.get('backgroundImage'):
+                print(f"🔧 强制重新应用按键背景图: {button_id}")
+                
+                # 🔧 创建新的按键对象，确保所有属性都被正确保留
+                updated_button = {
+                    'id': generated_button.get('id', current_button.get('id')),
+                    'label': generated_button.get('label', current_button.get('label')),
+                    'action': generated_button.get('action', current_button.get('action')),
+                    'gridPosition': generated_button.get('gridPosition', current_button.get('gridPosition')),
+                    'type': generated_button.get('type', current_button.get('type')),
+                    'customColor': generated_button.get('customColor', current_button.get('customColor')),
+                    'isWide': generated_button.get('isWide', current_button.get('isWide', False)),
+                    'widthMultiplier': generated_button.get('widthMultiplier', current_button.get('widthMultiplier', 1.0)),
+                    'heightMultiplier': generated_button.get('heightMultiplier', current_button.get('heightMultiplier', 1.0)),
+                    'gradientColors': generated_button.get('gradientColors', current_button.get('gradientColors')),
+                    'fontSize': generated_button.get('fontSize', current_button.get('fontSize')),
+                    'borderRadius': generated_button.get('borderRadius', current_button.get('borderRadius')),
+                    'elevation': generated_button.get('elevation', current_button.get('elevation')),
+                    'width': generated_button.get('width', current_button.get('width')),
+                    'height': generated_button.get('height', current_button.get('height')),
+                    'backgroundColor': generated_button.get('backgroundColor', current_button.get('backgroundColor')),
+                    'textColor': generated_button.get('textColor', current_button.get('textColor')),
+                    'borderColor': generated_button.get('borderColor', current_button.get('borderColor')),
+                    'borderWidth': generated_button.get('borderWidth', current_button.get('borderWidth')),
+                    'shadowColor': generated_button.get('shadowColor', current_button.get('shadowColor')),
+                    'shadowOffset': generated_button.get('shadowOffset', current_button.get('shadowOffset')),
+                    'shadowRadius': generated_button.get('shadowRadius', current_button.get('shadowRadius')),
+                    'opacity': generated_button.get('opacity', current_button.get('opacity')),
+                    'rotation': generated_button.get('rotation', current_button.get('rotation')),
+                    'scale': generated_button.get('scale', current_button.get('scale')),
+                    'backgroundPattern': generated_button.get('backgroundPattern', current_button.get('backgroundPattern')),
+                    'patternColor': generated_button.get('patternColor', current_button.get('patternColor')),
+                    'patternOpacity': generated_button.get('patternOpacity', current_button.get('patternOpacity')),
+                    'animation': generated_button.get('animation', current_button.get('animation')),
+                    'animationDuration': generated_button.get('animationDuration', current_button.get('animationDuration')),
+                    'customIcon': generated_button.get('customIcon', current_button.get('customIcon')),
+                    'iconSize': generated_button.get('iconSize', current_button.get('iconSize')),
+                    'iconColor': generated_button.get('iconColor', current_button.get('iconColor')),
+                    # 🔧 最关键：强制保留背景图
+                    'backgroundImage': current_button.get('backgroundImage'),
+                }
+                
+                # 🔧 移除None值，保持配置清洁
+                updated_button = {k: v for k, v in updated_button.items() if v is not None}
+                
+                # 🔧 替换生成的按键
+                generated_buttons[i] = updated_button
+                
+                print(f"✅ 成功重新应用按键背景图: {button_id} -> {current_button.get('backgroundImage')[:50]}...")
     
-    print(f"✅ 背景数据强制合并完成")
+    print(f"✅ 按键背景图强制重新应用完成")
     return generated_config
 
 def clean_invalid_buttons(config_dict: dict, preserve_button_ids: list = None) -> dict:
@@ -1669,7 +1735,7 @@ async def fix_calculator_config(user_input: str, current_config: dict, generated
 """
 
         print(f"🔧 修复上下文长度: {len(fix_context)} 字符")
-        
+
         # 调用AI进行修复
         model = get_current_model()
         response = model.generate_content([

@@ -132,21 +132,21 @@ class AIService {
            
            // 记录成功消息
            String responseMsg = '✅ 配置已生成完成';
-           
-           // 优先使用AI返回的自定义回复
+        
+        // 优先使用AI返回的自定义回复
            if (configData['aiResponse'] != null && configData['aiResponse'].toString().isNotEmpty) {
              responseMsg = configData['aiResponse'].toString();
-           } else {
-             // 备用方案：根据上下文生成回复
-             if (currentConfig != null) {
-               responseMsg = '✅ 已按您的要求完成调整！';
-             } else {
-               responseMsg = '🎉 "${config.name}" 已准备就绪！\n\n💡 提示：您可以随时说出想要的调整，我会在保持现有设计基础上进行精确修改';
-             }
-           }
-           await _recordAssistantMessage(responseMsg);
-           
-           return config;
+        } else {
+          // 备用方案：根据上下文生成回复
+          if (currentConfig != null) {
+            responseMsg = '✅ 已按您的要求完成调整！';
+          } else {
+            responseMsg = '🎉 "${config.name}" 已准备就绪！\n\n💡 提示：您可以随时说出想要的调整，我会在保持现有设计基础上进行精确修改';
+          }
+        }
+        await _recordAssistantMessage(responseMsg);
+        
+        return config;
          } else if (result.status == AITaskStatus.failed) {
            throw Exception(result.error ?? '任务执行失败');
          }
