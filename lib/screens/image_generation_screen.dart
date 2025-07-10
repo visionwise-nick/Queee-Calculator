@@ -4,6 +4,7 @@ import '../models/calculator_dsl.dart';
 import '../services/ai_service.dart';
 import '../services/config_service.dart'; // 🔧 新增：导入配置服务
 import '../providers/calculator_provider.dart';
+import '../widgets/ai_generation_progress_dialog.dart'; // 🔧 新增：导入进度弹窗
 
 import 'dart:convert';
 import 'dart:typed_data';
@@ -45,6 +46,9 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
   bool _selectAllBg = false;
   bool _isGeneratingButtonPattern = false;
   final TextEditingController _buttonPatternPromptController = TextEditingController();
+  
+  // 🔧 新增：进度弹窗控制器
+  final AIGenerationProgressController _progressController = AIGenerationProgressController();
 
   @override
   void initState() {
@@ -70,6 +74,7 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
     _appBgPromptController.dispose();
     _buttonBgPromptController.dispose();
     _buttonPatternPromptController.dispose();
+    _progressController.dispose(); // 🔧 新增：清理进度控制器
     super.dispose();
   }
 
@@ -121,11 +126,35 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
           ],
         ),
       ),
-      body: TabBarView(
-        controller: _tabController,
+      body: Stack(
         children: [
-          _buildButtonBackgroundTab(), // 按键背景tab放到第一个
-          _buildAppBackgroundTab(),    // APP背景tab放到第二个
+          TabBarView(
+            controller: _tabController,
+            children: [
+              _buildButtonBackgroundTab(), // 按键背景tab放到第一个
+              _buildAppBackgroundTab(),    // APP背景tab放到第二个
+            ],
+          ),
+          
+          // 🔧 进度弹窗
+          AnimatedBuilder(
+            animation: _progressController,
+            builder: (context, child) {
+              if (!_progressController.isVisible) {
+                return const SizedBox.shrink();
+              }
+              
+              return AIGenerationProgressDialog(
+                title: _progressController.title,
+                description: _progressController.description,
+                progress: _progressController.progress,
+                statusMessage: _progressController.statusMessage,
+                taskType: _progressController.taskType,
+                allowCancel: _progressController.allowCancel,
+                onCancel: _progressController.onCancel,
+              );
+            },
+          ),
         ],
       ),
     );
@@ -1031,6 +1060,14 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
       return;
     }
 
+    // 🔧 显示强制性进度弹窗
+    _progressController.show(
+      title: '🎨 正在生成按键背景图',
+      description: '正在为您选择的按键生成精美的背景图案...',
+      taskType: 'generate-pattern',
+      allowCancel: false,
+    );
+
     setState(() {
       _isGeneratingButtonPattern = true;
     });
@@ -1038,6 +1075,9 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
     try {
       await _generateSelectedButtonPatterns();
     } catch (e) {
+      // 隐藏进度弹窗
+      _progressController.hide();
+      
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -1095,6 +1135,15 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
           style: 'simple',
           size: '32x32',
           onProgress: (progress) {
+            // 计算总体进度
+            final totalProgress = (i + progress) / selectedButtons.length;
+            
+            // 更新进度弹窗
+            _progressController.updateProgress(
+              totalProgress, 
+              '正在生成按键 "${button.label}" 背景图... (${i + 1}/${selectedButtons.length})'
+            );
+            
             if (mounted) {
               setState(() {
                 _buttonBgProgress = progress;
@@ -1103,6 +1152,12 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
             print('按键${button.label}生成进度: ${(progress * 100).toInt()}%');
           },
           onStatusUpdate: (status) {
+            // 更新进度弹窗状态
+            _progressController.updateProgress(
+              _progressController.progress, 
+              '按键 "${button.label}": $status'
+            );
+            
             if (mounted) {
               setState(() {
                 _buttonBgStatusMessage = '正在生成按键${button.label}：$status';
@@ -1133,6 +1188,9 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
       }
     }
 
+    // 隐藏进度弹窗
+    _progressController.hide();
+    
     // 显示最终结果
     if (mounted) {
       final message = successCount > 0 
@@ -1231,6 +1289,14 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
       return;
     }
 
+    // 🔧 显示强制性进度弹窗
+    _progressController.show(
+      title: '🎨 正在生成APP背景图',
+      description: '正在为您的计算器生成精美的背景图...',
+      taskType: 'generate-app-background',
+      allowCancel: false,
+    );
+
     setState(() {
       _isGeneratingAppBg = true;
       _generatedAppBgUrl = null;
@@ -1247,6 +1313,20 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
         quality: 'ultra',
         theme: 'calculator',
         onProgress: (progress) {
+          // 更新进度弹窗
+          String statusMessage = '正在生成背景图...';
+          if (progress < 0.3) {
+            statusMessage = '正在分析您的创意...';
+          } else if (progress < 0.6) {
+            statusMessage = '正在设计背景风格...';
+          } else if (progress < 0.9) {
+            statusMessage = '正在渲染高质量图像...';
+          } else {
+            statusMessage = '即将完成...';
+          }
+          
+          _progressController.updateProgress(progress, statusMessage);
+          
           if (mounted) {
             setState(() {
               _appBgProgress = progress;
@@ -1255,6 +1335,9 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
           print('APP背景图生成进度: ${(progress * 100).toInt()}%');
         },
         onStatusUpdate: (status) {
+          // 更新状态消息
+          _progressController.updateProgress(_progressController.progress, status);
+          
           if (mounted) {
             setState(() {
               _appBgStatusMessage = status;
@@ -1263,6 +1346,9 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
           print('APP背景图生成状态: $status');
         },
       );
+
+      // 隐藏进度弹窗
+      _progressController.hide();
 
       print('🔧 APP背景图生成结果: ${result.keys.toList()}');
       
@@ -1286,6 +1372,9 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
         throw Exception(result['message'] ?? '生成失败');
       }
     } catch (e) {
+      // 隐藏进度弹窗
+      _progressController.hide();
+      
       print('❌ APP背景图生成失败: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

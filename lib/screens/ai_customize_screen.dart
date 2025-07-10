@@ -8,6 +8,7 @@ import '../services/task_service.dart'; // 🔧 新增：导入任务服务
 import '../models/calculator_dsl.dart';
 import '../widgets/thinking_process_dialog.dart';
 import '../widgets/generation_status_widget.dart'; // 🔧 新增：导入状态显示组件
+import '../widgets/ai_generation_progress_dialog.dart'; // 🔧 新增：导入进度弹窗
 import 'dart:convert';
 
 class AICustomizeScreen extends StatefulWidget {
@@ -28,6 +29,9 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
   ConversationSession? _currentSession;
   late AnimationController _fabAnimationController;
   late Animation<double> _fabAnimation;
+  
+  // 🔧 新增：进度弹窗控制器
+  final AIGenerationProgressController _progressController = AIGenerationProgressController();
 
   @override
   void initState() {
@@ -52,6 +56,7 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
     _scrollController.dispose();
     _focusNode.dispose();
     _fabAnimationController.dispose();
+    _progressController.dispose(); // 🔧 新增：清理进度控制器
     super.dispose();
   }
 
@@ -187,72 +192,86 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
       _scrollToBottom();
     });
 
+    // 🔧 显示强制性进度弹窗
+    _progressController.show(
+      title: '🎯 AI设计师正在工作',
+      description: '正在为您设计专属的计算器功能...',
+      taskType: 'customize',
+      allowCancel: false,
+    );
+
     try {
+      setState(() {
+        _isLoading = true;
+      });
+      
       final provider = Provider.of<CalculatorProvider>(context, listen: false);
       final currentConfig = provider.config;
       
-      // 🔧 使用异步任务服务提交生成任务
-      final taskId = await TaskService.submitAiDesignerTask(
-        userInput: userInput,
-        conversationHistory: await _getConversationHistory(),
+      // 使用AI生成服务，带进度回调
+      final config = await AIService.generateCalculatorFromPrompt(
+        userInput,
         currentConfig: currentConfig,
+        skipUserMessage: true,
+        onProgress: (progress) {
+          // 更新进度弹窗
+          String statusMessage = '正在生成配置...';
+          if (progress < 0.3) {
+            statusMessage = '正在分析您的需求...';
+          } else if (progress < 0.6) {
+            statusMessage = '正在设计计算器功能...';
+          } else if (progress < 0.9) {
+            statusMessage = '正在优化配置...';
+          } else {
+            statusMessage = '即将完成...';
+          }
+          
+          _progressController.updateProgress(progress, statusMessage);
+        },
+        onStatusUpdate: (status) {
+          // 更新状态消息
+          _progressController.updateProgress(_progressController.progress, status);
+        },
       );
-      
-      // 立即添加"正在生成"的助手消息
-      await _addAssistantMessage('🤖 收到您的需求！正在为您设计计算器功能...\n\n⏱️ 生成过程将在后台进行，您可以继续使用其他功能，完成后会自动应用到计算器。');
-      
-      // 注册任务完成回调
-      TaskService.registerTaskCallback(taskId, (task) {
-        if (task.status == TaskStatus.completed && task.result != null) {
-          _onAiGenerationCompleted(task);
-        } else if (task.status == TaskStatus.failed) {
-          _onAiGenerationFailed(task);
+
+      // 隐藏进度弹窗
+      _progressController.hide();
+
+      if (config != null) {
+        await provider.applyConfig(config);
+        await _reloadSession();
+        await _addAssistantMessage('✅ 功能设计完成！已为您自动应用到计算器。');
+        
+        // 显示成功提示
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('🎉 ${config.name} 已成功应用！'),
+              backgroundColor: Colors.green,
+              action: SnackBarAction(
+                label: '查看',
+                textColor: Colors.white,
+                onPressed: () {
+                  Navigator.of(context).pop(); // 返回计算器界面
+                },
+              ),
+            ),
+          );
         }
-      });
+      } else {
+        await _addAssistantMessage('😅 抱歉，我遇到了一些困难。能换个方式描述你的想法吗？');
+      }
       
     } catch (e) {
-      // 异步任务提交失败，直接使用新的异步方式
-      print('异步任务提交失败，使用新的异步方式: $e');
-      await _addAssistantMessage('🔄 正在为您生成配置，请稍候...');
+      // 隐藏进度弹窗
+      _progressController.hide();
       
-      try {
+      await _addAssistantMessage('😓 出现了一个小问题：$e\n\n不用担心，我们再试一次！');
+    } finally {
+      if (mounted) {
         setState(() {
-          _isLoading = true;
+          _isLoading = false;
         });
-        
-        final provider = Provider.of<CalculatorProvider>(context, listen: false);
-        final currentConfig = provider.config;
-        
-        // 使用新的异步AI生成
-        final config = await AIService.generateCalculatorFromPrompt(
-          userInput,
-          currentConfig: currentConfig,
-          skipUserMessage: true,
-          onProgress: (progress) {
-            // 可以在这里更新进度
-            print('AI生成进度: ${(progress * 100).toInt()}%');
-          },
-          onStatusUpdate: (status) {
-            // 可以在这里更新状态提示
-            print('AI生成状态: $status');
-          },
-        );
-
-        if (config != null) {
-          await provider.applyConfig(config);
-          await _reloadSession();
-          await _addAssistantMessage('✅ 功能设计完成！已为您自动应用到计算器。');
-        } else {
-          await _addAssistantMessage('😅 抱歉，我遇到了一些困难。能换个方式描述你的想法吗？');
-        }
-      } catch (syncError) {
-        await _addAssistantMessage('😓 出现了一个小问题：$syncError\n\n不用担心，我们再试一次！');
-      } finally {
-        if (mounted) {
-          setState(() {
-            _isLoading = false;
-          });
-        }
       }
     }
   }
@@ -1400,116 +1419,140 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
           ),
         ],
       ),
-      body: Column(
+      body: Stack(
         children: [
-          // 🔧 新增：全局生成状态栏
-          const GlobalGenerationStatusBar(),
-          
-          Expanded(
-            child: ListView.builder(
-              controller: _scrollController,
-              padding: const EdgeInsets.only(bottom: 16),
-              itemCount: _messages.length + (_isLoading ? 1 : 0),
-              itemBuilder: (context, index) {
-                if (index == _messages.length) {
-                  return _buildTypingIndicator();
-                }
-                return _buildMessageBubble(_messages[index], index);
-              },
-            ),
-          ),
-          
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Color(0x1A000000),
-                  blurRadius: 10,
-                  offset: Offset(0, -2),
+          Column(
+            children: [
+              // 🔧 新增：全局生成状态栏
+              const GlobalGenerationStatusBar(),
+              
+              Expanded(
+                child: ListView.builder(
+                  controller: _scrollController,
+                  padding: const EdgeInsets.only(bottom: 16),
+                  itemCount: _messages.length + (_isLoading ? 1 : 0),
+                  itemBuilder: (context, index) {
+                    if (index == _messages.length) {
+                      return _buildTypingIndicator();
+                    }
+                    return _buildMessageBubble(_messages[index], index);
+                  },
                 ),
-              ],
-            ),
-            child: SafeArea(
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF3F4F6),
-                        borderRadius: BorderRadius.circular(24),
-                        border: Border.all(color: const Color(0xFFE5E7EB)),
-                      ),
-                      child: TextField(
-                        controller: _textController,
-                        focusNode: _focusNode,
-                        maxLines: null,
-                        textInputAction: TextInputAction.send,
-                        style: const TextStyle(fontSize: 16),
-                        decoration: const InputDecoration(
-                          hintText: '描述你想要的计算器...',
-                          hintStyle: TextStyle(color: Color(0xFF9CA3AF)),
-                          border: InputBorder.none,
-                          contentPadding: EdgeInsets.symmetric(
-                            horizontal: 20,
-                            vertical: 14,
+              ),
+              
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Color(0x1A000000),
+                      blurRadius: 10,
+                      offset: Offset(0, -2),
+                    ),
+                  ],
+                ),
+                child: SafeArea(
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF3F4F6),
+                            borderRadius: BorderRadius.circular(24),
+                            border: Border.all(color: const Color(0xFFE5E7EB)),
+                          ),
+                          child: TextField(
+                            controller: _textController,
+                            focusNode: _focusNode,
+                            maxLines: null,
+                            textInputAction: TextInputAction.send,
+                            style: const TextStyle(fontSize: 16),
+                            decoration: const InputDecoration(
+                              hintText: '描述你想要的计算器...',
+                              hintStyle: TextStyle(color: Color(0xFF9CA3AF)),
+                              border: InputBorder.none,
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: 20,
+                                vertical: 14,
+                              ),
+                            ),
+                            onSubmitted: _sendMessage,
+                            enabled: !_isLoading,
                           ),
                         ),
-                        onSubmitted: _sendMessage,
-                        enabled: !_isLoading,
                       ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  // 网络测试按钮
-                  IconButton(
-                    icon: const Icon(Icons.network_check, size: 20),
-                    onPressed: _testConnection,
-                    style: IconButton.styleFrom(
-                      foregroundColor: Colors.grey.shade600,
-                      padding: const EdgeInsets.all(12),
-                    ),
-                    tooltip: '测试网络连接',
-                  ),
-                  const SizedBox(width: 4),
-                  AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    height: 48,
-                    width: 48,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: _textController.text.trim().isNotEmpty && !_isLoading
-                            ? [const Color(0xFF6366F1), const Color(0xFF8B5CF6)]
-                            : [Colors.grey.shade300, Colors.grey.shade400],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
+                      const SizedBox(width: 8),
+                      // 网络测试按钮
+                      IconButton(
+                        icon: const Icon(Icons.network_check, size: 20),
+                        onPressed: _testConnection,
+                        style: IconButton.styleFrom(
+                          foregroundColor: Colors.grey.shade600,
+                          padding: const EdgeInsets.all(12),
+                        ),
+                        tooltip: '测试网络连接',
                       ),
-                      shape: BoxShape.circle,
-                      boxShadow: _textController.text.trim().isNotEmpty && !_isLoading
-                          ? [
-                              BoxShadow(
-                                color: Colors.purple.withOpacity(0.3),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
-                              ),
-                            ]
-                          : [],
-                    ),
-                    child: IconButton(
-                      icon: Icon(
-                        _isLoading ? Icons.hourglass_empty : Icons.send,
-                        color: Colors.white,
-                        size: 20,
+                      const SizedBox(width: 4),
+                      AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        height: 48,
+                        width: 48,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: _textController.text.trim().isNotEmpty && !_isLoading
+                                ? [const Color(0xFF6366F1), const Color(0xFF8B5CF6)]
+                                : [Colors.grey.shade300, Colors.grey.shade400],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          shape: BoxShape.circle,
+                          boxShadow: _textController.text.trim().isNotEmpty && !_isLoading
+                              ? [
+                                  BoxShadow(
+                                    color: Colors.purple.withOpacity(0.3),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ]
+                              : [],
+                        ),
+                        child: IconButton(
+                          icon: Icon(
+                            _isLoading ? Icons.hourglass_empty : Icons.send,
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                          onPressed: _isLoading 
+                              ? null 
+                              : () => _sendMessage(_textController.text),
+                        ),
                       ),
-                      onPressed: _isLoading 
-                          ? null 
-                          : () => _sendMessage(_textController.text),
+                    ],
                   ),
                 ),
-              ],
               ),
-            ),
+            ],
+          ),
+          
+          // 🔧 进度弹窗
+          AnimatedBuilder(
+            animation: _progressController,
+            builder: (context, child) {
+              if (!_progressController.isVisible) {
+                return const SizedBox.shrink();
+              }
+              
+              return AIGenerationProgressDialog(
+                title: _progressController.title,
+                description: _progressController.description,
+                progress: _progressController.progress,
+                statusMessage: _progressController.statusMessage,
+                taskType: _progressController.taskType,
+                allowCancel: _progressController.allowCancel,
+                onCancel: _progressController.onCancel,
+              );
+            },
           ),
         ],
       ),
