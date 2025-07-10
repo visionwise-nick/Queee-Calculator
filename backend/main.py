@@ -1653,26 +1653,67 @@ def clean_invalid_buttons(config_dict: dict) -> dict:
 async def fix_calculator_config(user_input: str, current_config: dict, generated_config: dict) -> dict:
     """AI二次校验和修复生成的计算器配置"""
     try:
+        # 🔧 修复：清理配置中的大量数据以避免token超限
+        def clean_config_for_ai(config: dict) -> dict:
+            """移除配置中的大数据字段以减少token数量"""
+            if not config:
+                return config
+                
+            cleaned = json.loads(json.dumps(config))  # 深拷贝
+            
+            # 移除base64图像数据
+            def remove_base64_images(obj):
+                if isinstance(obj, dict):
+                    for key, value in list(obj.items()):
+                        if isinstance(value, str) and (
+                            key.endswith('Image') or 
+                            key.endswith('ImageUrl') or 
+                            key.endswith('backgroundImage') or
+                            'image' in key.lower()
+                        ) and (
+                            value.startswith('data:image/') or 
+                            len(value) > 1000  # 超过1000字符的可能是base64
+                        ):
+                            obj[key] = f"[图像数据已省略-长度:{len(value)}字符]"
+                        elif isinstance(value, (dict, list)):
+                            remove_base64_images(value)
+                elif isinstance(obj, list):
+                    for item in obj:
+                        if isinstance(item, (dict, list)):
+                            remove_base64_images(item)
+            
+            remove_base64_images(cleaned)
+            return cleaned
+        
+        # 清理配置数据
+        clean_current = clean_config_for_ai(current_config) if current_config else None
+        clean_generated = clean_config_for_ai(generated_config)
+        
         # 构建修复上下文
         fix_context = f"""
 用户需求：{user_input}
 
 现有配置摘要（需要继承的部分）：
-{json.dumps(current_config, ensure_ascii=False, indent=2) if current_config else "无现有配置"}
+{json.dumps(clean_current, ensure_ascii=False, indent=2) if clean_current else "无现有配置"}
 
 生成的配置（需要修复）：
-{json.dumps(generated_config, ensure_ascii=False, indent=2)}
+{json.dumps(clean_generated, ensure_ascii=False, indent=2)}
 
 请修复上述配置中的问题，确保：
 1. 满足用户需求
-2. 继承现有配置中用户未要求修改的部分
+2. 继承现有配置中用户未要求修改的部分（特别是图像数据字段要保持原值）
 3. 包含所有必需的基础按钮
 4. 所有按钮都有正确的action字段
 5. 布局结构合理
+6. 保持原有的图像数据不变（backgroundImage、backgroundImageUrl等）
+
+注意：配置中的图像数据已被省略显示，但在修复时请保持原有的图像数据字段不变。
 
 直接返回修正后的完整JSON配置。
 """
 
+        print(f"🔧 修复上下文长度: {len(fix_context)} 字符")
+        
         # 调用AI进行修复
         model = get_current_model()
         response = model.generate_content([
@@ -1701,7 +1742,40 @@ async def fix_calculator_config(user_input: str, current_config: dict, generated
         
         try:
             fixed_config = json.loads(fixed_json)
-            print("✅ AI修复成功")
+            
+            # 🔧 重要：恢复原始图像数据
+            def restore_image_data(fixed: dict, original: dict):
+                """将原始配置中的图像数据恢复到修复后的配置中"""
+                if not original:
+                    return
+                    
+                def restore_images(fixed_obj, original_obj):
+                    if isinstance(fixed_obj, dict) and isinstance(original_obj, dict):
+                        for key, original_value in original_obj.items():
+                            if isinstance(original_value, str) and (
+                                key.endswith('Image') or 
+                                key.endswith('ImageUrl') or 
+                                key.endswith('backgroundImage') or
+                                'image' in key.lower()
+                            ) and (
+                                original_value.startswith('data:image/') or 
+                                len(original_value) > 1000
+                            ):
+                                # 恢复原始图像数据
+                                fixed_obj[key] = original_value
+                                print(f"🔧 恢复图像数据字段: {key}")
+                            elif isinstance(original_value, dict) and key in fixed_obj:
+                                restore_images(fixed_obj[key], original_value)
+                            elif isinstance(original_value, list) and key in fixed_obj and isinstance(fixed_obj[key], list):
+                                for i, item in enumerate(original_value):
+                                    if i < len(fixed_obj[key]) and isinstance(item, dict) and isinstance(fixed_obj[key][i], dict):
+                                        restore_images(fixed_obj[key][i], item)
+            
+            # 恢复当前配置和生成配置中的图像数据
+            restore_image_data(fixed_config, current_config)
+            restore_image_data(fixed_config, generated_config)
+            
+            print("✅ AI修复成功，图像数据已恢复")
             return fixed_config
         except json.JSONDecodeError as e:
             print(f"❌ AI修复的JSON格式无效: {str(e)}")
