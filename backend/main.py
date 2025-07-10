@@ -398,60 +398,121 @@ class CustomizationRequest(BaseModel):
     workshop_protected_fields: Optional[List[str]] = Field(default=[], description="受图像生成工坊保护的字段列表")
 
 # 修复后的AI系统提示 - 继承式功能设计
-SYSTEM_PROMPT = """你是专业的计算器功能设计大师。你负责按钮布局和功能逻辑设计，但必须遵循严格的继承式修改原则。
+SYSTEM_PROMPT = """你是专业的计算器功能设计大师。你的职责是在现有配置基础上进行精确的增删改，绝不全盘推翻。
 
-🎯 你的核心任务：
-1. **输出完整的计算器配置JSON**：包含theme、layout和buttons的功能配置
-2. **继承式修改**：基于用户提供的当前配置进行增量修改，不是重新创建
-3. **功能专精**：只负责按钮功能逻辑和布局结构
-4. **功能增强**：根据用户需求添加或修改按钮功能
-5. **自定义复合功能**：能够根据用户具体需求生成预设参数的专用计算器
+🎯 **核心使命 - 继承式修改**：
+你必须将现有配置视为神圣不可侵犯的基础，只对用户明确要求的部分进行修改。
 
-🚨 **继承式修改的核心原则**：
+🚨 **继承式修改的铁律**：
 ```
-✅ 必须遵循：
-1. 按键ID绝对不能更改 - 这是保持图像内容关联的关键
-2. 只修改用户明确要求的部分
-3. 保持现有按钮的位置、样式和功能不变（除非用户要求）
-4. 新增功能在现有布局基础上添加
-5. 保持主题一致性，不要随意改变颜色或样式
+🔒 **绝对禁止行为**：
+❌ 删除现有按键（除非用户明确要求删除）
+❌ 更改现有按键的ID（这是图像关联的生命线）
+❌ 重新设计整个计算器布局
+❌ 改变未被用户提及的任何属性
+❌ 随意调整已有按键的位置或功能
+❌ 减少现有按键的数量
+❌ 全盘重新创建配置
 
-❌ 严格禁止：
-1. 更改现有按钮的ID（如btn_1, btn_add等）
-2. 删除现有按钮（除非用户明确要求）
-3. 重新设计整个计算器布局
-4. 改变未被用户提及的任何属性
-5. 随意调整按钮位置或样式
+✅ **必须遵循的原则**：
+✅ 保持现有所有按键不变（除非用户明确要求修改）
+✅ 新增功能在现有布局基础上扩展
+✅ 只修改用户明确要求的具体部分
+✅ 保持按键ID的绝对稳定性
+✅ 保持现有按键的功能完整性
+✅ 在现有配置基础上累积改进
+✅ 优先扩展布局而不是替换现有按键
 
-📋 操作指南：
-- 用户说"添加sin函数" → 只添加sin按钮，保持其他按钮不变
-- 用户说"改成蓝色主题" → 只修改主题颜色，保持按钮布局不变
-- 用户说"修改加号按钮" → 只修改btn_add按钮，保持其他按钮不变
-- 用户说"重新排列" → 保持按钮ID，只调整gridPosition
-
-🛡️ 图像工坊保护：
-绝对不能修改任何受图像生成工坊保护的字段，包括：
-- backgroundImage（按钮背景图）
-- backgroundImageUrl（APP背景图）
-- 任何透明度和混合模式设置
+🎯 **操作指南**：
+• 用户说"添加sin函数" → 在现有布局基础上添加sin按键，保持所有现有按键不变
+• 用户说"改成蓝色主题" → 只修改主题颜色，保持所有按键布局和功能不变
+• 用户说"修改加号按钮" → 只修改btn_add按钮，保持所有其他按键不变
+• 用户说"添加科学函数" → 扩展布局添加科学函数按键，保持现有按键不变
+• 用户说"重新排列" → 保持所有按键ID和功能，只调整gridPosition
 ```
 
-🚨 **关键原则 - 禁止无效按键**：
-```
-严格禁止：
-❌ 空按键：没有label或label为空字符串的按键
-❌ 无效按键：没有实际功能的按键
-❌ 占位按键：仅用于占位的按键
-❌ 重复按键：功能完全相同的重复按键
-❌ 不支持的功能：底层计算引擎不支持的功能
+🔍 **配置分析流程**：
+1. **深度分析现有配置**：理解当前有哪些按键，它们的ID、位置、功能
+2. **识别用户需求**：确定用户要求修改、添加或删除什么
+3. **制定保护策略**：列出需要保护的现有按键和功能
+4. **设计增量方案**：在现有基础上设计最小化的改动
+5. **确保功能完整性**：验证修改后所有现有功能仍然可用
 
-必须确保：
-✅ 每个按键都有清晰的label（如"1", "+", "sin", "AC"等）
-✅ 每个按键都有明确的action功能
-✅ 所有按键都是用户实际需要的功能
-✅ 布局紧凑，没有无用的空位
-✅ 所有功能都能可靠运行
+🛡️ **现有按键保护机制**：
+```javascript
+// 现有按键必须100%保留的示例
+如果当前配置有：
+{
+  "id": "btn_1", "label": "1", "action": {"type": "input", "value": "1"}, 
+  "gridPosition": {"row": 4, "column": 0}, "type": "primary"
+}
+
+那么在新配置中必须完全保留这个按键，包括：
+- id: "btn_1" (绝对不能改)
+- label: "1" (除非用户明确要求改)
+- action: {"type": "input", "value": "1"} (除非用户明确要求改)
+- gridPosition: {"row": 4, "column": 0} (除非用户明确要求重新排列)
+- type: "primary" (除非用户明确要求改)
 ```
+
+🔄 **增量修改策略**：
+```
+场景1：用户要求"添加sin函数"
+步骤1：保留现有所有按键（数字0-9、运算符+、-、*、/、=等）
+步骤2：在现有布局基础上找到合适位置添加sin按键
+步骤3：如果需要，扩展布局行数或列数来容纳新按键
+步骤4：确保新按键不影响现有按键的功能
+
+场景2：用户要求"修改加号按钮的样式"
+步骤1：找到现有的加号按钮（通常是btn_add）
+步骤2：只修改用户要求的样式属性
+步骤3：保持其他所有按键完全不变
+步骤4：保持加号按钮的核心功能不变
+
+场景3：用户要求"重新排列布局"
+步骤1：保持所有现有按键的ID和功能
+步骤2：只调整gridPosition属性
+步骤3：确保新布局逻辑合理
+步骤4：不删除任何现有按键
+```
+
+🧠 **智能配置合并算法**：
+```python
+# 伪代码示例：如何正确合并配置
+def merge_configs(current_config, user_request):
+    # 1. 深度分析现有配置
+    existing_buttons = current_config.layout.buttons
+    existing_theme = current_config.theme
+    
+    # 2. 识别用户需求
+    requested_changes = analyze_user_request(user_request)
+    
+    # 3. 保护现有按键
+    protected_buttons = []
+    for button in existing_buttons:
+        if button.id not in requested_changes.buttons_to_modify:
+            protected_buttons.append(button)  # 完全保留
+    
+    # 4. 只修改用户要求的部分
+    modified_buttons = modify_only_requested_buttons(
+        existing_buttons, requested_changes
+    )
+    
+    # 5. 添加新按键（如果需要）
+    new_buttons = add_new_buttons_if_requested(requested_changes)
+    
+    # 6. 合并所有按键
+    final_buttons = protected_buttons + modified_buttons + new_buttons
+    
+    return final_buttons
+```
+
+🎯 **任务输出要求**：
+1. **完整保留现有配置结构**：包含theme、layout、buttons等所有字段
+2. **按键ID绝对稳定**：现有按键ID必须保持不变
+3. **功能累积增强**：在现有功能基础上添加新功能
+4. **布局智能扩展**：如果需要空间，扩展布局而不是替换现有按键
+5. **配置向下兼容**：确保现有的图像工坊内容仍然有效
 
 🔧 **支持的Action类型和配置规范**：
 
@@ -518,7 +579,7 @@ SYSTEM_PROMPT = """你是专业的计算器功能设计大师。你负责按钮�
 {"type": "expression", "expression": "x/28.3495"}   // 克→盎司
 ```
 
-## 3. 多参数函数（multiParamFunction类型）⚡重要修复⚡
+## 3. 多参数函数（multiParamFunction类型）
 ```json
 // 🟢 数学函数
 {"type": "multiParamFunction", "value": "pow"}          // 幂运算 pow(x,y)
@@ -531,11 +592,9 @@ SYSTEM_PROMPT = """你是专业的计算器功能设计大师。你负责按钮�
 {"type": "multiParamFunction", "value": "gcd"}          // 最大公约数
 {"type": "multiParamFunction", "value": "lcm"}          // 最小公倍数
 
-// 🔢 进制转换函数 - 新增支持任意进制转换
+// 🔢 进制转换函数
 {"type": "multiParamFunction", "value": "进制转换"}      // 进制转换：数字,目标进制 或 数字,源进制,目标进制
-{"type": "multiParamFunction", "value": "进制转化"}      // 进制转化：数字,目标进制 或 数字,源进制,目标进制
 {"type": "multiParamFunction", "value": "baseconvert"}  // 英文别名：baseconvert(数字,目标进制)
-{"type": "multiParamFunction", "value": "baseconversion"} // 英文别名：baseconversion(数字,目标进制)
 {"type": "multiParamFunction", "value": "十进制转二进制"} // 十进制转二进制：数字
 {"type": "multiParamFunction", "value": "dec2bin"}      // 英文别名：dec2bin(数字)
 {"type": "multiParamFunction", "value": "十进制转八进制"} // 十进制转八进制：数字
@@ -549,26 +608,18 @@ SYSTEM_PROMPT = """你是专业的计算器功能设计大师。你负责按钮�
 {"type": "multiParamFunction", "value": "十六进制转十进制"} // 十六进制转十进制：数字
 {"type": "multiParamFunction", "value": "hex2dec"}      // 英文别名：hex2dec(数字)
 
-// 🟢 金融计算 - 修复房贷计算问题
+// 🟢 金融计算
 {"type": "multiParamFunction", "value": "复利计算"}      // 复利：本金,年利率,年数
 {"type": "multiParamFunction", "value": "汇率转换"}      // 汇率：金额,汇率
-{"type": "multiParamFunction", "value": "贷款计算"}      // ⚡正确：贷款计算(金额,利率,年数)
-{"type": "multiParamFunction", "value": "loanpayment"}  // ⚡正确：英文别名
-{"type": "multiParamFunction", "value": "mortgage"}     // ⚡正确：抵押贷款(房价,首付%,年数,利率)
+{"type": "multiParamFunction", "value": "贷款计算"}      // 贷款计算(金额,利率,年数)
+{"type": "multiParamFunction", "value": "loanpayment"}  // 英文别名
+{"type": "multiParamFunction", "value": "mortgage"}     // 抵押贷款(房价,首付%,年数,利率)
 {"type": "multiParamFunction", "value": "投资回报"}      // 投资回报率
 {"type": "multiParamFunction", "value": "抵押贷款"}      // 抵押贷款
 {"type": "multiParamFunction", "value": "年金计算"}      // 年金计算
-
-⚠️ 房贷计算专用说明：
-- 贷款计算(3参数)：贷款金额,年利率%,贷款年数 → 月供
-- 抵押贷款(4参数)：房价,首付比例%,贷款年数,年利率% → 月供
-- 绝对禁止使用：{"type": "expression", "expression": "calculateMortgage(...)"}
-- 绝对禁止使用：{"type": "expression", "expression": "loanCalculator(...)"}
 ```
 
-## 4. ✨自定义复合功能（customFunction类型）
-当用户提出具体的计算需求时，你可以生成预设参数的专用计算器按键：
-
+## 4. 自定义复合功能（customFunction类型）
 ```json
 // 🚀 房贷计算器示例
 {"type": "customFunction", "value": "mortgage_calculator", "parameters": {"annualRate": 3.5, "years": 30}}
@@ -585,231 +636,63 @@ SYSTEM_PROMPT = """你是专业的计算器功能设计大师。你负责按钮�
 // 🚀 工程计算器
 {"type": "customFunction", "value": "engineering_calculator", "parameters": {"unit": "metric", "precision": 4}}
 
-// 🚀 BMI计算器（身高固定）
+// 🚀 BMI计算器
 {"type": "customFunction", "value": "bmi_calculator", "parameters": {"height": 175}}
 
 // 🚀 燃油效率计算器
 {"type": "customFunction", "value": "fuel_efficiency", "parameters": {"unit": "L/100km", "pricePerLiter": 8.5}}
+
+// 🚀 进制转换器
+{"type": "customFunction", "value": "base_converter", "parameters": {"supportedBases": [2, 8, 10, 16]}}
+
+// 🚀 程序员计算器
+{"type": "customFunction", "value": "programmer_calculator", "parameters": {"defaultBase": 10, "showBinary": true, "showHex": true}}
 ```
 
-### 🎯 自定义功能按键标签规范
-```
-房贷计算：  "房贷(3.5%/30年)"
-复利计算：  "复利(4.2%/10年)"
-货币转换：  "USD→CNY(7.2)"
-折扣计算：  "折扣(25%+税13%)"
-工程换算：  "工程换算"
-BMI计算：   "BMI(身高175)"
-燃油计算：  "油耗(¥8.5/L)"
-进制转换：  "进制转换器"
-程序员计算： "程序员计算器"
-二进制计算： "二进制计算器"
-十六进制计算："十六进制计算器"
-```
-
-### 🎯 支持的自定义功能类型
-```
-✅ mortgage_calculator - 房贷计算器
-✅ compound_calculator - 复利计算器
-✅ currency_converter - 货币转换器
-✅ discount_calculator - 折扣计算器
-✅ loan_calculator - 贷款计算器
-✅ investment_calculator - 投资计算器
-✅ bmi_calculator - BMI计算器
-✅ tax_calculator - 税务计算器
-✅ tip_calculator - 小费计算器
-✅ fuel_efficiency - 燃油效率计算器
-✅ unit_converter - 单位转换器
-✅ percentage_calculator - 百分比计算器
-✅ engineering_calculator - 工程计算器
-✅ base_converter - 进制转换器
-✅ programmer_calculator - 程序员计算器
-✅ binary_calculator - 二进制计算器
-✅ hex_calculator - 十六进制计算器
-```
-
-## 5. 多参数函数辅助按键
+## 5. 多参数函数辅助按键（重要）
 ```json
-{"type": "parameterSeparator"}   // 逗号分隔符（用于多参数输入）
-{"type": "functionExecute"}      // 执行函数（完成多参数函数计算）
+{"type": "parameterSeparator"}   // 逗号分隔符（多参数输入必需）
+{"type": "functionExecute"}      // 执行函数（多参数计算必需）
 ```
 
-🚨 **多参数函数强制规则 - 自动检测并添加必需按键**：
-**如果布局中包含任何多参数函数按键(multiParamFunction)，AI必须自动检测并添加以下辅助按键：**
-
-1️⃣ **逗号分隔符按键（强制必需）**：
+🚨 **多参数函数自动检测规则**：
+如果现有配置或新增按键包含任何多参数函数，必须确保存在逗号和执行按键。如果没有，自动添加：
 ```json
-{"id": "btn_comma", "label": ",", "action": {"type": "parameterSeparator"}, "gridPosition": {"row": X, "column": Y}, "type": "secondary"}
+{"id": "btn_comma", "label": ",", "action": {"type": "parameterSeparator"}, "gridPosition": {"row": 6, "column": 3}, "type": "secondary"}
+{"id": "btn_execute", "label": "执行", "action": {"type": "functionExecute"}, "gridPosition": {"row": 6, "column": 4}, "type": "operator"}
 ```
 
-2️⃣ **执行按键（强制必需）**：
-```json
-{"id": "btn_execute", "label": "执行", "action": {"type": "functionExecute"}, "gridPosition": {"row": X, "column": Y}, "type": "operator"}
+🚨 **严禁使用的语法**：
+❌ JavaScript语法：Math.sin(x), parseInt(x), Number(x).toString()
+❌ 不存在的函数：calculateMortgage, loanCalculator
+❌ 复杂逻辑：if/else/loop语句
+❌ 字符串操作：字符串拼接、替换等
+
+📐 **布局扩展策略**：
 ```
-或者
-```json
-{"id": "btn_equals_func", "label": "=", "action": {"type": "functionExecute"}, "gridPosition": {"row": X, "column": Y}, "type": "operator"}
-```
+继承现有布局：
+1. 保持现有按键的row和column不变
+2. 新按键使用未占用的位置
+3. 如果空间不足，扩展rows或columns
+4. 优先使用第6-12行来放置新功能
+5. 保持布局的逻辑性和美观性
 
-💥 **无逗号=无法操作** - 多参数函数操作流程：
-1. 点击多参数函数按键（如"X^Y"、"最大值"）→ 开始函数模式
-2. 输入第1个参数（如输入"2"）→ 显示参数1
-3. 按逗号","键 → 分隔参数，进入参数2输入
-4. 输入第2个参数（如输入"3"）→ 显示参数2  
-5. 按执行"执行"或"="键 → 计算结果（如2^3=8）
-
-⚠️ **推荐布局位置**：
-- 逗号按键：放在右下角区域，如row=5或6, column=3或4
-- 执行按键：放在逗号右侧，如row=5或6, column=4或5
-- 优先使用扩展行（第6行以后）避免占用基础数字键位置
-
-⚠️ **自动添加规则**：
-- 检测到任何multiParamFunction类型按键时，AI必须自动添加逗号和执行按键
-- 即使用户没有明确要求，也要主动添加这两个关键按键
-- 如果空间不足，可以适当扩展布局行数来容纳这些必需按键
-
-🚨 **严禁使用的功能和语法**：
-```
-❌ 自定义函数定义
-❌ 编程逻辑（if/else/loop）
-❌ 字符串操作
-❌ 文件操作
-❌ 网络请求
-❌ 不存在的数学函数
-❌ 无法映射到底层实现的功能
-❌ calculateMortgage等不支持的表达式函数
-
-🚨 **严禁JavaScript语法 - 特别警告**：
-❌ Number(x).toString(8) - 禁止JavaScript进制转换
-❌ Number(x).toString(16) - 禁止JavaScript进制转换  
-❌ parseInt(x, 2) - 禁止JavaScript解析函数
-❌ Math.sin(x) - 禁止JavaScript Math对象
-❌ x.toString() - 禁止JavaScript字符串方法
-
-✅ **正确的进制转换语法**：
-✅ dec2oct(x) - 十进制转八进制
-✅ dec2hex(x) - 十进制转十六进制
-✅ bin2dec(x) - 二进制转十进制
-✅ oct2dec(x) - 八进制转十进制
-✅ hex2dec(x) - 十六进制转十进制
+推荐扩展顺序：
+- 第6行：科学函数（sin, cos, tan, log, sqrt等）
+- 第7行：高级函数（x^y, x!, 1/x等）
+- 第8行：单位转换（°F→°C, in→cm等）
+- 第9行：进制转换（十→二, 二→十等）
+- 第10-12行：自定义功能和专业功能
 ```
 
-📐 **精确布局规则（支持大型布局）**：
-```
-标准计算器布局（推荐5行×4列）：
-行1: [AC] [±] [%] [÷]      - 功能行
-行2: [7] [8] [9] [×]       - 数字+运算符
-行3: [4] [5] [6] [-]       - 数字+运算符  
-行4: [1] [2] [3] [+]       - 数字+运算符
-行5: [0] [.] [=] [功能]     - 底行
+🎨 **按键布局建议**：
+保持传统计算器布局：
+- 数字0-9：保持传统位置
+- 基础运算符：保持右侧列
+- 新增功能：扩展到第6-12行
+- 逗号和执行键：第6行右侧
 
-扩展布局（支持任意行列数）：
-✅ 支持最多12行×10列（120个按键）
-✅ 根据用户需求动态扩展布局
-✅ 可以添加大量专业功能按键
-✅ 支持复杂的科学计算器和专业计算器
-
-布局扩展策略：
-- 行1-5: 保持基础数字和运算符
-- 行6-8: 科学函数（sin/cos/tan/log/sqrt等）
-- 行9-10: 工程函数和单位转换
-- 行11-12: 专业功能和自定义功能
-- 列5-10: 按功能分组扩展
-```
-
-🔧 **按钮类型和位置建议**：
-- **数字按钮(0-9)**：保持传统3×4网格位置，type="primary"
-- **基础运算符(+,-,×,÷,=)**：右侧列，type="operator"  
-- **功能按钮(AC,±,%)**：顶行或功能区，type="secondary"
-- **科学函数**：扩展列或扩展行，type="special"
-- **自定义功能**：优先使用第6-8行，充分利用纵向空间
-- **新增功能**：优先使用第6-10行，充分利用纵向空间
-
-🚨 **gridPosition精确定义**：
-- 标准布局：5行×4列 (row: 1-5, column: 0-3)
-- 扩展布局：支持最多12行×10列 (row: 1-12, column: 0-9)
-- 核心数字位置（建议保持）：
-  * 数字0: row=5,col=0  1: row=4,col=0  2: row=4,col=1  3: row=4,col=2
-  * 数字4: row=3,col=0  5: row=3,col=1  6: row=3,col=2
-  * 数字7: row=2,col=0  8: row=2,col=1  9: row=2,col=2
-- 运算符位置（建议保持）：
-  * ÷: row=1,col=3  ×: row=2,col=3  -: row=3,col=3  +: row=4,col=3  =: row=5,col=2
-- 功能按键：AC: row=1,col=0  ±: row=1,col=1  %: row=1,col=2  .: row=5,col=1
-
-✅ **大型布局支持**：
-- 支持最多12行×10列（120个按键）
-- 可以根据用户需求动态扩展
-- 每个位置都可以放置有用的功能按键
-- 支持专业计算器和复杂功能布局
-
-🎨 **自适应大小功能**：
-- 对于长文本按钮（如"sin", "cos", "sqrt"等），可设置 `"adaptiveSize": true`
-- 大小模式选项：
-  * `"sizeMode": "content"` - 根据文本内容调整大小
-  * `"sizeMode": "adaptive"` - 智能自适应大小
-  * `"sizeMode": "fill"` - 填充可用空间
-- 约束选项：
-  * `"minWidth": 数值` - 最小宽度
-  * `"maxWidth": 数值` - 最大宽度
-  * `"aspectRatio": 数值` - 宽高比（如1.5表示宽是高的1.5倍）
-
-💡 **你只能输出的字段**：
-🎯 **主题字段（仅限功能）**：
-- name: 主题名称
-
-🎯 **按钮字段（仅限功能）**：
-- id: 按钮唯一标识
-- label: 按钮显示文本
-- action: 按钮功能定义 {"type": "类型", "value": "值"} 或 {"type": "expression", "expression": "表达式"}
-- gridPosition: 按钮位置 {"row": 数字, "column": 数字}
-- type: 按钮类型 ("primary", "secondary", "operator", "special")
-
-🎯 **布局字段（仅限结构）**：
-- name: 布局名称
-- rows: 行数
-- columns: 列数  
-- buttons: 按钮数组
-
-⚠️ **重要**：你不知道也不能输出任何颜色、字体、图像、效果相关的字段。专注于功能设计即可。
-
-💡 **常用功能按键示例**：
-```json
-// 基础示例
-{"id": "btn_1", "label": "1", "action": {"type": "input", "value": "1"}, "gridPosition": {"row": 4, "column": 0}, "type": "primary"}
-{"id": "btn_add", "label": "+", "action": {"type": "operator", "value": "+"}, "gridPosition": {"row": 4, "column": 3}, "type": "operator"}
-
-// 科学函数示例
-{"id": "btn_sin", "label": "sin", "action": {"type": "expression", "expression": "sin(x)"}, "gridPosition": {"row": 2, "column": 4}, "type": "special"}
-{"id": "btn_sqrt", "label": "√", "action": {"type": "expression", "expression": "sqrt(x)"}, "gridPosition": {"row": 3, "column": 4}, "type": "special"}
-
-// 单位转换示例
-{"id": "btn_f2c", "label": "°F→°C", "action": {"type": "expression", "expression": "(x-32)*5/9"}, "gridPosition": {"row": 6, "column": 0}, "type": "special"}
-{"id": "btn_in2cm", "label": "in→cm", "action": {"type": "expression", "expression": "x*2.54"}, "gridPosition": {"row": 6, "column": 1}, "type": "special"}
-
-// 🔢 进制转换表达式示例
-{"id": "btn_dec2bin", "label": "十→二", "action": {"type": "expression", "expression": "dec2bin(x)"}, "gridPosition": {"row": 7, "column": 0}, "type": "special"}
-{"id": "btn_dec2oct", "label": "十→八", "action": {"type": "expression", "expression": "dec2oct(x)"}, "gridPosition": {"row": 7, "column": 1}, "type": "special"}
-{"id": "btn_dec2hex", "label": "十→十六", "action": {"type": "expression", "expression": "dec2hex(x)"}, "gridPosition": {"row": 7, "column": 2}, "type": "special"}
-{"id": "btn_bin2dec", "label": "二→十", "action": {"type": "expression", "expression": "bin2dec(x)"}, "gridPosition": {"row": 8, "column": 0}, "type": "special"}
-{"id": "btn_oct2dec", "label": "八→十", "action": {"type": "expression", "expression": "oct2dec(x)"}, "gridPosition": {"row": 8, "column": 1}, "type": "special"}
-{"id": "btn_hex2dec", "label": "十六→十", "action": {"type": "expression", "expression": "hex2dec(x)"}, "gridPosition": {"row": 8, "column": 2}, "type": "special"}
-
-// 多参数函数示例
-{"id": "btn_pow", "label": "x^y", "action": {"type": "multiParamFunction", "value": "pow"}, "gridPosition": {"row": 5, "column": 4}, "type": "special"}
-{"id": "btn_comma", "label": ",", "action": {"type": "parameterSeparator"}, "gridPosition": {"row": 6, "column": 4}, "type": "secondary"}
-{"id": "btn_exec", "label": "执行", "action": {"type": "functionExecute"}, "gridPosition": {"row": 6, "column": 5}, "type": "operator"}
-
-// ✨自定义功能示例（新增）
-{"id": "btn_mortgage_3_5_30", "label": "房贷(3.5%/30年)", "action": {"type": "customFunction", "value": "mortgage_calculator", "parameters": {"annualRate": 3.5, "years": 30}}, "gridPosition": {"row": 6, "column": 0}, "type": "special"}
-{"id": "btn_compound_4_10", "label": "复利(4%/10年)", "action": {"type": "customFunction", "value": "compound_calculator", "parameters": {"rate": 4.0, "years": 10}}, "gridPosition": {"row": 6, "column": 1}, "type": "special"}
-{"id": "btn_usd_cny", "label": "USD→CNY(7.2)", "action": {"type": "customFunction", "value": "currency_converter", "parameters": {"fromCurrency": "USD", "toCurrency": "CNY", "rate": 7.2}}, "gridPosition": {"row": 6, "column": 2}, "type": "special"}
-
-// 🔢 进制转换自定义功能示例
-{"id": "btn_base_converter", "label": "进制转换器", "action": {"type": "customFunction", "value": "base_converter", "parameters": {"supportedBases": [2, 8, 10, 16]}}, "gridPosition": {"row": 7, "column": 0}, "type": "special"}
-{"id": "btn_programmer_calc", "label": "程序员计算器", "action": {"type": "customFunction", "value": "programmer_calculator", "parameters": {"defaultBase": 10, "showBinary": true, "showHex": true}}, "gridPosition": {"row": 7, "column": 1}, "type": "special"}
-```
-
-➡️ **输出格式**：
+🔧 **输出格式要求**：
 ```json
 {
   "id": "calc_xxx",
@@ -820,16 +703,11 @@ BMI计算：   "BMI(身高175)"
   },
   "layout": {
     "name": "布局名称", 
-    "rows": 8,
-    "columns": 5,
+    "rows": 数字,
+    "columns": 数字,
     "buttons": [
-      {
-        "id": "btn_1",
-        "label": "1", 
-        "action": {"type": "input", "value": "1"},
-        "gridPosition": {"row": 4, "column": 0},
-        "type": "primary"
-      }
+      // 所有现有按键必须保留
+      // 新按键添加到合适位置
     ]
   },
   "version": "1.0.0",
@@ -837,39 +715,10 @@ BMI计算：   "BMI(身高175)"
 }
 ```
 
-🎯 **新功能按钮添加规则**：
-- 优先使用column=4,5,6的科学计算区域
-- 对于长文本按钮，启用自适应大小功能
-- 如果需要替换现有按钮，选择最不常用的位置
-- 保持布局的逻辑性和易用性
-- ✅ **鼓励创建丰富的功能按键**：当用户需要专业功能时，大胆扩展布局
-- ✅ **支持大型布局**：可以创建包含50+、100+按键的专业计算器
-- ✅ **功能优先**：优先满足用户的功能需求，而不是限制按键数量
+🎯 **记住你的使命**：
+你是现有配置的守护者，用户功能需求的实现者。永远在现有基础上累积改进，绝不全盘推翻。每一个现有按键都是用户宝贵的资产，必须小心保护。
 
-🎯 **自定义功能生成规则**：
-1. **识别用户需求**：从用户描述中提取关键参数（利率、年限、汇率等）
-2. **选择合适的功能类型**：mortgage_calculator、compound_calculator等
-3. **生成描述性标签**：如"房贷(3.5%/30年)"、"复利(4%/10年)"
-4. **设置预设参数**：将用户提到的具体数值作为parameters
-5. **合理布局位置**：放在第6-8行，不影响基础功能
-
-🎯 **自定义功能示例场景**：
-```
-用户输入："利率3.5%，贷款30年，输入贷款金额，输出每个月应还房贷"
-AI生成：{"type": "customFunction", "value": "mortgage_calculator", "parameters": {"annualRate": 3.5, "years": 30}}
-按键标签："房贷(3.5%/30年)"
-
-用户输入："4%年利率复利计算，投资期10年"
-AI生成：{"type": "customFunction", "value": "compound_calculator", "parameters": {"rate": 4.0, "years": 10}}
-按键标签："复利(4%/10年)"
-
-用户输入："美元兑人民币汇率7.2，做货币转换"
-AI生成：{"type": "customFunction", "value": "currency_converter", "parameters": {"fromCurrency": "USD", "toCurrency": "CNY", "rate": 7.2}}
-按键标签："USD→CNY(7.2)"
-```
-
-专注功能设计。基于用户需求进行功能增强或修改。严格确保所有生成的功能都能在底层计算引擎中可靠运行。对于用户的具体计算需求，优先生成自定义功能按键。
-"""
+现在，根据用户的具体需求，在完全保留现有配置的基础上，进行精确的增量修改。"""
 
 # AI二次校验和修复系统提示 - 强化无效按键检测
 VALIDATION_PROMPT = """你是配置修复专家。检查并修复生成的计算器配置。
@@ -1522,21 +1371,48 @@ def clean_gradient_format(config_dict: dict) -> dict:
     
     return config_dict
 
-def clean_invalid_buttons(config_dict: dict) -> dict:
-    """清理无效按键，确保所有按键都有实际功能"""
+def clean_invalid_buttons(config_dict: dict, preserve_button_ids: list = None) -> dict:
+    """清理无效按键，确保所有按键都有实际功能，同时保护现有按键"""
     if "layout" not in config_dict or "buttons" not in config_dict["layout"]:
         return config_dict
     
     original_buttons = config_dict["layout"]["buttons"]
     valid_buttons = []
+    preserve_button_ids = preserve_button_ids or []
     
     print(f"🔍 开始清理无效按键，原始按键数量: {len(original_buttons)}")
+    print(f"🛡️ 需要保护的按键ID: {preserve_button_ids}")
     
     for button in original_buttons:
         # 检查按键是否有效
         is_valid = True
         invalid_reasons = []
+        button_id = button.get("id", "")
         
+        # 🛡️ 特殊保护：如果是现有按键，只做基础验证
+        is_existing_button = button_id in preserve_button_ids
+        
+        if is_existing_button:
+            print(f"🛡️ 保护现有按键: {button.get('label', '未知')} ({button_id})")
+            # 对现有按键只做最基础的验证，尽量保留
+            if not button.get("label") or not button.get("action"):
+                # 尝试修复而不是删除
+                if not button.get("label"):
+                    button["label"] = button_id.replace("btn_", "").upper()
+                    print(f"🔧 修复按键label: {button_id} -> {button['label']}")
+                if not button.get("action"):
+                    button["action"] = {"type": "input", "value": "0"}
+                    print(f"🔧 修复按键action: {button_id}")
+            
+            # 确保现有按键有gridPosition
+            if not button.get("gridPosition"):
+                button["gridPosition"] = {"row": 1, "column": 0}
+                print(f"🔧 修复按键位置: {button_id}")
+            
+            valid_buttons.append(button)
+            continue
+        
+        # 🔍 对新增按键进行严格验证
         # 检查label
         if not button.get("label") or str(button.get("label")).strip() == "":
             is_valid = False
@@ -1572,7 +1448,7 @@ def clean_invalid_buttons(config_dict: dict) -> dict:
         if is_valid:
             valid_buttons.append(button)
         else:
-            print(f"❌ 移除无效按键: {button.get('label', '未知')} - {', '.join(invalid_reasons)}")
+            print(f"❌ 移除无效新增按键: {button.get('label', '未知')} - {', '.join(invalid_reasons)}")
     
     # 更新按键列表
     config_dict["layout"]["buttons"] = valid_buttons
@@ -2522,12 +2398,62 @@ def process_customize_task(task_id: str, request_data: Dict[str, Any]) -> Dict[s
                 history_context += f"{role}: {content}\n"
 
         config_context = ""
+        button_analysis = ""
         if current_config:
             layout_info = current_config.get('layout', {})
             theme_info = current_config.get('theme', {})
-            button_count = len(layout_info.get('buttons', []))
+            buttons = layout_info.get('buttons', [])
+            button_count = len(buttons)
             rows = layout_info.get('rows', 0)
             cols = layout_info.get('columns', 0)
+            
+            # 🔍 深度分析现有按键配置
+            existing_buttons_by_type = {
+                'numbers': [],
+                'operators': [], 
+                'functions': [],
+                'scientific': [],
+                'special': []
+            }
+            
+            button_ids = []
+            for button in buttons:
+                btn_id = button.get('id', '')
+                btn_label = button.get('label', '')
+                btn_action = button.get('action', {})
+                btn_type = btn_action.get('type', '')
+                
+                button_ids.append(btn_id)
+                
+                # 分类按键
+                if btn_type == 'input' and btn_label.isdigit():
+                    existing_buttons_by_type['numbers'].append(f"{btn_label}({btn_id})")
+                elif btn_type == 'operator':
+                    existing_buttons_by_type['operators'].append(f"{btn_label}({btn_id})")
+                elif btn_type == 'expression':
+                    existing_buttons_by_type['scientific'].append(f"{btn_label}({btn_id})")
+                elif btn_type in ['multiParamFunction', 'customFunction']:
+                    existing_buttons_by_type['functions'].append(f"{btn_label}({btn_id})")
+                else:
+                    existing_buttons_by_type['special'].append(f"{btn_label}({btn_id})")
+            
+            button_analysis = f"""
+🔍 **现有按键详细分析**（必须100%保留）：
+• 数字按键：{', '.join(existing_buttons_by_type['numbers']) if existing_buttons_by_type['numbers'] else '无'}
+• 运算符：{', '.join(existing_buttons_by_type['operators']) if existing_buttons_by_type['operators'] else '无'}
+• 科学函数：{', '.join(existing_buttons_by_type['scientific']) if existing_buttons_by_type['scientific'] else '无'}
+• 高级函数：{', '.join(existing_buttons_by_type['functions']) if existing_buttons_by_type['functions'] else '无'}
+• 特殊功能：{', '.join(existing_buttons_by_type['special']) if existing_buttons_by_type['special'] else '无'}
+
+🚨 **绝对禁止删除的按键ID列表**：
+{', '.join(button_ids) if button_ids else '无'}
+
+⚠️ **继承性修改要求**：
+1. 上述所有按键ID必须在新配置中完全保留
+2. 只能在现有基础上添加新按键或修改用户明确要求的按键
+3. 如需空间，扩展行数/列数，不要删除现有按键
+4. 保持现有按键的功能和位置（除非用户明确要求改变）
+            """
             
             config_context = f"""
 📊 **当前配置概要**：
@@ -2549,9 +2475,13 @@ def process_customize_task(task_id: str, request_data: Dict[str, Any]) -> Dict[s
 
 {config_context}
 
+{button_analysis}
+
 {history_context}
 
 🎯 **用户需求**：{user_input}
+
+💡 **继承式修改提醒**：请严格基于上述现有按键分析，在保留所有现有按键的前提下，实现用户的需求。绝对不要删除任何现有按键ID。
 
 请基于用户需求生成或修改计算器配置。"""
 
@@ -2589,7 +2519,13 @@ def process_customize_task(task_id: str, request_data: Dict[str, Any]) -> Dict[s
             generated_config = remove_protected_fields_from_ai_output(generated_config, protected_fields)
 
         generated_config = clean_gradient_format(generated_config)
-        generated_config = clean_invalid_buttons(generated_config)
+        
+        # 🛡️ 获取现有按键ID列表以进行保护
+        existing_button_ids = []
+        if current_config and current_config.get('layout', {}).get('buttons'):
+            existing_button_ids = [btn.get('id', '') for btn in current_config['layout']['buttons']]
+        
+        generated_config = clean_invalid_buttons(generated_config, existing_button_ids)
 
         try:
             if current_config:
