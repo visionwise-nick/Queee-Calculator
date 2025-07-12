@@ -956,10 +956,6 @@ class CalculatorEngine {
           return x * 28.3495; // 盎司→克
         case 'x/28.3495':
           return x / 28.3495; // 克→盎司
-        case 'x*1000':
-          return x * 1000; // 公斤→克（如果x本身是公斤）
-        case 'x/1000':
-          return x / 1000; // 克→公斤
         
         // 面积转换
         case 'x*10.764':
@@ -1028,8 +1024,18 @@ class CalculatorEngine {
   /// 🔧 新增：复杂表达式计算器
   double _evaluateComplexExpression(String expression, double x) {
     try {
+      // 🔧 新增：处理条件表达式
+      if (expression.contains('if') || expression.contains('when') || expression.contains('条件')) {
+        return _evaluateConditionalExpression(expression, x);
+      }
+      
       // 替换x为实际值
       String evalExpression = expression.replaceAll('x', x.toString());
+      
+      // 🔧 新增：处理多项式表达式优化
+      if (_isPolynomialExpression(evalExpression)) {
+        return _evaluatePolynomialExpression(evalExpression, x);
+      }
       
       // 处理特殊的数学函数
       evalExpression = evalExpression
@@ -1058,6 +1064,185 @@ class CalculatorEngine {
     } catch (e) {
       // 如果表达式解析失败，尝试简单计算
       return _evaluateSimpleExpression(expression.replaceAll('x', x.toString()));
+    }
+  }
+
+  /// 🔧 新增：条件表达式处理
+  double _evaluateConditionalExpression(String expression, double x) {
+    try {
+      // 处理各种条件表达式格式
+      // 格式1: if(条件, 真值, 假值)
+      // 格式2: when(x<1, 表达式1, 表达式2)
+      // 格式3: 条件(x<1时返回表达式1否则返回表达式2)
+      
+      // 匹配 if(条件, 真值, 假值) 格式
+      RegExp ifPattern = RegExp(r'if\s*\(\s*([^,]+),\s*([^,]+),\s*([^)]+)\)', caseSensitive: false);
+      Match? ifMatch = ifPattern.firstMatch(expression);
+      
+      if (ifMatch != null) {
+        String condition = ifMatch.group(1)!.trim();
+        String trueValue = ifMatch.group(2)!.trim();
+        String falseValue = ifMatch.group(3)!.trim();
+        
+        bool conditionResult = _evaluateCondition(condition, x);
+        String selectedExpression = conditionResult ? trueValue : falseValue;
+        
+        // 递归计算选中的表达式
+        return _evaluateScientificExpression(selectedExpression, x);
+      }
+      
+      // 匹配 when(条件, 真值, 假值) 格式
+      RegExp whenPattern = RegExp(r'when\s*\(\s*([^,]+),\s*([^,]+),\s*([^)]+)\)', caseSensitive: false);
+      Match? whenMatch = whenPattern.firstMatch(expression);
+      
+      if (whenMatch != null) {
+        String condition = whenMatch.group(1)!.trim();
+        String trueValue = whenMatch.group(2)!.trim();
+        String falseValue = whenMatch.group(3)!.trim();
+        
+        bool conditionResult = _evaluateCondition(condition, x);
+        String selectedExpression = conditionResult ? trueValue : falseValue;
+        
+        return _evaluateScientificExpression(selectedExpression, x);
+      }
+      
+      // 匹配中文条件表达式
+      RegExp chinesePattern = RegExp(r'(.+?)时返回(.+?)否则返回(.+)', caseSensitive: false);
+      Match? chineseMatch = chinesePattern.firstMatch(expression);
+      
+      if (chineseMatch != null) {
+        String condition = chineseMatch.group(1)!.trim();
+        String trueValue = chineseMatch.group(2)!.trim();
+        String falseValue = chineseMatch.group(3)!.trim();
+        
+        bool conditionResult = _evaluateCondition(condition, x);
+        String selectedExpression = conditionResult ? trueValue : falseValue;
+        
+        return _evaluateScientificExpression(selectedExpression, x);
+      }
+      
+      throw Exception('无法解析条件表达式');
+    } catch (e) {
+      print('❌ 条件表达式计算错误：$e');
+      throw Exception('条件表达式计算错误：$e');
+    }
+  }
+
+  /// 🔧 新增：条件判断
+  bool _evaluateCondition(String condition, double x) {
+    // 替换x为实际值
+    condition = condition.replaceAll('x', x.toString());
+    
+    // 处理各种比较运算符
+    if (condition.contains('>=')) {
+      List<String> parts = condition.split('>=');
+      if (parts.length == 2) {
+        double left = double.parse(parts[0].trim());
+        double right = double.parse(parts[1].trim());
+        return left >= right;
+      }
+    } else if (condition.contains('<=')) {
+      List<String> parts = condition.split('<=');
+      if (parts.length == 2) {
+        double left = double.parse(parts[0].trim());
+        double right = double.parse(parts[1].trim());
+        return left <= right;
+      }
+    } else if (condition.contains('>')) {
+      List<String> parts = condition.split('>');
+      if (parts.length == 2) {
+        double left = double.parse(parts[0].trim());
+        double right = double.parse(parts[1].trim());
+        return left > right;
+      }
+    } else if (condition.contains('<')) {
+      List<String> parts = condition.split('<');
+      if (parts.length == 2) {
+        double left = double.parse(parts[0].trim());
+        double right = double.parse(parts[1].trim());
+        return left < right;
+      }
+    } else if (condition.contains('==') || condition.contains('=')) {
+      List<String> parts = condition.contains('==') ? condition.split('==') : condition.split('=');
+      if (parts.length == 2) {
+        double left = double.parse(parts[0].trim());
+        double right = double.parse(parts[1].trim());
+        return (left - right).abs() < 1e-10; // 浮点数相等比较
+      }
+    } else if (condition.contains('!=') || condition.contains('≠')) {
+      List<String> parts = condition.contains('!=') ? condition.split('!=') : condition.split('≠');
+      if (parts.length == 2) {
+        double left = double.parse(parts[0].trim());
+        double right = double.parse(parts[1].trim());
+        return (left - right).abs() >= 1e-10; // 浮点数不等比较
+      }
+    }
+    
+    // 如果没有比较运算符，尝试直接评估为布尔值
+    try {
+      double result = double.parse(condition);
+      return result != 0; // 非零为真
+    } catch (e) {
+      return false; // 解析失败默认为假
+    }
+  }
+
+  /// 🔧 新增：检查是否为多项式表达式
+  bool _isPolynomialExpression(String expression) {
+    // 检查是否包含多项式特征：多个pow函数或x的幂次
+    return expression.contains('pow(') && 
+           (expression.split('pow(').length > 2 || 
+            expression.contains('+') || 
+            expression.contains('-'));
+  }
+
+  /// 🔧 新增：多项式表达式优化计算
+  double _evaluatePolynomialExpression(String expression, double x) {
+    try {
+      // 处理形如 pow(x,5)+pow(x,4)+pow(x,3)+pow(x,2)+x 的多项式
+      // 替换pow(x,n)为更简单的形式
+      String optimizedExpression = expression;
+      
+      // 替换常见的幂次
+      optimizedExpression = optimizedExpression
+          .replaceAll('pow(${x.toString()},5)', math.pow(x, 5).toString())
+          .replaceAll('pow(${x.toString()},4)', math.pow(x, 4).toString())
+          .replaceAll('pow(${x.toString()},3)', math.pow(x, 3).toString())
+          .replaceAll('pow(${x.toString()},2)', math.pow(x, 2).toString())
+          .replaceAll('pow(${x.toString()},1)', x.toString());
+      
+      // 使用正则表达式处理剩余的pow函数
+      RegExp powPattern = RegExp(r'pow\(([^,]+),([^)]+)\)');
+      optimizedExpression = optimizedExpression.replaceAllMapped(powPattern, (match) {
+        try {
+          double base = double.parse(match.group(1)!);
+          double exponent = double.parse(match.group(2)!);
+          return math.pow(base, exponent).toString();
+        } catch (e) {
+          return match.group(0)!; // 如果解析失败，保持原样
+        }
+      });
+      
+      print('🔢 多项式优化：$expression -> $optimizedExpression');
+      
+      // 计算最终结果
+      Parser parser = Parser();
+      Expression exp = parser.parse(optimizedExpression);
+      ContextModel cm = ContextModel();
+      double result = exp.evaluate(EvaluationType.REAL, cm);
+      
+      if (result.isNaN || result.isInfinite) {
+        throw Exception('多项式计算结果无效');
+      }
+      
+      return result;
+    } catch (e) {
+      print('❌ 多项式计算错误：$e');
+      // 回退到标准表达式计算
+      Parser parser = Parser();
+      Expression exp = parser.parse(expression);
+      ContextModel cm = ContextModel();
+      return exp.evaluate(EvaluationType.REAL, cm);
     }
   }
 
@@ -1371,6 +1556,16 @@ class CalculatorEngine {
         case 'hextodec(x)': return '十六进制转十进制';
         
         default:
+        // 🔧 新增：检查条件表达式
+        if (expression.contains('if(') || expression.contains('when(') || expression.contains('时返回')) {
+          return '条件表达式计算';
+        }
+        
+        // 🔧 新增：检查多项式表达式
+        if (expression.contains('pow(') && (expression.split('pow(').length > 2 || expression.contains('+'))) {
+          return '多项式计算';
+        }
+        
         // 如果是复杂表达式，尝试简化描述
         if (expression.contains('*')) return '乘法运算';
         if (expression.contains('/')) return '除法运算';
