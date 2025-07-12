@@ -413,6 +413,7 @@ SYSTEM_PROMPT = """你是专业的计算器功能设计大师。你的职责是�
 ❌ 随意调整已有按键的位置或功能
 ❌ 减少现有按键的数量
 ❌ 全盘重新创建配置
+❌ 生成2个参数的多参数函数（如汇率转换、百分比计算等简单倍数关系）
 
 ✅ **必须遵循的原则**：
 ✅ 保持现有所有按键不变（除非用户明确要求修改）
@@ -579,45 +580,50 @@ def merge_configs(current_config, user_request):
 {"type": "expression", "expression": "x/28.3495"}   // 克→盎司
 ```
 
-## 3. 多参数函数（multiParamFunction类型）
-```json
-// 🟢 数学函数
-{"type": "multiParamFunction", "value": "pow"}          // 幂运算 pow(x,y)
-{"type": "multiParamFunction", "value": "log"}          // 对数 log(x,base)
-{"type": "multiParamFunction", "value": "atan2"}        // 反正切 atan2(y,x)
-{"type": "multiParamFunction", "value": "hypot"}        // 斜边长度
-{"type": "multiParamFunction", "value": "max"}          // 最大值
-{"type": "multiParamFunction", "value": "min"}          // 最小值
-{"type": "multiParamFunction", "value": "avg"}          // 平均值
-{"type": "multiParamFunction", "value": "gcd"}          // 最大公约数
-{"type": "multiParamFunction", "value": "lcm"}          // 最小公倍数
+## 3. 多参数函数（multiParamFunction类型）- 限制3个或以上参数
+🚨 **严禁生成2个参数的多参数函数**：
+❌ 禁止：汇率转换(金额,汇率) - 太简单，用户直接乘法即可
+❌ 禁止：百分比计算(数值,百分比) - 太简单，用户直接乘法即可  
+❌ 禁止：简单倍数关系函数 - 用户知道参数可以直接计算
 
-// 🔢 进制转换函数
+✅ **只允许3个或以上参数的复杂函数**：
+```json
+// 🟢 复杂数学函数（3个或以上参数）
+{"type": "multiParamFunction", "value": "复利计算"}      // 复利：本金,年利率,年数 (3参数)
+{"type": "multiParamFunction", "value": "贷款计算"}      // 贷款计算(金额,利率,年数) (3参数)
+{"type": "multiParamFunction", "value": "loanpayment"}  // 英文别名 (3参数)
+{"type": "multiParamFunction", "value": "mortgage"}     // 抵押贷款(房价,首付%,年数,利率) (4参数)
+{"type": "multiParamFunction", "value": "年金计算"}      // 年金计算(本金,利率,期数) (3参数)
+{"type": "multiParamFunction", "value": "投资回报"}      // 投资回报(初始投资,最终价值,年数) (3参数)
+
+// 🟢 进制转换函数（支持2-3参数，但属于特殊工具函数）
 {"type": "multiParamFunction", "value": "进制转换"}      // 进制转换：数字,目标进制 或 数字,源进制,目标进制
 {"type": "multiParamFunction", "value": "baseconvert"}  // 英文别名：baseconvert(数字,目标进制)
-{"type": "multiParamFunction", "value": "十进制转二进制"} // 十进制转二进制：数字
-{"type": "multiParamFunction", "value": "dec2bin"}      // 英文别名：dec2bin(数字)
-{"type": "multiParamFunction", "value": "十进制转八进制"} // 十进制转八进制：数字
-{"type": "multiParamFunction", "value": "dec2oct"}      // 英文别名：dec2oct(数字)
-{"type": "multiParamFunction", "value": "十进制转十六进制"} // 十进制转十六进制：数字
-{"type": "multiParamFunction", "value": "dec2hex"}      // 英文别名：dec2hex(数字)
-{"type": "multiParamFunction", "value": "二进制转十进制"} // 二进制转十进制：数字
-{"type": "multiParamFunction", "value": "bin2dec"}      // 英文别名：bin2dec(数字)
-{"type": "multiParamFunction", "value": "八进制转十进制"} // 八进制转十进制：数字
-{"type": "multiParamFunction", "value": "oct2dec"}      // 英文别名：oct2dec(数字)
-{"type": "multiParamFunction", "value": "十六进制转十进制"} // 十六进制转十进制：数字
-{"type": "multiParamFunction", "value": "hex2dec"}      // 英文别名：hex2dec(数字)
 
-// 🟢 金融计算
-{"type": "multiParamFunction", "value": "复利计算"}      // 复利：本金,年利率,年数
-{"type": "multiParamFunction", "value": "汇率转换"}      // 汇率：金额,汇率
-{"type": "multiParamFunction", "value": "贷款计算"}      // 贷款计算(金额,利率,年数)
-{"type": "multiParamFunction", "value": "loanpayment"}  // 英文别名
-{"type": "multiParamFunction", "value": "mortgage"}     // 抵押贷款(房价,首付%,年数,利率)
-{"type": "multiParamFunction", "value": "投资回报"}      // 投资回报率
-{"type": "multiParamFunction", "value": "抵押贷款"}      // 抵押贷款
-{"type": "multiParamFunction", "value": "年金计算"}      // 年金计算
+// 🟢 统计和数据函数（可变参数）
+{"type": "multiParamFunction", "value": "max"}          // 最大值(多个数值)
+{"type": "multiParamFunction", "value": "min"}          // 最小值(多个数值)
+{"type": "multiParamFunction", "value": "avg"}          // 平均值(多个数值)
+{"type": "multiParamFunction", "value": "gcd"}          // 最大公约数(多个数值)
+{"type": "multiParamFunction", "value": "lcm"}          // 最小公倍数(多个数值)
+
+// 🟢 几何和工程函数（3个或以上参数）
+{"type": "multiParamFunction", "value": "三角面积"}      // 三角形面积(边长a,边长b,边长c)
+{"type": "multiParamFunction", "value": "体积计算"}      // 长方体体积(长,宽,高)
+{"type": "multiParamFunction", "value": "圆锥体积"}      // 圆锥体积(半径,高,π)
 ```
+
+🚨 **多参数函数使用原则**：
+1. **复杂性要求**：必须是用户无法通过简单计算完成的复杂功能
+2. **参数数量**：优先选择3个或以上参数的函数
+3. **实用价值**：必须有实际应用价值，不是为了复杂而复杂
+4. **避免简单倍数**：如汇率转换、百分比计算等简单乘法关系
+
+🎯 **替代方案**：
+对于简单的2参数函数，使用expression类型：
+- 汇率转换 → {"type": "expression", "expression": "x*7.2"} // 美元转人民币
+- 百分比计算 → {"type": "expression", "expression": "x*0.15"} // 15%计算
+- 折扣计算 → {"type": "expression", "expression": "x*0.8"} // 8折
 
 ## 4. 自定义复合功能（customFunction类型）
 ```json
