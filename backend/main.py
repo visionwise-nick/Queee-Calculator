@@ -885,9 +885,9 @@ async def customize_calculator(request: CustomizationRequest) -> CalculatorConfi
                 print(f"🛡️ 使用用户指定的保护字段: {protected_fields}")
             else:
                 # 自动检测图像生成工坊生成的内容
-            theme = request.current_config.get('theme', {})
-            layout = request.current_config.get('layout', {})
-            app_background = request.current_config.get('appBackground', {})
+                theme = request.current_config.get('theme', {})
+                layout = request.current_config.get('layout', {})
+                app_background = request.current_config.get('appBackground', {})
             
             # 🎨 检查APP背景配置（优先级最高）
             if app_background.get('backgroundImageUrl'):
