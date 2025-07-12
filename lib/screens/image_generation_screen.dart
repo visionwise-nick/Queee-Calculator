@@ -919,35 +919,35 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
               spacing: 8,
               runSpacing: 8,
               children: [
-                '纸质纹理',
-                '布料质感',
-                '金属拉丝',
-                '磨砂质感',
-                '简单渐变',
-                '极简几何',
-                '微妙阴影',
-                '柔和色彩',
-                '木纹质感',
-                '皮革纹理',
-                '玻璃质感',
-                '石材质感',
+                '全息彩虹',
+                '极光色彩',
+                '金属质感',
+                '水晶效果',
+                '玻璃拟态',
+                '星系渐变',
+                '液态金属',
+                '棱镜光效',
+                '霓虹渐变',
+                '彩虹镭射',
+                '炫彩光晕',
+                '梦幻色彩',
               ].map((example) => 
                 ActionChip(
                   label: Text(example, style: const TextStyle(fontSize: 12)),
                   onPressed: () {
                     String prompt = '';
-                    if (example.contains('纸质纹理')) prompt = '微妙的纸质纹理，适合小按键显示，简单白色或米色背景';
-                    else if (example.contains('布料质感')) prompt = '细腻的布料纹理，柔和的织物质感，适合小尺寸按键';
-                    else if (example.contains('金属拉丝')) prompt = '细腻的金属拉丝纹理，银灰色，适合小按键的简约质感';
-                    else if (example.contains('磨砂质感')) prompt = '磨砂玻璃质感，半透明效果，适合小按键的现代设计';
-                    else if (example.contains('简单渐变')) prompt = '简单的双色渐变，柔和过渡，适合小按键显示';
-                    else if (example.contains('极简几何')) prompt = '极简的几何线条，最小化设计，适合小按键';
-                    else if (example.contains('微妙阴影')) prompt = '微妙的阴影效果，轻微的立体感，适合小按键';
-                    else if (example.contains('柔和色彩')) prompt = '柔和的单色背景，淡雅色调，适合小按键文字显示';
-                    else if (example.contains('木纹质感')) prompt = '细腻的木纹纹理，自然温暖，适合小按键的质感';
-                    else if (example.contains('皮革纹理')) prompt = '精细的皮革纹理，高级质感，适合小按键显示';
-                    else if (example.contains('玻璃质感')) prompt = '清透的玻璃质感，简洁现代，适合小按键';
-                    else if (example.contains('石材质感')) prompt = '细腻的石材纹理，自然质感，适合小按键背景';
+                    if (example.contains('全息彩虹')) prompt = '全息彩虹渐变效果，丰富色彩变化，适合小按键的现代视觉';
+                    else if (example.contains('极光色彩')) prompt = '极光色彩流动效果，绚烂的色彩渐变，现代炫酷风格';
+                    else if (example.contains('金属质感')) prompt = '金属质感配彩色反射，高级现代感，丰富色彩层次';
+                    else if (example.contains('水晶效果')) prompt = '水晶表面效果，彩虹色泽，透明质感配丰富色彩';
+                    else if (example.contains('玻璃拟态')) prompt = '玻璃拟态效果，鲜艳背景色彩，现代UI设计风格';
+                    else if (example.contains('星系渐变')) prompt = '星系星云色彩，深邃渐变效果，宇宙般的色彩美感';
+                    else if (example.contains('液态金属')) prompt = '液态金属效果，变幻彩虹色彩，流动的视觉美感';
+                    else if (example.contains('棱镜光效')) prompt = '棱镜光线效果，纯色彩美感，光谱分解的视觉效果';
+                    else if (example.contains('霓虹渐变')) prompt = '霓虹色彩渐变，鲜艳炫目，现代电子风格';
+                    else if (example.contains('彩虹镭射')) prompt = '彩虹镭射效果，变幻色彩，科技感十足的视觉';
+                    else if (example.contains('炫彩光晕')) prompt = '炫彩光晕效果，柔和色彩扩散，梦幻般的视觉美感';
+                    else if (example.contains('梦幻色彩')) prompt = '梦幻色彩组合，柔和渐变，温暖而丰富的色彩层次';
                     _buttonPatternPromptController.text = prompt;
                   },
                   backgroundColor: Colors.grey.shade100,
@@ -961,7 +961,7 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
               controller: _buttonPatternPromptController,
               maxLines: 3,
               decoration: InputDecoration(
-                hintText: '描述你想要的按键背景纹理...\n例如：纸质纹理，适合小按键显示\n\n🔧 已优化：专为小按键设计，避免复杂图案，专注简单纹理和质感',
+                hintText: '描述你想要的按键背景视觉效果...\n例如：全息彩虹渐变，丰富色彩变化\n\n🎨 新设计：丰富色彩和现代视觉效果，但保持符号简单，专注纯粹的色彩美感',
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide(color: Colors.grey.shade300),
@@ -1124,16 +1124,16 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
     
     for (int i = 0; i < selectedButtons.length; i++) {
       final button = selectedButtons[i];
-      final prompt = '$basePrompt - 极简纹理背景，适合小按键显示，无复杂元素，仅简单纹理或渐变，确保按键文字"${button.label}"清晰可读';
+      final prompt = basePrompt; // 🔧 直接使用用户的原始提示词，不添加限制性描述
       
       try {
         print('🔧 生成按键${button.label}的背景图...');
-        print('   提示词: $prompt');
+        print('   用户提示词: $prompt');
         
         final result = await AIService.generatePattern(
           prompt: prompt,
-          style: 'minimal',
-          size: '64x64',
+          style: 'vibrant',
+          size: '128x128',
           onProgress: (progress) {
             // 计算总体进度
             final totalProgress = (i + progress) / selectedButtons.length;
