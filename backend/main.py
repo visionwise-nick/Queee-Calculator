@@ -2821,19 +2821,30 @@ def process_generate_pattern_task(task_id: str, request_data: Dict[str, Any]) ->
         
         update_task_status(task_id, TaskStatus.PROCESSING, progress=0.2)
         
-        # 针对按钮图案的特殊处理
+        # 🔧 针对小尺寸按键优化的图案生成
         pattern_prompt = f"""
-        Generate a seamless pattern for calculator button background:
+        Generate a MINIMAL and SUBTLE texture pattern for small calculator button background:
         {prompt}
         
-        Requirements:
-        - Seamless and tileable pattern
-        - Suitable for button background use
-        - Subtle and not distracting from text
-        - Style: {style}
-        - High contrast for text readability
-        - Professional and clean design
-        - 256x256 pixels optimal size
+        CRITICAL Requirements for small button display:
+        - EXTREMELY SIMPLE texture or gradient only
+        - NO complex shapes, icons, or detailed elements
+        - NO text or symbols in the pattern
+        - MINIMAL visual noise - must work at 32x32 to 64x64 pixels
+        - Subtle color variations or simple geometric texture
+        - Style: {style} but SIMPLIFIED for tiny display
+        - Perfect for small UI buttons where text must be clearly readable
+        - Think: paper texture, fabric weave, metal brushed, simple gradients
+        - AVOID: detailed illustrations, complex patterns, busy designs
+        
+        Examples of GOOD patterns:
+        - Subtle paper texture
+        - Brushed metal surface
+        - Soft fabric weave
+        - Simple color gradient
+        - Minimal geometric dots/lines
+        
+        Size optimized for: {size} pixels
         """
         
         print(f"🎨 开始生成图案，提示词: {pattern_prompt}")
