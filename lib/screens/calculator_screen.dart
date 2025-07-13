@@ -149,16 +149,16 @@ class CalculatorScreen extends StatelessWidget {
               child: Text(
                 'Queee Calculator',
                 style: TextStyle(
-                  fontSize: 20, // 增大字体以突出渐变效果
-                  fontWeight: FontWeight.w900, // 使用最粗的字体
+                  fontSize: 16, // 🔧 减小字体确保完整显示
+                  fontWeight: FontWeight.w800, // 稍微减轻字体粗细
                   color: Colors.white, // 必须是白色才能显示渐变
-                  letterSpacing: 1.2, // 增加字符间距
+                  letterSpacing: 0.8, // 🔧 减少字符间距节省空间
                   shadows: [
                     // 添加阴影效果增强视觉冲击
                     Shadow(
                       color: Colors.black.withValues(alpha: 0.3),
-                      offset: const Offset(2, 2),
-                      blurRadius: 4,
+                      offset: const Offset(1, 1), // 🔧 减小阴影偏移
+                      blurRadius: 3, // 🔧 减小模糊半径
                     ),
                   ],
                 ),
