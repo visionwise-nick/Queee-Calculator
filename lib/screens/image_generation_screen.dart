@@ -834,58 +834,65 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
                   ),
                   child: Stack(
                     children: [
-                      Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          if (isSelected)
-                            Icon(
-                              Icons.check_circle,
-                              color: Colors.orange,
-                              size: 12,
-                            ),
-                          Flexible(
-                            child: Text(
+                      // 主要内容
+                      Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            // 按键标签
+                            Text(
                               button.label,
                               style: TextStyle(
-                                fontWeight: FontWeight.bold,
+                                fontWeight: FontWeight.w600,
                                 color: isSelected
-                                    ? Colors.orange
+                                    ? Colors.orange.shade700
                                     : Colors.grey.shade700,
-                                fontSize: 10,
+                                fontSize: buttonSize > 50 ? 14 : 12,
                               ),
                               textAlign: TextAlign.center,
                               overflow: TextOverflow.ellipsis,
-                              maxLines: 2,
+                              maxLines: 1,
+                            ),
+                          ],
+                        ),
+                      ),
+                      // 选中状态指示器
+                      if (isSelected)
+                        Positioned(
+                          top: 4,
+                          right: 4,
+                          child: Container(
+                            width: 18,
+                            height: 18,
+                            decoration: BoxDecoration(
+                              color: Colors.orange.shade600,
+                              borderRadius: BorderRadius.circular(9),
+                            ),
+                            child: const Icon(
+                              Icons.check,
+                              color: Colors.white,
+                              size: 14,
                             ),
                           ),
-                          if (isSelected)
-                            Text(
-                              '已选择',
-                              style: TextStyle(
-                                fontSize: 6,
-                                color: Colors.orange,
-                              ),
-                            ),
-                        ],
-                      ),
-                      // 🔧 新增：单个按键恢复默认背景按钮
+                        ),
+                      // 背景图恢复按钮
                       if (button.backgroundImage != null)
                         Positioned(
-                          top: 2,
-                          right: 2,
+                          top: 4,
+                          left: 4,
                           child: GestureDetector(
                             onTap: () => _resetSingleButtonBackground(button!),
                             child: Container(
-                              width: 16,
-                              height: 16,
+                              width: 18,
+                              height: 18,
                               decoration: BoxDecoration(
                                 color: Colors.red.shade600,
-                                borderRadius: BorderRadius.circular(8),
+                                borderRadius: BorderRadius.circular(9),
                               ),
-                              child: Icon(
+                              child: const Icon(
                                 Icons.restore,
                                 color: Colors.white,
-                                size: 10,
+                                size: 12,
                               ),
                             ),
                           ),
@@ -1183,83 +1190,71 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
       return;
     }
     
-    print('🎨 开始生成 ${selectedButtons.length} 个按键背景图...');
+    print('🎨 开始为 ${selectedButtons.length} 个按键生成共享背景图...');
     
     // 显示开始消息
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('🎨 正在为 ${selectedButtons.length} 个按键生成背景图案...'),
+        content: Text('🎨 正在为 ${selectedButtons.length} 个按键生成共享背景图案...'),
         backgroundColor: Colors.blue,
       ),
     );
     
-    int successCount = 0;
-    int failureCount = 0;
-    
-    for (int i = 0; i < selectedButtons.length; i++) {
-      final button = selectedButtons[i];
-      final prompt = basePrompt; // 🔧 直接使用用户的原始提示词，不添加限制性描述
+    try {
+      // 🔧 只生成一次背景图，所有选中的按键共享
+      print('🔧 生成共享按键背景图...');
+      print('   用户提示词: $basePrompt');
       
-      try {
-        print('🔧 生成按键${button.label}的背景图...');
-        print('   用户提示词: $prompt');
-        
-        final result = await AIService.generatePattern(
-          prompt: prompt,
-          style: 'vibrant',
-          size: '128x128',
-          onProgress: (progress) {
-            // 计算总体进度
-            final totalProgress = (i + progress) / selectedButtons.length;
-            
-            // 更新进度弹窗
-            _progressController.updateProgress(
-              totalProgress, 
-              '正在生成按键 "${button.label}" 背景图... (${i + 1}/${selectedButtons.length})'
-            );
-            
-            if (mounted) {
-              setState(() {
-                _buttonBgProgress = progress;
-              });
-            }
-            print('按键${button.label}生成进度: ${(progress * 100).toInt()}%');
-          },
-          onStatusUpdate: (status) {
-            // 更新进度弹窗状态
-            _progressController.updateProgress(
-              _progressController.progress, 
-              '按键 "${button.label}": $status'
-            );
-            
-            if (mounted) {
-              setState(() {
-                _buttonBgStatusMessage = '正在生成按键${button.label}：$status';
-              });
-            }
-            print('按键${button.label}生成状态: $status');
-          },
-        );
+      final result = await AIService.generatePattern(
+        prompt: basePrompt,
+        style: 'vibrant',
+        size: '128x128',
+        onProgress: (progress) {
+          // 更新进度弹窗
+          _progressController.updateProgress(
+            progress, 
+            '正在生成共享按键背景图... (${selectedButtons.length} 个按键将使用同一张背景图)'
+          );
+          
+          if (mounted) {
+            setState(() {
+              _buttonBgProgress = progress;
+            });
+          }
+          print('共享按键背景图生成进度: ${(progress * 100).toInt()}%');
+        },
+        onStatusUpdate: (status) {
+          // 更新进度弹窗状态
+          _progressController.updateProgress(
+            _progressController.progress, 
+            '共享按键背景图: $status'
+          );
+          
+          if (mounted) {
+            setState(() {
+              _buttonBgStatusMessage = '正在生成共享背景图：$status';
+            });
+          }
+          print('共享按键背景图生成状态: $status');
+        },
+      );
 
-        print('🔧 按键${button.label}生成结果: ${result.keys.toList()}');
-        
-        if (result['success'] == true && result['pattern_url'] != null) {
-          _updateButtonPattern(button, result['pattern_url']);
-          successCount++;
-          print('✅ 按键${button.label}背景图生成成功！');
-        } else {
-          failureCount++;
-          print('❌ 按键${button.label}背景图生成失败: ${result['message'] ?? '未知错误'}');
-        }
-      } catch (e) {
-        failureCount++;
-        print('❌ 生成按键${button.label}背景图失败: $e');
-      }
+      print('🔧 共享按键背景图生成结果: ${result.keys.toList()}');
       
-      // 添加短暂延迟避免API限制
-      if (i < selectedButtons.length - 1) {
-        await Future.delayed(const Duration(milliseconds: 500));
+      if (result['success'] == true && result['pattern_url'] != null) {
+        // 🔧 将同一张背景图应用到所有选中的按键
+        final sharedBackgroundUrl = result['pattern_url'];
+        for (final button in selectedButtons) {
+          _updateButtonPattern(button, sharedBackgroundUrl);
+        }
+        
+        print('✅ 共享按键背景图生成成功，已应用到 ${selectedButtons.length} 个按键！');
+      } else {
+        throw Exception(result['message'] ?? '生成失败');
       }
+    } catch (e) {
+      print('❌ 生成共享按键背景图失败: $e');
+      throw e;
     }
 
     // 隐藏进度弹窗
@@ -1267,14 +1262,10 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
     
     // 显示最终结果
     if (mounted) {
-      final message = successCount > 0 
-          ? '✅ 成功生成 $successCount 个按键背景图${failureCount > 0 ? '，失败 $failureCount 个' : ''}！'
-          : '❌ 所有按键背景图生成失败';
-      
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(message),
-          backgroundColor: successCount > 0 ? Colors.green : Colors.red,
+          content: Text('✅ 共享按键背景图生成成功，已应用到 ${selectedButtons.length} 个按键！'),
+          backgroundColor: Colors.green,
           duration: const Duration(seconds: 3),
         ),
       );
