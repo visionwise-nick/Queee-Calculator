@@ -2683,16 +2683,16 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
 
        print('🔧 显示区背景图生成结果: ${result.keys.toList()}');
        
-       if (result['success'] == true && result['background_url'] != null) {
+       if (result['success'] == true && result['display_background_url'] != null) {
          if (mounted) {
            setState(() {
-             _generatedDisplayBgUrl = result['background_url'];
+             _generatedDisplayBgUrl = result['display_background_url'];
            });
            
            // 保存到历史记录
            await ConfigService.saveDisplayBackgroundHistory(
              _displayBgPromptController.text.trim(),
-             result['background_url'],
+             result['display_background_url'],
            );
            
            ScaffoldMessenger.of(context).showSnackBar(
