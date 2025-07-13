@@ -45,7 +45,7 @@ tasks_lock = threading.Lock()
 # 🔧 新增：任务模型
 class Task(BaseModel):
     id: str
-    type: str  # customize, generate-image, generate-pattern, generate-app-background, generate-text-image
+    type: str  # customize, generate-image, generate-pattern, generate-app-background, generate-text-image, generate-display-background
     status: TaskStatus
     request_data: Dict[str, Any]
     result: Optional[Dict[str, Any]] = None
@@ -229,6 +229,8 @@ def process_task_in_background(task_id: str):
             result = process_generate_app_background_task(task_id, task.request_data)
         elif task.type == "generate-text-image":
             result = process_generate_text_image_task(task_id, task.request_data)
+        elif task.type == "generate-display-background":
+            result = process_generate_display_background_task(task_id, task.request_data)
         else:
             raise ValueError(f"未知任务类型: {task.type}")
         
@@ -332,6 +334,7 @@ class CalculatorTheme(BaseModel):
     backgroundImage: Optional[str] = None  # 背景图片URL
     displayBackgroundColor: str = "#222222"
     displayBackgroundGradient: Optional[List[str]] = None  # 显示区渐变
+    displayBackgroundImage: Optional[str] = None  # 显示区背景图片URL
     displayTextColor: str = "#FFFFFF"
     displayWidth: Optional[float] = None  # 显示区宽度比例 (0.0-1.0)
     displayHeight: Optional[float] = None  # 显示区高度比例 (0.0-1.0)
@@ -1826,6 +1829,13 @@ class AppBackgroundRequest(BaseModel):
     quality: Optional[str] = Field(default="high", description="图像质量")
     theme: Optional[str] = Field(default="calculator", description="主题类型：calculator, abstract, nature, tech等")
 
+class DisplayBackgroundRequest(BaseModel):
+    prompt: str = Field(..., description="显示区背景生成提示词")
+    style: Optional[str] = Field(default="clean", description="显示区风格")
+    size: Optional[str] = Field(default="800x400", description="显示区尺寸，适配计算器显示区")
+    quality: Optional[str] = Field(default="high", description="图像质量")
+    theme: Optional[str] = Field(default="calculator", description="主题类型：calculator, digital, tech等")
+
 @app.post("/generate-image")
 async def generate_image(request: ImageGenerationRequest):
     """使用Gemini 2.0 Flash原生图像生成功能"""
@@ -2092,6 +2102,99 @@ async def generate_app_background(request: AppBackgroundRequest):
             "original_prompt": request.prompt,
             "error": str(e),
             "message": f"APP背景图生成失败，使用占位符: {str(e)}"
+        }
+
+@app.post("/generate-display-background")
+async def generate_display_background(request: DisplayBackgroundRequest):
+    """生成计算器显示区背景图"""
+    try:
+        # 构建专门的显示区背景生成提示词
+        display_prompt = f"""
+        Generate a beautiful background image for calculator display area:
+        {request.prompt}
+        
+        Requirements:
+        - Calculator display area background (landscape orientation {request.size})
+        - Style: {request.style} with {request.theme} theme
+        - Must ensure excellent readability for white text and numbers
+        - Subtle and elegant, won't interfere with calculation results
+        - Good contrast for digital display content
+        - Professional and clean aesthetic
+        - High quality and resolution
+        - Colors should be darker or muted to highlight white text
+        - Avoid bright colors that reduce text readability
+        - Perfect for digital calculator display background
+        """
+        
+        print(f"🎨 开始生成显示区背景，提示词: {display_prompt}")
+        
+        # 使用Gemini 2.0 Flash图像生成模型
+        image_model = genai.GenerativeModel("gemini-2.0-flash-preview-image-generation")
+        
+        # 生成显示区背景 - 使用正确的配置
+        generation_config = {
+            "response_modalities": ["TEXT", "IMAGE"]
+        }
+        
+        response = image_model.generate_content(
+            contents=[display_prompt],
+            generation_config=generation_config
+        )
+        
+        # 检查响应中是否包含图像
+        if hasattr(response, 'parts') and response.parts:
+            for part in response.parts:
+                if hasattr(part, 'inline_data') and part.inline_data:
+                    # 获取生成的图像数据
+                    image_data = part.inline_data.data
+                    mime_type = part.inline_data.mime_type
+                    
+                    # 检查数据是否已经是base64格式
+                    if isinstance(image_data, bytes):
+                        # 如果是bytes，需要转换为base64
+                        import base64
+                        display_base64_data = base64.b64encode(image_data).decode('utf-8')
+                    else:
+                        # 如果已经是字符串，直接使用
+                        display_base64_data = str(image_data)
+                    
+                    # 将图像数据转换为base64 URL
+                    display_base64 = f"data:{mime_type};base64,{display_base64_data}"
+                    
+                    print(f"✅ 显示区背景生成成功，MIME类型: {mime_type}")
+                    
+                    return {
+                        "success": True,
+                        "display_background_url": display_base64,
+                        "image_data": display_base64_data,
+                        "mime_type": mime_type,
+                        "original_prompt": request.prompt,
+                        "enhanced_prompt": display_prompt,
+                        "style": request.style,
+                        "size": request.size,
+                        "quality": request.quality,
+                        "theme": request.theme,
+                        "message": "显示区背景生成成功"
+                    }
+        
+        # 如果没有图像数据，检查文本响应
+        if response.text:
+            print(f"🤖 AI响应: {response.text}")
+            
+        # 如果没有生成图像，返回错误
+        raise HTTPException(status_code=500, detail="未能生成显示区背景，请检查提示词或稍后重试")
+        
+    except Exception as e:
+        print(f"显示区背景生成失败: {str(e)}")
+        # 返回占位符图像作为备用方案
+        placeholder_url = f"https://via.placeholder.com/{request.size.replace('x', 'x')}/2A2A2A/FFFFFF?text=Display+Background+Error"
+        
+        return {
+            "success": False,
+            "display_background_url": placeholder_url,
+            "original_prompt": request.prompt,
+            "error": str(e),
+            "message": f"显示区背景生成失败，使用占位符: {str(e)}"
         }
 
 @app.get("/background-presets")
@@ -2381,6 +2484,22 @@ async def submit_generate_text_image_task(request: TextImageRequest, background_
             task_id=task_id,
             status=TaskStatus.PENDING,
             message="文字图像生成任务已提交，正在后台处理..."
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"提交任务失败: {str(e)}")
+
+@app.post("/tasks/submit/generate-display-background")
+async def submit_generate_display_background_task(request: DisplayBackgroundRequest, background_tasks: BackgroundTasks) -> TaskResponse:
+    """提交显示区背景生成任务"""
+    try:
+        cleanup_old_tasks()
+        task_id = create_task("generate-display-background", request.dict())
+        background_tasks.add_task(process_task_in_background, task_id)
+        
+        return TaskResponse(
+            task_id=task_id,
+            status=TaskStatus.PENDING,
+            message="显示区背景生成任务已提交，正在后台处理..."
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"提交任务失败: {str(e)}")
@@ -3160,6 +3279,106 @@ def process_generate_text_image_task(task_id: str, request_data: Dict[str, Any])
         
     except Exception as e:
         print(f"❌ 文字图像生成任务失败: {str(e)}")
+        raise e
+
+def process_generate_display_background_task(task_id: str, request_data: Dict[str, Any]) -> Dict[str, Any]:
+    """处理显示区背景生成任务"""
+    try:
+        prompt = request_data.get("prompt")
+        style = request_data.get("style", "clean")
+        size = request_data.get("size", "800x400")
+        quality = request_data.get("quality", "high")
+        theme = request_data.get("theme", "calculator")
+        
+        update_task_status(task_id, TaskStatus.PROCESSING, progress=0.2)
+        
+        # 构建专门的显示区背景生成提示词
+        display_prompt = f"""
+        Generate a beautiful background image for calculator display area:
+        {prompt}
+        
+        Requirements:
+        - Calculator display area background (landscape orientation {size})
+        - Style: {style} with {theme} theme
+        - Must ensure excellent readability for white text and numbers
+        - Subtle and elegant, won't interfere with calculation results
+        - Good contrast for digital display content
+        - Professional and clean aesthetic
+        - High quality and resolution
+        - Colors should be darker or muted to highlight white text
+        - Avoid bright colors that reduce text readability
+        - Perfect for digital calculator display background
+        """
+        
+        print(f"🎨 开始生成显示区背景，提示词: {display_prompt}")
+        
+        update_task_status(task_id, TaskStatus.PROCESSING, progress=0.4)
+        
+        # 初始化AI模型
+        initialize_genai()
+        
+        # 使用Gemini 2.0 Flash图像生成模型
+        image_model = genai.GenerativeModel("gemini-2.0-flash-preview-image-generation")
+        
+        # 生成显示区背景 - 使用正确的配置
+        generation_config = {
+            "response_modalities": ["TEXT", "IMAGE"]
+        }
+        
+        update_task_status(task_id, TaskStatus.PROCESSING, progress=0.6)
+        
+        response = image_model.generate_content(
+            contents=[display_prompt],
+            generation_config=generation_config
+        )
+        
+        update_task_status(task_id, TaskStatus.PROCESSING, progress=0.8)
+        
+        # 检查响应中是否包含图像
+        if hasattr(response, 'parts') and response.parts:
+            for part in response.parts:
+                if hasattr(part, 'inline_data') and part.inline_data:
+                    # 获取生成的图像数据
+                    image_data = part.inline_data.data
+                    mime_type = part.inline_data.mime_type
+                    
+                    # 检查数据是否已经是base64格式
+                    if isinstance(image_data, bytes):
+                        # 如果是bytes，需要转换为base64
+                        import base64
+                        display_base64_data = base64.b64encode(image_data).decode('utf-8')
+                    else:
+                        # 如果已经是字符串，直接使用
+                        display_base64_data = str(image_data)
+                    
+                    # 将图像数据转换为base64 URL
+                    display_base64 = f"data:{mime_type};base64,{display_base64_data}"
+                    
+                    print(f"✅ 显示区背景生成成功，MIME类型: {mime_type}")
+                    
+                    return {
+                        "success": True,
+                        "display_background_url": display_base64,
+                        "image_data": display_base64_data,
+                        "mime_type": mime_type,
+                        "original_prompt": prompt,
+                        "enhanced_prompt": display_prompt,
+                        "style": style,
+                        "size": size,
+                        "quality": quality,
+                        "theme": theme,
+                        "message": "显示区背景生成成功"
+                    }
+        
+        # 如果没有图像数据，检查文本响应
+        if response.text:
+            print(f"🤖 AI响应: {response.text}")
+            
+        # 如果没有生成图像，返回错误
+        raise Exception("未能生成显示区背景，请检查提示词或稍后重试")
+        
+    except Exception as e:
+        print(f"❌ 显示区背景生成任务失败: {str(e)}")
         raise e
 
 # 可用模型配置
