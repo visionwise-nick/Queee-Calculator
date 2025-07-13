@@ -4,6 +4,7 @@ import '../providers/calculator_provider.dart';
 import '../models/calculator_dsl.dart';
 import 'dart:convert';
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 // 🔧 新增：全局图片缓存，避免重复解码base64导致闪烁
 class _ImageCache {
@@ -165,33 +166,39 @@ class _CalculatorButtonWidgetState extends State<CalculatorButtonWidget>
       width: adaptiveSize.width,
       height: adaptiveSize.height,
       constraints: _buildSizeConstraints(),
-      child: Material(
-        color: Colors.transparent,
-        elevation: elevation,
+      child: ClipRRect(
         borderRadius: BorderRadius.circular(borderRadius),
-        child: InkWell(
-          onTapDown: (_) {
-            setState(() => _isPressed = true);
-            _animationController.forward();
-          },
-          onTapUp: (_) {
-            setState(() => _isPressed = false);
-            _animationController.reverse();
-            widget.onPressed();
-          },
-          onTapCancel: () {
-            setState(() => _isPressed = false);
-            _animationController.reverse();
-          },
-          onLongPress: () {
-            _showButtonDescription(context);
-          },
-          borderRadius: BorderRadius.circular(borderRadius),
-          child: Container(
-            decoration: _buildButtonDecoration(finalButtonColor, theme, gradient, backgroundImage, borderRadius, elevation),
-            padding: _getContentPadding(),
-            child: Center(
-              child: _buildButtonContent(finalTextColor, theme),
+        child: BackdropFilter(
+          filter: ui.ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
+          child: Material(
+            color: Colors.transparent,
+            elevation: elevation,
+            borderRadius: BorderRadius.circular(borderRadius),
+            child: InkWell(
+              onTapDown: (_) {
+                setState(() => _isPressed = true);
+                _animationController.forward();
+              },
+              onTapUp: (_) {
+                setState(() => _isPressed = false);
+                _animationController.reverse();
+                widget.onPressed();
+              },
+              onTapCancel: () {
+                setState(() => _isPressed = false);
+                _animationController.reverse();
+              },
+              onLongPress: () {
+                _showButtonDescription(context);
+              },
+              borderRadius: BorderRadius.circular(borderRadius),
+              child: Container(
+                decoration: _buildButtonDecoration(finalButtonColor, theme, gradient, backgroundImage, borderRadius, elevation),
+                padding: _getContentPadding(),
+                child: Center(
+                  child: _buildButtonContent(finalTextColor, theme),
+                ),
+              ),
             ),
           ),
         ),
@@ -382,22 +389,36 @@ class _CalculatorButtonWidgetState extends State<CalculatorButtonWidget>
     double elevation
   ) {
     return BoxDecoration(
-      color: gradient == null && backgroundImage == null ? buttonColor : null,
+      color: gradient == null && backgroundImage == null 
+          ? buttonColor.withValues(alpha: 0.8) // 🔧 增加毛玻璃透明度
+          : null,
       borderRadius: BorderRadius.circular(borderRadius),
       border: widget.button.borderColor != null && widget.button.borderWidth != null
           ? Border.all(
               color: _parseColor(widget.button.borderColor!),
               width: widget.button.borderWidth!,
             )
-          : null,
-      boxShadow: _buildEnhancedBoxShadow(theme, buttonColor, elevation),
+          : Border.all(
+              color: Colors.white.withValues(alpha: 0.3), // 🔧 毛玻璃边框
+              width: 1.0,
+            ),
+      boxShadow: [
+        ..._buildEnhancedBoxShadow(theme, buttonColor, elevation),
+        // 🔧 新增：毛玻璃阴影效果
+        BoxShadow(
+          color: Colors.black.withValues(alpha: 0.1),
+          blurRadius: 10,
+          spreadRadius: 1,
+          offset: const Offset(0, 2),
+        ),
+      ],
       gradient: gradient != null ? _buildGradient(gradient) : (_isPressed
           ? LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
+                buttonColor.withValues(alpha: 0.6), // 🔧 增加毛玻璃透明度
                 buttonColor.withValues(alpha: 0.8),
-                buttonColor,
               ],
             )
           : null),

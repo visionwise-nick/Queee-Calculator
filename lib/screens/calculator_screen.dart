@@ -132,12 +132,36 @@ class CalculatorScreen extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Expanded(
-            child: Text(
-              'Queee Calculator',
-              style: TextStyle(
-                fontSize: 18, // 稍微减小字体
-                fontWeight: FontWeight.bold,
-                color: provider.getDisplayTextColor(),
+            child: ShaderMask(
+              shaderCallback: (bounds) => LinearGradient(
+                colors: [
+                  const Color(0xFF6C63FF), // 紫色
+                  const Color(0xFF3B82F6), // 蓝色
+                  const Color(0xFF06B6D4), // 青色
+                  const Color(0xFF10B981), // 绿色
+                  const Color(0xFFF59E0B), // 橙色
+                  const Color(0xFFEF4444), // 红色
+                ],
+                stops: const [0.0, 0.2, 0.4, 0.6, 0.8, 1.0],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ).createShader(bounds),
+              child: Text(
+                'Queee Calculator',
+                style: TextStyle(
+                  fontSize: 20, // 增大字体以突出渐变效果
+                  fontWeight: FontWeight.w900, // 使用最粗的字体
+                  color: Colors.white, // 必须是白色才能显示渐变
+                  letterSpacing: 1.2, // 增加字符间距
+                  shadows: [
+                    // 添加阴影效果增强视觉冲击
+                    Shadow(
+                      color: Colors.black.withValues(alpha: 0.3),
+                      offset: const Offset(2, 2),
+                      blurRadius: 4,
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

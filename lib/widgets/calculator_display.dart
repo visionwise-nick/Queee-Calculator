@@ -4,6 +4,7 @@ import '../models/calculator_dsl.dart';
 import 'dart:convert';
 import 'dart:typed_data';
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 // 🔧 新增：显示区图片缓存，避免重复解码base64导致闪烁
 class _DisplayImageCache {
@@ -56,33 +57,48 @@ class CalculatorDisplay extends StatelessWidget {
       print('  - 按键透明度: ${appBackground!.buttonOpacity ?? 1.0}');
     }
     
-    return Container(
-      width: theme.displayWidth != null 
-          ? MediaQuery.of(context).size.width * theme.displayWidth!
-          : double.infinity,
-      padding: const EdgeInsets.all(12),
-      margin: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        color: theme.displayBackgroundGradient == null && theme.displayBackgroundImage == null 
-            ? _parseColor(theme.displayBackgroundColor).withValues(
-                alpha: appBackground?.displayOpacity ?? 1.0, // 🔧 应用显示区域透明度
-              )
-            : null,
-        gradient: theme.displayBackgroundGradient != null 
-            ? _buildGradient(theme.displayBackgroundGradient!, appBackground?.displayOpacity ?? 1.0)
-            : null,
-        borderRadius: BorderRadius.circular(borderRadius),
-        boxShadow: [
-          if (theme.hasGlowEffect)
-            BoxShadow(
-              color: _parseColor(theme.shadowColor ?? theme.displayTextColor).withValues(alpha: 0.3),
-              blurRadius: 10,
-              spreadRadius: 2,
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(borderRadius),
+      child: BackdropFilter(
+        filter: ui.ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
+        child: Container(
+          width: theme.displayWidth != null 
+              ? MediaQuery.of(context).size.width * theme.displayWidth!
+              : double.infinity,
+          padding: const EdgeInsets.all(12),
+          margin: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: theme.displayBackgroundGradient == null && theme.displayBackgroundImage == null 
+                ? _parseColor(theme.displayBackgroundColor).withValues(
+                    alpha: (appBackground?.displayOpacity ?? 1.0) * 0.8, // 🔧 应用显示区域透明度并增加毛玻璃效果
+                  )
+                : Colors.white.withValues(alpha: 0.1), // 🔧 毛玻璃基础透明度
+            gradient: theme.displayBackgroundGradient != null 
+                ? _buildGradient(theme.displayBackgroundGradient!, (appBackground?.displayOpacity ?? 1.0) * 0.8)
+                : null,
+            borderRadius: BorderRadius.circular(borderRadius),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.2), // 🔧 毛玻璃边框
+              width: 1.0,
             ),
-        ],
-        image: _buildBackgroundImage(theme.displayBackgroundImage),
-      ),
-      child: LayoutBuilder(
+            boxShadow: [
+              if (theme.hasGlowEffect)
+                BoxShadow(
+                  color: _parseColor(theme.shadowColor ?? theme.displayTextColor).withValues(alpha: 0.3),
+                  blurRadius: 10,
+                  spreadRadius: 2,
+                ),
+              // 🔧 新增：毛玻璃阴影效果
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.1),
+                blurRadius: 20,
+                spreadRadius: 1,
+                offset: const Offset(0, 4),
+              ),
+            ],
+            image: _buildBackgroundImage(theme.displayBackgroundImage, appBackground?.displayOpacity ?? 1.0),
+          ),
+          child: LayoutBuilder(
         builder: (context, constraints) {
           // 根据可用高度动态调整布局
           final availableHeight = constraints.maxHeight;
@@ -119,6 +135,8 @@ class CalculatorDisplay extends StatelessWidget {
             );
           }
         },
+      ),
+        ),
       ),
     );
   }
@@ -268,7 +286,7 @@ class CalculatorDisplay extends StatelessWidget {
   }
 
   /// 构建背景图像
-  DecorationImage? _buildBackgroundImage(String? backgroundImage) {
+  DecorationImage? _buildBackgroundImage(String? backgroundImage, double opacity) {
     if (backgroundImage == null) {
       return null;
     }
@@ -288,7 +306,7 @@ class CalculatorDisplay extends StatelessWidget {
           image: memoryImage,
           fit: BoxFit.cover,
           colorFilter: ColorFilter.mode(
-            Colors.black.withValues(alpha: 0.3),
+            Colors.black.withValues(alpha: 1.0 - opacity),
             BlendMode.darken,
           ),
         );
@@ -302,7 +320,7 @@ class CalculatorDisplay extends StatelessWidget {
         image: NetworkImage(backgroundImage),
         fit: BoxFit.cover,
         colorFilter: ColorFilter.mode(
-          Colors.black.withValues(alpha: 0.3),
+          Colors.black.withValues(alpha: 1.0 - opacity),
           BlendMode.darken,
         ),
         onError: (exception, stackTrace) {
