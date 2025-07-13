@@ -39,7 +39,7 @@ class CalculatorDisplay extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       margin: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: theme.displayBackgroundGradient == null && theme.backgroundImage == null 
+        color: theme.displayBackgroundGradient == null && theme.displayBackgroundImage == null 
             ? _parseColor(theme.displayBackgroundColor).withValues(
                 alpha: appBackground?.displayOpacity ?? 1.0, // 🔧 应用显示区域透明度
               )
@@ -56,7 +56,7 @@ class CalculatorDisplay extends StatelessWidget {
               spreadRadius: 2,
             ),
         ],
-        image: _buildBackgroundImage(theme.backgroundImage),
+        image: _buildBackgroundImage(theme.displayBackgroundImage),
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {
