@@ -5,6 +5,30 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'dart:math' as math;
 
+// 🔧 新增：显示区图片缓存，避免重复解码base64导致闪烁
+class _DisplayImageCache {
+  static final Map<String, MemoryImage> _cache = {};
+  
+  static MemoryImage getMemoryImage(String base64Data) {
+    if (_cache.containsKey(base64Data)) {
+      return _cache[base64Data]!;
+    }
+    
+    try {
+      final bytes = base64Decode(base64Data.split(',').last);
+      final memoryImage = MemoryImage(bytes);
+      _cache[base64Data] = memoryImage;
+      return memoryImage;
+    } catch (e) {
+      throw Exception('Failed to decode base64 image: $e');
+    }
+  }
+  
+  static void clearCache() {
+    _cache.clear();
+  }
+}
+
 class CalculatorDisplay extends StatelessWidget {
   final CalculatorState state;
   final CalculatorTheme theme;
@@ -257,12 +281,11 @@ class CalculatorDisplay extends StatelessWidget {
     }
 
     if (backgroundImage.startsWith('data:image/')) {
-      // 处理base64格式
+      // 处理base64格式，使用缓存避免重复解码
       try {
-        final base64Data = backgroundImage.split(',').last;
-        final bytes = base64Decode(base64Data);
+        final memoryImage = _DisplayImageCache.getMemoryImage(backgroundImage);
         return DecorationImage(
-          image: MemoryImage(bytes),
+          image: memoryImage,
           fit: BoxFit.cover,
           colorFilter: ColorFilter.mode(
             Colors.black.withValues(alpha: 0.3),

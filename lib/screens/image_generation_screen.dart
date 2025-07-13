@@ -2695,9 +2695,12 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
              result['display_background_url'],
            );
            
+           // 🔧 自动应用生成的背景图
+           _applyDisplayBackground();
+           
            ScaffoldMessenger.of(context).showSnackBar(
              const SnackBar(
-               content: Text('✅ 显示区背景图生成完成！'),
+               content: Text('✅ 显示区背景图生成并应用完成！'),
                backgroundColor: Colors.green,
              ),
            );
