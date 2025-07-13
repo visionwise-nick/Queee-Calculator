@@ -98,6 +98,7 @@ class CalculatorTheme {
   final String? backgroundImage; // 背景图片URL
   final String displayBackgroundColor;
   final List<String>? displayBackgroundGradient; // 显示区渐变
+  final String? displayBackgroundImage; // 🔧 新增：显示区背景图片URL
   final String displayTextColor;
   final double? displayWidth;
   final double? displayHeight;
@@ -128,6 +129,7 @@ class CalculatorTheme {
     this.backgroundImage,
     this.displayBackgroundColor = '#222222',
     this.displayBackgroundGradient,
+    this.displayBackgroundImage, // 🔧 新增
     this.displayTextColor = '#FFFFFF',
     this.displayWidth,
     this.displayHeight,
@@ -160,6 +162,7 @@ class CalculatorTheme {
       backgroundImage: json['backgroundImage'] as String?,
       displayBackgroundColor: json['displayBackgroundColor'] as String? ?? '#222222',
       displayBackgroundGradient: (json['displayBackgroundGradient'] as List<dynamic>?)?.cast<String>(),
+      displayBackgroundImage: json['displayBackgroundImage'] as String?, // 🔧 新增
       displayTextColor: json['displayTextColor'] as String? ?? '#FFFFFF',
       displayWidth: (json['displayWidth'] as num?)?.toDouble(),
       displayHeight: (json['displayHeight'] as num?)?.toDouble(),
@@ -193,6 +196,7 @@ class CalculatorTheme {
       'backgroundImage': backgroundImage,
       'displayBackgroundColor': displayBackgroundColor,
       'displayBackgroundGradient': displayBackgroundGradient,
+      'displayBackgroundImage': displayBackgroundImage, // 🔧 新增
       'displayTextColor': displayTextColor,
       'displayWidth': displayWidth,
       'displayHeight': displayHeight,

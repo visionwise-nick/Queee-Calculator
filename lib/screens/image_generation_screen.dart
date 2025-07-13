@@ -47,13 +47,20 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
   bool _isGeneratingButtonPattern = false;
   final TextEditingController _buttonPatternPromptController = TextEditingController();
   
+  // 🔧 新增：显示区背景相关状态
+  bool _isGeneratingDisplayBg = false;
+  String? _generatedDisplayBgUrl;
+  double _displayBgProgress = 0.0;
+  String _displayBgStatusMessage = '';
+  final TextEditingController _displayBgPromptController = TextEditingController();
+  
   // 🔧 新增：进度弹窗控制器
   final AIGenerationProgressController _progressController = AIGenerationProgressController();
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this); // 改为2个tab
+    _tabController = TabController(length: 3, vsync: this); // 🔧 改为3个tab
     
     // 🔧 从现有配置中加载透明度设置
     final appBackground = widget.currentConfig.appBackground;
@@ -74,6 +81,7 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
     _appBgPromptController.dispose();
     _buttonBgPromptController.dispose();
     _buttonPatternPromptController.dispose();
+    _displayBgPromptController.dispose(); // 🔧 新增：清理显示区背景控制器
     _progressController.dispose(); // 🔧 新增：清理进度控制器
     super.dispose();
   }
@@ -123,6 +131,10 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
               icon: Icon(Icons.wallpaper),
               text: 'APP背景',
             ),
+            Tab(
+              icon: Icon(Icons.monitor),
+              text: '显示区',
+            ),
           ],
         ),
       ),
@@ -133,6 +145,7 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
             children: [
               _buildButtonBackgroundTab(), // 按键背景tab放到第一个
               _buildAppBackgroundTab(),    // APP背景tab放到第二个
+              _buildDisplayBackgroundTab(), // 🔧 新增：显示区背景tab放到第三个
             ],
           ),
           
@@ -600,6 +613,28 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  // 🔧 新增：显示区背景标签页
+  Widget _buildDisplayBackgroundTab() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 自定义生成区域
+          _buildDisplayBackgroundGenerationCard(),
+          const SizedBox(height: 20),
+          
+          // 快速选择区域
+          _buildDisplayBackgroundQuickSelectionCard(),
+          const SizedBox(height: 20),
+          
+          // 预览和应用区域
+          if (_generatedDisplayBgUrl != null) _buildDisplayBackgroundPreviewCard(),
+        ],
       ),
     );
   }
@@ -2188,11 +2223,672 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
     provider.applyConfig(updatedConfig);
     widget.onConfigUpdated(updatedConfig);
     
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('✅ 按键 "${button.label}" 已恢复默认背景'),
-        backgroundColor: Colors.green,
-      ),
-    );
-  }
-} 
+         ScaffoldMessenger.of(context).showSnackBar(
+       SnackBar(
+         content: Text('✅ 按键 "${button.label}" 已恢复默认背景'),
+         backgroundColor: Colors.green,
+       ),
+     );
+   }
+
+   // 🔧 新增：显示区背景生成相关方法
+   
+   /// 构建显示区背景生成卡片
+   Widget _buildDisplayBackgroundGenerationCard() {
+     return Container(
+       decoration: BoxDecoration(
+         color: Colors.white,
+         borderRadius: BorderRadius.circular(16),
+         boxShadow: [
+           BoxShadow(
+             color: Colors.black.withOpacity(0.05),
+             blurRadius: 10,
+             offset: const Offset(0, 2),
+           ),
+         ],
+       ),
+       child: Padding(
+         padding: const EdgeInsets.all(20),
+         child: Column(
+           crossAxisAlignment: CrossAxisAlignment.start,
+           children: [
+             Row(
+               children: [
+                 Container(
+                   padding: const EdgeInsets.all(8),
+                   decoration: BoxDecoration(
+                     color: Colors.green.shade100,
+                     borderRadius: BorderRadius.circular(12),
+                   ),
+                   child: Icon(Icons.monitor, color: Colors.green.shade700),
+                 ),
+                 const SizedBox(width: 12),
+                 const Expanded(
+                   child: Text(
+                     '自定义显示区背景',
+                     style: TextStyle(
+                       fontSize: 18,
+                       fontWeight: FontWeight.bold,
+                     ),
+                   ),
+                 ),
+                 // 🔧 历史记录按钮
+                 IconButton(
+                   icon: Icon(Icons.history, color: Colors.grey.shade600),
+                   onPressed: _showDisplayBackgroundHistory,
+                   tooltip: '历史记录',
+                 ),
+               ],
+             ),
+             const SizedBox(height: 16),
+             
+             // 提示词输入
+             TextField(
+               controller: _displayBgPromptController,
+               maxLines: 3,
+               decoration: InputDecoration(
+                 hintText: '描述你想要的显示区背景风格...\n例如：数字矩阵背景，科技感绿色字符流\n\n🎯 专为计算器显示区设计，突出数字和计算结果的可读性',
+                 border: OutlineInputBorder(
+                   borderRadius: BorderRadius.circular(12),
+                   borderSide: BorderSide(color: Colors.grey.shade300),
+                 ),
+                 focusedBorder: OutlineInputBorder(
+                   borderRadius: BorderRadius.circular(12),
+                   borderSide: const BorderSide(color: Color(0xFF6366F1)),
+                 ),
+                 contentPadding: const EdgeInsets.all(16),
+               ),
+             ),
+             const SizedBox(height: 20),
+             
+             // 生成按钮
+             SizedBox(
+               width: double.infinity,
+               child: ElevatedButton(
+                 onPressed: _isGeneratingDisplayBg ? null : _generateDisplayBackground,
+                 style: ElevatedButton.styleFrom(
+                   backgroundColor: Colors.green.shade600,
+                   foregroundColor: Colors.white,
+                   padding: const EdgeInsets.symmetric(vertical: 16),
+                   shape: RoundedRectangleBorder(
+                     borderRadius: BorderRadius.circular(12),
+                   ),
+                 ),
+                 child: _isGeneratingDisplayBg
+                     ? Column(
+                         mainAxisSize: MainAxisSize.min,
+                         children: [
+                           SizedBox(
+                             height: 20,
+                             width: 20,
+                             child: CircularProgressIndicator(
+                               strokeWidth: 2,
+                               value: _displayBgProgress > 0 ? _displayBgProgress : null,
+                               valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+                             ),
+                           ),
+                           const SizedBox(height: 8),
+                           Text(
+                             _displayBgStatusMessage.isNotEmpty 
+                                 ? _displayBgStatusMessage 
+                                 : '正在生成...',
+                             style: const TextStyle(
+                               fontSize: 12,
+                               color: Colors.white,
+                             ),
+                           ),
+                           if (_displayBgProgress > 0)
+                             Text(
+                               '${(_displayBgProgress * 100).toInt()}%',
+                               style: const TextStyle(
+                                 fontSize: 10,
+                                 color: Colors.white70,
+                               ),
+                             ),
+                         ],
+                       )
+                     : const Text(
+                         '🎨 生成显示区背景',
+                         style: TextStyle(
+                           fontSize: 16,
+                           fontWeight: FontWeight.w600,
+                         ),
+                       ),
+               ),
+             ),
+           ],
+         ),
+       ),
+     );
+   }
+
+   /// 构建显示区背景快速选择卡片
+   Widget _buildDisplayBackgroundQuickSelectionCard() {
+     final quickPrompts = [
+       {
+         'title': '📊 数字矩阵',
+         'prompt': '数字矩阵背景，绿色字符流，科技感十足，适合计算器显示',
+         'color': Colors.green,
+       },
+       {
+         'title': '🌌 星空数字',
+         'prompt': '深蓝色星空背景，闪烁的数字星点，神秘而优雅',
+         'color': Colors.blue,
+       },
+       {
+         'title': '⚡ 电路板',
+         'prompt': '电路板纹理背景，蓝绿色电路线条，现代科技风格',
+         'color': Colors.cyan,
+       },
+       {
+         'title': '🔥 能量波纹',
+         'prompt': '橙色能量波纹背景，动感光效，充满活力',
+         'color': Colors.orange,
+       },
+       {
+         'title': '❄️ 极简冰霜',
+         'prompt': '白色极简背景，微妙的冰霜纹理，清爽简洁',
+         'color': Colors.grey,
+       },
+     ];
+
+     return Container(
+       decoration: BoxDecoration(
+         color: Colors.white,
+         borderRadius: BorderRadius.circular(16),
+         boxShadow: [
+           BoxShadow(
+             color: Colors.black.withOpacity(0.05),
+             blurRadius: 10,
+             offset: const Offset(0, 2),
+           ),
+         ],
+       ),
+       child: Padding(
+         padding: const EdgeInsets.all(20),
+         child: Column(
+           crossAxisAlignment: CrossAxisAlignment.start,
+           children: [
+             Row(
+               children: [
+                 Container(
+                   padding: const EdgeInsets.all(8),
+                   decoration: BoxDecoration(
+                     color: Colors.purple.shade100,
+                     borderRadius: BorderRadius.circular(12),
+                   ),
+                   child: Icon(Icons.auto_awesome, color: Colors.purple.shade700),
+                 ),
+                 const SizedBox(width: 12),
+                 const Text(
+                   '快速选择',
+                   style: TextStyle(
+                     fontSize: 18,
+                     fontWeight: FontWeight.bold,
+                   ),
+                 ),
+               ],
+             ),
+             const SizedBox(height: 16),
+             
+             Padding(
+               padding: const EdgeInsets.symmetric(horizontal: 16),
+               child: Column(
+                 children: quickPrompts.asMap().entries.map((entry) {
+                   final prompt = entry.value;
+                   final isLast = entry.key == quickPrompts.length - 1;
+                   
+                   return Column(
+                     children: [
+                       Material(
+                         color: Colors.transparent,
+                         child: InkWell(
+                           onTap: () {
+                             _displayBgPromptController.text = prompt['prompt'] as String;
+                             _generateDisplayBackground();
+                           },
+                           borderRadius: BorderRadius.circular(12),
+                           child: Container(
+                             width: double.infinity,
+                             padding: const EdgeInsets.all(12),
+                             constraints: const BoxConstraints(minHeight: 60),
+                             decoration: BoxDecoration(
+                               color: (prompt['color'] as Color).withOpacity(0.1),
+                               borderRadius: BorderRadius.circular(12),
+                               border: Border.all(
+                                 color: (prompt['color'] as Color).withOpacity(0.3),
+                               ),
+                             ),
+                             child: Row(
+                               children: [
+                                 Container(
+                                   width: 8,
+                                   height: 40,
+                                   decoration: BoxDecoration(
+                                     color: prompt['color'] as Color,
+                                     borderRadius: BorderRadius.circular(4),
+                                   ),
+                                 ),
+                                 const SizedBox(width: 12),
+                                 Expanded(
+                                   child: Column(
+                                     crossAxisAlignment: CrossAxisAlignment.start,
+                                     mainAxisAlignment: MainAxisAlignment.center,
+                                     children: [
+                                       Text(
+                                         prompt['title'] as String,
+                                         style: const TextStyle(
+                                           fontWeight: FontWeight.bold,
+                                           fontSize: 14,
+                                         ),
+                                       ),
+                                       const SizedBox(height: 2),
+                                       Text(
+                                         prompt['prompt'] as String,
+                                         style: TextStyle(
+                                           fontSize: 12,
+                                           color: Colors.grey.shade600,
+                                         ),
+                                         maxLines: 2,
+                                         overflow: TextOverflow.ellipsis,
+                                       ),
+                                     ],
+                                   ),
+                                 ),
+                               ],
+                             ),
+                           ),
+                         ),
+                       ),
+                       if (!isLast) const SizedBox(height: 12),
+                     ],
+                   );
+                 }).toList(),
+               ),
+             ),
+           ],
+         ),
+       ),
+     );
+   }
+
+   /// 构建显示区背景预览卡片
+   Widget _buildDisplayBackgroundPreviewCard() {
+     return Container(
+       decoration: BoxDecoration(
+         color: Colors.white,
+         borderRadius: BorderRadius.circular(16),
+         boxShadow: [
+           BoxShadow(
+             color: Colors.black.withOpacity(0.05),
+             blurRadius: 10,
+             offset: const Offset(0, 2),
+           ),
+         ],
+       ),
+       child: Padding(
+         padding: const EdgeInsets.all(20),
+         child: Column(
+           crossAxisAlignment: CrossAxisAlignment.start,
+           children: [
+             Row(
+               children: [
+                 Container(
+                   padding: const EdgeInsets.all(8),
+                   decoration: BoxDecoration(
+                     color: Colors.green.shade100,
+                     borderRadius: BorderRadius.circular(12),
+                   ),
+                   child: Icon(Icons.check_circle, color: Colors.green.shade700),
+                 ),
+                 const SizedBox(width: 12),
+                 const Text(
+                   '生成成功',
+                   style: TextStyle(
+                     fontSize: 18,
+                     fontWeight: FontWeight.bold,
+                   ),
+                 ),
+               ],
+             ),
+             const SizedBox(height: 16),
+             
+             // 预览图片
+             Container(
+               width: double.infinity,
+               height: 150,
+               decoration: BoxDecoration(
+                 borderRadius: BorderRadius.circular(12),
+                 border: Border.all(color: Colors.grey.shade300),
+               ),
+               child: ClipRRect(
+                 borderRadius: BorderRadius.circular(12),
+                 child: Image.memory(
+                   _base64ToBytes(_generatedDisplayBgUrl!),
+                   fit: BoxFit.cover,
+                 ),
+               ),
+             ),
+             const SizedBox(height: 16),
+             
+             // 操作按钮
+             Row(
+               children: [
+                 Expanded(
+                   child: OutlinedButton(
+                     onPressed: () {
+                       setState(() {
+                         _generatedDisplayBgUrl = null;
+                       });
+                     },
+                     style: OutlinedButton.styleFrom(
+                       padding: const EdgeInsets.symmetric(vertical: 12),
+                       shape: RoundedRectangleBorder(
+                         borderRadius: BorderRadius.circular(12),
+                       ),
+                     ),
+                     child: const Text('重新生成'),
+                   ),
+                 ),
+                 const SizedBox(width: 12),
+                 Expanded(
+                   child: ElevatedButton(
+                     onPressed: _applyDisplayBackground,
+                     style: ElevatedButton.styleFrom(
+                       backgroundColor: Colors.green.shade600,
+                       foregroundColor: Colors.white,
+                       padding: const EdgeInsets.symmetric(vertical: 12),
+                       shape: RoundedRectangleBorder(
+                         borderRadius: BorderRadius.circular(12),
+                       ),
+                     ),
+                     child: const Text('应用背景'),
+                   ),
+                 ),
+               ],
+             ),
+           ],
+         ),
+       ),
+     );
+   }
+
+   /// 生成显示区背景
+   Future<void> _generateDisplayBackground() async {
+     if (_displayBgPromptController.text.trim().isEmpty) {
+       ScaffoldMessenger.of(context).showSnackBar(
+         const SnackBar(content: Text('请输入背景描述')),
+       );
+       return;
+     }
+
+     // 显示强制性进度弹窗
+     _progressController.show(
+       title: '🎨 正在生成显示区背景图',
+       description: '正在为您的计算器显示区生成精美的背景图...',
+       taskType: 'generate-display-background',
+       allowCancel: false,
+     );
+
+     setState(() {
+       _isGeneratingDisplayBg = true;
+       _generatedDisplayBgUrl = null;
+     });
+
+     try {
+       print('🎨 开始生成显示区背景图...');
+       print('   提示词: ${_displayBgPromptController.text.trim()}');
+       
+       final result = await AIService.generateDisplayBackground(
+         prompt: _displayBgPromptController.text.trim(),
+         style: 'clean',
+         size: '800x400',
+         quality: 'high',
+         theme: 'display',
+         onProgress: (progress) {
+           String statusMessage = '正在生成显示区背景...';
+           if (progress < 0.3) {
+             statusMessage = '正在分析显示区需求...';
+           } else if (progress < 0.6) {
+             statusMessage = '正在设计背景样式...';
+           } else if (progress < 0.9) {
+             statusMessage = '正在优化显示效果...';
+           } else {
+             statusMessage = '即将完成...';
+           }
+           
+           _progressController.updateProgress(progress, statusMessage);
+           
+           if (mounted) {
+             setState(() {
+               _displayBgProgress = progress;
+             });
+           }
+           print('显示区背景图生成进度: ${(progress * 100).toInt()}%');
+         },
+         onStatusUpdate: (status) {
+           _progressController.updateProgress(_progressController.progress, status);
+           
+           if (mounted) {
+             setState(() {
+               _displayBgStatusMessage = status;
+             });
+           }
+           print('显示区背景图生成状态: $status');
+         },
+       );
+
+       // 隐藏进度弹窗
+       _progressController.hide();
+
+       print('🔧 显示区背景图生成结果: ${result.keys.toList()}');
+       
+       if (result['success'] == true && result['background_url'] != null) {
+         if (mounted) {
+           setState(() {
+             _generatedDisplayBgUrl = result['background_url'];
+           });
+           
+           // 保存到历史记录
+           await ConfigService.saveDisplayBackgroundHistory(
+             _displayBgPromptController.text.trim(),
+             result['background_url'],
+           );
+           
+           ScaffoldMessenger.of(context).showSnackBar(
+             const SnackBar(
+               content: Text('✅ 显示区背景图生成完成！'),
+               backgroundColor: Colors.green,
+             ),
+           );
+         }
+       } else {
+         throw Exception(result['message'] ?? '生成失败');
+       }
+     } catch (e) {
+       // 隐藏进度弹窗
+       _progressController.hide();
+       
+       print('❌ 显示区背景图生成失败: $e');
+       if (mounted) {
+         ScaffoldMessenger.of(context).showSnackBar(
+           SnackBar(
+             content: Text('❌ 显示区背景图生成失败: $e'),
+             backgroundColor: Colors.red,
+           ),
+         );
+       }
+     } finally {
+       if (mounted) {
+         setState(() {
+           _isGeneratingDisplayBg = false;
+           _displayBgProgress = 0.0;
+           _displayBgStatusMessage = '';
+         });
+       }
+     }
+   }
+
+   /// 应用显示区背景
+   void _applyDisplayBackground() {
+     if (_generatedDisplayBgUrl == null) return;
+
+     print('🔧 应用显示区背景图，URL长度：${_generatedDisplayBgUrl!.length}');
+     
+     // 更新主题配置中的显示区背景图
+     final updatedTheme = CalculatorTheme(
+       name: widget.currentConfig.theme.name,
+       backgroundColor: widget.currentConfig.theme.backgroundColor,
+       backgroundGradient: widget.currentConfig.theme.backgroundGradient,
+       backgroundImage: widget.currentConfig.theme.backgroundImage,
+       displayBackgroundColor: widget.currentConfig.theme.displayBackgroundColor,
+       displayBackgroundGradient: widget.currentConfig.theme.displayBackgroundGradient,
+       displayBackgroundImage: _generatedDisplayBgUrl, // 🔧 设置显示区背景图
+       displayTextColor: widget.currentConfig.theme.displayTextColor,
+       displayWidth: widget.currentConfig.theme.displayWidth,
+       displayHeight: widget.currentConfig.theme.displayHeight,
+       displayHeightRatio: widget.currentConfig.theme.displayHeightRatio,
+       displayBorderRadius: widget.currentConfig.theme.displayBorderRadius,
+       primaryButtonColor: widget.currentConfig.theme.primaryButtonColor,
+       primaryButtonGradient: widget.currentConfig.theme.primaryButtonGradient,
+       primaryButtonTextColor: widget.currentConfig.theme.primaryButtonTextColor,
+       secondaryButtonColor: widget.currentConfig.theme.secondaryButtonColor,
+       secondaryButtonGradient: widget.currentConfig.theme.secondaryButtonGradient,
+       secondaryButtonTextColor: widget.currentConfig.theme.secondaryButtonTextColor,
+       operatorButtonColor: widget.currentConfig.theme.operatorButtonColor,
+       operatorButtonGradient: widget.currentConfig.theme.operatorButtonGradient,
+       operatorButtonTextColor: widget.currentConfig.theme.operatorButtonTextColor,
+       fontSize: widget.currentConfig.theme.fontSize,
+       buttonBorderRadius: widget.currentConfig.theme.buttonBorderRadius,
+       hasGlowEffect: widget.currentConfig.theme.hasGlowEffect,
+       shadowColor: widget.currentConfig.theme.shadowColor,
+       buttonElevation: widget.currentConfig.theme.buttonElevation,
+       buttonShadowColors: widget.currentConfig.theme.buttonShadowColors,
+       buttonSpacing: widget.currentConfig.theme.buttonSpacing,
+       adaptiveLayout: widget.currentConfig.theme.adaptiveLayout,
+     );
+
+     final updatedConfig = CalculatorConfig(
+       id: widget.currentConfig.id,
+       name: widget.currentConfig.name,
+       description: widget.currentConfig.description,
+       theme: updatedTheme,
+       layout: widget.currentConfig.layout,
+       appBackground: widget.currentConfig.appBackground,
+       version: widget.currentConfig.version,
+       createdAt: widget.currentConfig.createdAt,
+       authorPrompt: widget.currentConfig.authorPrompt,
+       thinkingProcess: widget.currentConfig.thinkingProcess,
+       aiResponse: widget.currentConfig.aiResponse,
+     );
+
+     // 强制更新provider配置
+     final provider = Provider.of<CalculatorProvider>(context, listen: false);
+     provider.applyConfig(updatedConfig);
+     
+     // 同时更新父组件配置
+     widget.onConfigUpdated(updatedConfig);
+     
+     // 保存配置到本地存储
+     _saveConfigToStorage(updatedConfig);
+     
+     // 强制重建UI
+     if (mounted) {
+       setState(() {
+         // 触发UI重建
+       });
+     }
+     
+     print('🔧 显示区背景图应用成功');
+     
+     ScaffoldMessenger.of(context).showSnackBar(
+       const SnackBar(
+         content: Text('✅ 显示区背景已应用！'),
+         backgroundColor: Colors.green,
+       ),
+     );
+   }
+
+   /// 显示显示区背景历史记录
+   void _showDisplayBackgroundHistory() async {
+     final historyList = await ConfigService.loadDisplayBackgroundHistory();
+     
+     if (historyList.isEmpty) {
+       ScaffoldMessenger.of(context).showSnackBar(
+         const SnackBar(content: Text('暂无历史记录')),
+       );
+       return;
+     }
+     
+     showDialog(
+       context: context,
+       builder: (context) => AlertDialog(
+         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+         title: const Row(
+           children: [
+             Icon(Icons.history, color: Colors.green),
+             SizedBox(width: 8),
+             Text('显示区背景历史记录'),
+           ],
+         ),
+         content: SizedBox(
+           width: double.maxFinite,
+           height: 400,
+           child: ListView.builder(
+             itemCount: historyList.length,
+             itemBuilder: (context, index) {
+               final item = historyList[index];
+               final prompt = item['prompt'] as String;
+               final timestamp = item['timestamp'] as int;
+               final date = DateTime.fromMillisecondsSinceEpoch(timestamp);
+               
+               return Card(
+                 margin: const EdgeInsets.symmetric(vertical: 4),
+                 child: ListTile(
+                   leading: const Icon(Icons.monitor, color: Colors.green),
+                   title: Text(
+                     prompt,
+                     maxLines: 2,
+                     overflow: TextOverflow.ellipsis,
+                   ),
+                   subtitle: Text(
+                     '${date.month}/${date.day} ${date.hour}:${date.minute.toString().padLeft(2, '0')}',
+                     style: TextStyle(color: Colors.grey.shade600),
+                   ),
+                   onTap: () {
+                     Navigator.of(context).pop();
+                     _displayBgPromptController.text = prompt;
+                   },
+                   trailing: IconButton(
+                     icon: const Icon(Icons.delete, color: Colors.red),
+                     onPressed: () async {
+                       await ConfigService.deleteDisplayBackgroundHistoryItem(item['id']);
+                       Navigator.of(context).pop();
+                       _showDisplayBackgroundHistory();
+                     },
+                   ),
+                 ),
+               );
+             },
+           ),
+         ),
+         actions: [
+           TextButton(
+             onPressed: () => Navigator.of(context).pop(),
+             child: const Text('关闭'),
+           ),
+           TextButton(
+             onPressed: () async {
+               await ConfigService.clearDisplayBackgroundHistory();
+               Navigator.of(context).pop();
+               ScaffoldMessenger.of(context).showSnackBar(
+                 const SnackBar(content: Text('历史记录已清空')),
+               );
+             },
+             child: const Text('清空全部', style: TextStyle(color: Colors.red)),
+           ),
+         ],
+       ),
+     );
+   }
+ }  

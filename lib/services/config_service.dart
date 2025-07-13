@@ -9,6 +9,7 @@ class ConfigService {
   // 🔧 新增：历史记录存储键
   static const String _appBackgroundHistoryKey = 'app_background_history';
   static const String _buttonPatternHistoryKey = 'button_pattern_history';
+  static const String _displayBackgroundHistoryKey = 'display_background_history'; // 🔧 新增：显示区背景历史记录
   
   // 🔧 新增：历史记录项模型
   static const int _maxHistoryItems = 20; // 最多保存20条历史记录
@@ -296,6 +297,89 @@ class ConfigService {
       print('🧹 按键背景图案历史记录已清空');
     } catch (e) {
       print('❌ 清空按键背景图案历史记录失败: $e');
+    }
+  }
+
+  // 🔧 新增：显示区背景历史记录管理
+  
+  /// 保存显示区背景历史记录
+  static Future<void> saveDisplayBackgroundHistory(String prompt, String? imageUrl) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final historyList = await loadDisplayBackgroundHistory();
+      
+      // 创建新的历史记录项
+      final newItem = {
+        'prompt': prompt,
+        'imageUrl': imageUrl,
+        'timestamp': DateTime.now().millisecondsSinceEpoch,
+        'id': DateTime.now().millisecondsSinceEpoch.toString(),
+      };
+      
+      // 检查是否已存在相同的提示词，如果存在则更新
+      final existingIndex = historyList.indexWhere((item) => item['prompt'] == prompt);
+      if (existingIndex >= 0) {
+        historyList[existingIndex] = newItem;
+      } else {
+        historyList.insert(0, newItem); // 插入到开头
+      }
+      
+      // 限制历史记录数量
+      if (historyList.length > _maxHistoryItems) {
+        historyList.removeRange(_maxHistoryItems, historyList.length);
+      }
+      
+      final historyJson = json.encode(historyList);
+      await prefs.setString(_displayBackgroundHistoryKey, historyJson);
+      
+      print('📝 显示区背景历史记录已保存：$prompt');
+    } catch (e) {
+      print('❌ 保存显示区背景历史记录失败: $e');
+    }
+  }
+  
+  /// 加载显示区背景历史记录
+  static Future<List<Map<String, dynamic>>> loadDisplayBackgroundHistory() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final historyJson = prefs.getString(_displayBackgroundHistoryKey);
+      
+      if (historyJson != null) {
+        final historyList = json.decode(historyJson) as List;
+        return historyList.cast<Map<String, dynamic>>();
+      }
+    } catch (e) {
+      print('❌ 加载显示区背景历史记录失败: $e');
+    }
+    
+    return [];
+  }
+  
+  /// 删除显示区背景历史记录项
+  static Future<void> deleteDisplayBackgroundHistoryItem(String itemId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final historyList = await loadDisplayBackgroundHistory();
+      
+      historyList.removeWhere((item) => item['id'] == itemId);
+      
+      final historyJson = json.encode(historyList);
+      await prefs.setString(_displayBackgroundHistoryKey, historyJson);
+      
+      print('🗑️ 显示区背景历史记录项已删除：$itemId');
+    } catch (e) {
+      print('❌ 删除显示区背景历史记录项失败: $e');
+    }
+  }
+  
+  /// 清空显示区背景历史记录
+  static Future<void> clearDisplayBackgroundHistory() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_displayBackgroundHistoryKey);
+      print('🧹 显示区背景历史记录已清空');
+    } catch (e) {
+      print('❌ 清空显示区背景历史记录失败: $e');
     }
   }
 } 

@@ -293,6 +293,31 @@ class AIService {
     );
   }
 
+  /// 🔧 新增：异步生成显示区背景图
+  static Future<Map<String, dynamic>> generateDisplayBackground({
+    required String prompt,
+    String style = 'clean',
+    String size = '800x400',
+    String quality = 'high',
+    String theme = 'display',
+    Function(double)? onProgress,
+    Function(String)? onStatusUpdate,
+  }) async {
+    return await _submitImageTask(
+      endpoint: 'generate-display-background',
+      params: {
+        'prompt': prompt,
+        'style': style,
+        'size': size,
+        'quality': quality,
+        'theme': theme,
+      },
+      taskName: '显示区背景图生成',
+      onProgress: onProgress,
+      onStatusUpdate: onStatusUpdate,
+    );
+  }
+
   /// 🔧 新增：异步生成光影文字图片
   static Future<Map<String, dynamic>> generateTextImage({
     required String prompt,
