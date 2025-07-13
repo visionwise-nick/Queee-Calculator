@@ -461,77 +461,51 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
 
   void _showQuickReplies() {
     final quickReplies = [
-      // 🐾 Level 1：宠物年龄计算器 - 新增首个实用功能
-      '添加"狗狗年龄"按键，输入狗狗年龄计算相当于人类多少岁，使用现在最主流和精准的计算方式：人类年龄 = 16×ln(狗狗年龄X)+15（在原有基础上增加功能，不影响现有按键功能）',
+      // 🎯 简单实用个性化案例 - 放到最前面
+      '添加"log₉"按键，计算以9为底的对数：log₉(x) = log(x)/log(9)，适合特定数学计算需求',
       
-      // 💱 Level 2：汇率转换计算器 - 添加货币转换功能
-      '新增多个汇率转换按键，输入金额自动转换货币：美元→人民币，欧元→人民币，日元→人民币，英镑→人民币，港币→人民币，澳币→人民币，加币→人民币，预设主流汇率实时换算（在原有基础上增加功能，不影响现有按键功能）',
+      '新增"π×"按键，直接计算圆周率倍数：x×3.14159，常用于几何计算',
       
-      // 📏 Level 3：单位转换计算器 - 添加度量衡转换
-      '增加"单位转换"按键组，长度转换：英寸↔厘米、英尺↔米，重量转换：磅↔公斤、盎司↔克，温度转换：华氏度↔摄氏度，覆盖日常单位换算需求（在原有基础上增加功能，不影响现有按键功能）',
+      '添加"²⁄₃次方"按键，计算立方根的平方：x^(2/3)，适合工程和数学计算',
       
-      // 🔬 Level 4：科学计算功能扩展 - 添加科学函数
-      '新增科学计算按键，三角函数：sin/cos/tan，对数函数：log/ln，幂运算：x²/x³/√x，提供完整的科学计算能力，适合学生和工程师使用（在原有基础上增加功能，不影响现有按键功能）',
+      '新增"黄金比例"按键，计算黄金分割：x×1.618，用于设计和美学比例',
       
-      // 🧋 Level 5：奶茶成瘾指数计算器 - 预设25岁标准
-      '添加"奶茶成瘾度"按键，输入体重(kg)计算个人奶茶安全指数：体重×1.2×0.8×2.5，预设25岁成人、代谢率1.2、年龄系数0.8、运动频率2.5（在原有基础上增加功能，不影响现有按键功能）',
+      '添加"e^x/10"按键，计算缩放指数：e^(x/10)，适合数据分析和统计',
       
-      // 🎮 Level 6：游戏氪金性价比分析器 - 预设标准玩家模型
-      '新增"氪金性价比"按键，输入充值金额(元)计算真实价值：充值金额÷(50×1.5×100×30)，预设每月50小时、技能提升率1.5、社交价值100、时薪30元（在原有基础上增加功能，不影响现有按键功能）',
+      '新增"√(x²+1)"按键，计算勾股定理变形：√(x²+1)，常用于几何计算',
       
-      // 😴 Level 7：熬夜生命损耗计算器 - 预设标准睡眠模型
-      '增加"熬夜生命值"按键，输入年龄计算熬夜伤害：(24-6)²×年龄×0.03×1.2，预设6小时睡眠、身体指数0.03、恢复能力1.2（在原有基础上增加功能，不影响现有按键功能）',
+      '添加"1/√x"按键，计算平方根的倒数：1/√x，用于物理和工程计算',
       
-      // 🏠 Level 8：一键房贷计算器 - 预设3.5%利率30年
-      '添加"房贷神器"按键，输入贷款金额(万元)计算月供：贷款金额×10000×0.00292×(1.00292^360)÷((1.00292^360)-1)，预设3.5%年利率30年等额本息（在原有基础上增加功能，不影响现有按键功能）',
+      '新增"log₂"按键，计算以2为底的对数：log₂(x) = log(x)/log(2)，计算机科学常用',
       
-      // 🛍️ Level 9：网购真实成本分析器 - 预设隐性成本系数
-      '新增"网购真相"按键，输入商品价格(元)计算真实成本：商品价格×(1+0.08+0.15+0.05+0.12)，预设快递费8%、时间成本15%、退换货风险5%、冲动溢价12%（在原有基础上增加功能，不影响现有按键功能）',
+      '添加"x mod 7"按键，计算除以7的余数：x % 7，用于周期性计算',
       
-      // 💪 Level 10：个人减肥效率计算器 - 预设70kg基准
-      '添加"减肥效率"按键，输入目标体重(kg)计算减肥天数：(70-目标体重)×7700÷(300+200)÷1500×0.8，预设当前70kg、运动消耗300卡、饮食控制200卡、基础代谢1500、年龄系数0.8（在原有基础上增加功能，不影响现有按键功能）',
+      '新增"华氏度"按键，摄氏度转华氏度：x×9/5+32，日常温度转换',
       
-      // ☕ Level 11：咖啡因代谢个性化计算器 - 预设标准代谢率
-      '新增"咖啡因代谢"按键，输入体重(kg)计算每日安全摄入量：体重×6×1.0×0.9×1.1，预设每公斤6mg、代谢率1.0、年龄系数0.9、健康指数1.1（在原有基础上增加功能，不影响现有按键功能）',
+      // 🔬 科学计算基础功能
+      '新增科学计算按键组：sin/cos/tan三角函数、log/ln对数函数、x²/x³/√x幂运算，提供完整科学计算能力',
       
-      // 💕 Level 8：恋爱成本效益分析器 - 预设标准恋爱模型
-      '新增"恋爱成本"按键，输入月收入(元)计算恋爱投入建议：月收入×(0.3+0.1+0.05+0.08)，预设30%约会娱乐、10%礼物、5%纪念日、8%意外支出',
+      '添加"度数转弧度"按键：x×π/180，和"弧度转度数"按键：x×180/π，角度单位转换',
       
-      // 🚗 Level 9：购车真实成本计算器 - 预设5年使用周期
-      '新增"购车真相"按键，输入车价(万元)计算5年总成本：车价×10000×(1+0.1+0.25+0.15+0.2+0.08)，预设购置税10%、保险25%、保养15%、油费20%、折旧8%',
+      // 💰 实用金融工具
+      '添加"房贷计算器"按键，输入贷款金额(万)、利率(%)、年数，计算月供金额',
       
-      // 🍔 Level 10：外卖双重成本分析器 - 预设外卖依赖模型
-      '增加"外卖真相"按键，输入外卖价格(元)计算隐性成本：外卖价格×(1+0.15+0.08+0.20+0.12)，预设配送费15%、时间成本8%、健康成本20%、便利溢价12%',
+      '新增"复利计算"按键，输入本金、年利率、年数，计算复利收益',
       
-      // 💼 Level 11：跳槽机会成本分析器 - 预设职业发展模型
-      '新增"跳槽分析"按键，输入现薪资(万元)计算跳槽临界值：现薪资×1.3+(2×0.5×现薪资)+适应成本(现薪资×0.2)，预设30%涨幅基准、2年适应期、20%风险成本',
+      // 📏 日常单位转换
+      '增加单位转换按键组：英寸↔厘米(×2.54)、磅↔公斤(×0.453)、英尺↔米(×0.3048)',
       
-      // 📱 Level 12：打卡ROI效益计算器 - 预设社交投资模型
-      '添加"打卡ROI"按键，输入打卡时间(分钟)计算社交价值：打卡时间×3×1.2×0.8×30，预设平均点赞3个、点赞价值1.2元、社交系数0.8、时薪30元',
+      // 🎮 趣味个性计算
+      '添加"狗狗年龄"按键，计算狗龄对应人类年龄：16×ln(狗龄)+15',
       
-      // 👍 Level 13：朋友圈点赞成本计算器 - 预设社交投入模型
-      '添加"点赞成本"按键，输入每日点赞次数计算年度社交投入：点赞次数×0.5×365×1.2×0.8，预设每次点赞0.5分钟、全年365天、注意力成本1.2、社交回报0.8（在原有基础上增加功能，不影响现有按键功能）',
+      '新增"BMI计算"按键，输入身高(cm)和体重(kg)，计算健康指数',
       
-      // 📺 Level 14：追剧时间成本分析器 - 预设娱乐价值模型
-      '添加"追剧成本"按键，输入剧集集数计算时间投入价值：剧集集数×45×30×0.6×1.5，预设每集45分钟、时薪30元、娱乐折扣0.6、情感价值1.5（在原有基础上增加功能，不影响现有按键功能）',
+      '添加"小费计算"按键组：15%小费(×0.15)、18%小费(×0.18)、20%小费(×0.20)',
       
-      // 🏃 Level 15：跑步减肥效果计算器 - 预设运动科学模型
-      '添加"跑步减肥"按键，输入跑步时长(分钟)计算减肥效果：跑步时长×10×0.8×1.3÷7700×1000，预设每分钟消耗10卡、效率系数0.8、个人系数1.3、每克脂肪7700卡、结果转换克（在原有基础上增加功能，不影响现有按键功能）',
+      // 保留少量经典案例
+      '添加"奶茶成瘾度"按键，输入体重计算个人奶茶安全指数：体重×1.2×0.8×2.5',
       
-      // 🚇 Level 16：通勤成本综合计算器 - 预设城市通勤模型
-      '添加"通勤成本"按键，输入通勤距离(公里)计算月度真实成本：距离×2×22×(8+5+2)×1.2+距离×50，预设往返2次、工作日22天、地铁8元+时间成本5元+疲劳成本2元、综合系数1.2、健康成本50元/公里（在原有基础上增加功能，不影响现有按键功能）',
-      
-      // 💰 Level 17：理财收益目标计算器 - 预设投资回报模型
-      '添加"理财目标"按键，输入目标金额(万元)计算达成时间：目标金额×10000÷(5000×1.06^年数)，预设每月投资5000元、年化收益6%、复利计算模型（在原有基础上增加功能，不影响现有按键功能）',
-      
-      // 🎓 Level 18：考试通过率预测器 - 预设学习效率模型
-      '添加"考试通过率"按键，输入学习天数计算通过概率：(学习天数×2×0.8×1.2+20)÷100，预设每天学习2小时、吸收率0.8、个人系数1.2、基础概率20%、结果转换百分比（在原有基础上增加功能，不影响现有按键功能）',
-      
-      // 🏠 Level 19：租房性价比分析器 - 预设居住质量模型
-      '添加"租房性价比"按键，输入月租金(元)计算居住价值：月租金÷(面积×地段系数×配套系数×交通系数)，预设面积利用率、地段便利度、配套完善度、交通便捷度综合评估（在原有基础上增加功能，不影响现有按键功能）',
-      
-      // 🎯 Level 20：人生幸福值计算器 - 预设幸福度模型
-      '添加"幸福指数"按键，输入年收入(万元)计算幸福值：收入×0.3+健康×0.25+关系×0.2+成长×0.15+自由×0.1，预设收入满足度30%、健康状态25%、人际关系20%、个人成长15%、时间自由10%，综合评估生活质量（在原有基础上增加功能，不影响现有按键功能）'
+      '新增"熬夜伤害值"按键，输入年龄计算熬夜对身体的伤害：(24-6)²×年龄×0.03×1.2'
     ];
 
     showModalBottomSheet(
@@ -577,11 +551,11 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          '🚀 功能递进案例库',
+                          '🎯 实用个性化案例库',
                     style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                         ),
                         Text(
-                          '每个案例都在前面基础上增加新功能',
+                          '简单实用，但充满个性化的计算功能',
                           style: TextStyle(fontSize: 12, color: Colors.grey),
                         ),
                       ],
@@ -597,75 +571,92 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
                 itemBuilder: (context, index) {
                   final reply = quickReplies[index];
                   
-                  // 递进式色彩设计：从浅到深表示功能的递进
-                  final progressColors = [
-                    // Level 1-3: 基础功能 - 绿色系（简单到复杂）
-                    [const Color(0xFFE8F5E8), const Color(0xFFC8E6C9)], // 浅绿
-                    [const Color(0xFFDCEDC8), const Color(0xFFAED581)], // 中绿  
-                    [const Color(0xFFCDDC39), const Color(0xFF9E9D24)], // 深绿
+                  // 简化色彩设计：按功能类型分组
+                  final categoryColors = [
+                    // 个性化数学函数 - 蓝色系
+                    [const Color(0xFFE3F2FD), const Color(0xFF2196F3)], // log₉
+                    [const Color(0xFFE8F5E8), const Color(0xFF4CAF50)], // π×
+                    [const Color(0xFFFFF3E0), const Color(0xFFFF9800)], // ²⁄₃次方
+                    [const Color(0xFFF3E5F5), const Color(0xFF9C27B0)], // 黄金比例
+                    [const Color(0xFFE0F2F1), const Color(0xFF009688)], // e^x/10
+                    [const Color(0xFFE3F2FD), const Color(0xFF2196F3)], // √(x²+1)
+                    [const Color(0xFFE8F5E8), const Color(0xFF4CAF50)], // 1/√x
+                    [const Color(0xFFFFF3E0), const Color(0xFFFF9800)], // log₂
+                    [const Color(0xFFF3E5F5), const Color(0xFF9C27B0)], // x mod 7
+                    [const Color(0xFFE0F2F1), const Color(0xFF009688)], // 华氏度
                     
-                    // Level 4-6: 专业功能 - 蓝色系（进阶功能）
-                    [const Color(0xFFE3F2FD), const Color(0xFFBBDEFB)], // 浅蓝
-                    [const Color(0xFF90CAF9), const Color(0xFF42A5F5)], // 中蓝
-                    [const Color(0xFF2196F3), const Color(0xFF1976D2)], // 深蓝
+                    // 科学计算 - 深蓝色
+                    [const Color(0xFF1A237E), const Color(0xFF3F51B5)],
+                    [const Color(0xFF0D47A1), const Color(0xFF2196F3)],
                     
-                    // Level 7-9: 高级功能 - 紫色系（高级功能）
-                    [const Color(0xFFF3E5F5), const Color(0xFFCE93D8)], // 浅紫
-                    [const Color(0xFFBA68C8), const Color(0xFF9C27B0)], // 中紫
-                    [const Color(0xFF8E24AA), const Color(0xFF6A1B9A)], // 深紫
+                    // 金融工具 - 绿色
+                    [const Color(0xFF1B5E20), const Color(0xFF4CAF50)],
+                    [const Color(0xFF2E7D32), const Color(0xFF66BB6A)],
                     
-                    // Level 10-12: 终极功能 - 橙色系（专家级）
-                    [const Color(0xFFFFF3E0), const Color(0xFFFFCC02)], // 浅橙
-                    [const Color(0xFFFFB74D), const Color(0xFFFF9800)], // 中橙
-                    [const Color(0xFFFF6F00), const Color(0xFFE65100)], // 深橙
+                    // 单位转换 - 橙色
+                    [const Color(0xFFE65100), const Color(0xFFFF9800)],
+                    
+                    // 趣味计算 - 紫色
+                    [const Color(0xFF4A148C), const Color(0xFF9C27B0)],
+                    [const Color(0xFF6A1B9A), const Color(0xFFBA68C8)],
+                    [const Color(0xFF4A148C), const Color(0xFF9C27B0)],
+                    
+                    // 经典案例 - 灰色
+                    [const Color(0xFF424242), const Color(0xFF757575)],
+                    [const Color(0xFF616161), const Color(0xFF9E9E9E)],
                   ];
                   
-                  final colorPair = progressColors[index % progressColors.length];
+                  final colorPair = categoryColors[index % categoryColors.length];
                   
-                  // 递进式图标设计 - 复杂多因式计算
-                  final progressIcons = [
-                    // Level 1-4: 基础实用功能
-                    Icons.pets,                      // 宠物年龄（宠物）
-                    Icons.attach_money,              // 汇率转换（货币）
-                    Icons.settings_input_component,  // 单位转换（度量衡）
-                    Icons.science,                   // 科学计算（科学）
+                  // 功能图标设计
+                  final categoryIcons = [
+                    // 个性化数学函数
+                    Icons.functions,           // log₉
+                    Icons.circle,             // π×
+                    Icons.superscript,        // ²⁄₃次方
+                    Icons.auto_awesome,       // 黄金比例
+                    Icons.trending_up,        // e^x/10
+                    Icons.square_foot,        // √(x²+1)
+                    Icons.flip,               // 1/√x
+                    Icons.memory,             // log₂
+                    Icons.calculate,          // x mod 7
+                    Icons.thermostat,         // 华氏度
                     
-                    // Level 5-8: 个性化健康评估
-                    Icons.psychology,                // 奶茶成瘾度（心理健康）
-                    Icons.analytics,                 // 游戏氪金性价比（数据分析）
-                    Icons.health_and_safety,         // 熬夜生命值（健康安全）
-                    Icons.calculate,                 // 房贷神器（复杂计算）
+                    // 科学计算
+                    Icons.science,
+                    Icons.rotate_90_degrees_ccw,
                     
-                    // Level 9-12: 隐性成本分析
-                    Icons.directions_car,            // 购车真相（汽车全成本）
-                    Icons.restaurant,                // 外卖真相（餐饮分析）
-                    Icons.trending_up,               // 跳槽分析（职业发展）
-                    Icons.network_check,             // 打卡ROI（网络效应）
+                    // 金融工具
+                    Icons.home,
+                    Icons.savings,
                     
-                    // Level 13-16: 社交娱乐成本
-                    Icons.thumb_up,                  // 点赞成本（社交媒体）
-                    Icons.tv,                        // 追剧成本（娱乐）
-                    Icons.directions_run,            // 跑步减肥（运动健身）
-                    Icons.directions_subway,         // 通勤成本（交通）
+                    // 单位转换
+                    Icons.straighten,
                     
-                    // Level 17-20: 生活质量评估
-                    Icons.account_balance_wallet,    // 理财目标（投资理财）
-                    Icons.school,                    // 考试通过率（学习）
-                    Icons.home,                      // 租房性价比（居住）
-                    Icons.favorite,                  // 幸福指数（情感）
+                    // 趣味计算
+                    Icons.pets,
+                    Icons.monitor_weight,
+                    Icons.restaurant,
+                    
+                    // 经典案例
+                    Icons.local_cafe,
+                    Icons.bedtime,
                   ];
                   
-                  final icon = progressIcons[index % progressIcons.length];
-                  
-                  // 递进式级别标签
-                  final levelLabels = [
-                    'Level 1', 'Level 2', 'Level 3', 'Level 4', 
-                    'Level 5', 'Level 6', 'Level 7', 'Level 8',
-                    'Level 9', 'Level 10', 'Level 11', 'Level 12'
-                  ];
+                  final icon = categoryIcons[index % categoryIcons.length];
                   
                   return Container(
                     margin: const EdgeInsets.only(bottom: 12),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: () {
+                          Navigator.of(context).pop();
+                          _sendMessage(reply);
+                        },
+                        borderRadius: BorderRadius.circular(16),
+                        child: Container(
+                          padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
                               colors: colorPair,
@@ -673,43 +664,16 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
                               end: Alignment.bottomRight,
                             ),
                             borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: colorPair[1].withOpacity(0.3),
-                          blurRadius: 8,
-                          offset: const Offset(0, 4),
+                            boxShadow: [
+                              BoxShadow(
+                                color: colorPair[1].withOpacity(0.3),
+                                blurRadius: 8,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
                           ),
-                      ],
-                    ),
-                    child: Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(16),
-                        onTap: () {
-                          Navigator.pop(context);
-                          _sendMessage(reply);
-                        },
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
                           child: Row(
                             children: [
-                              // 级别标签
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.9),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Text(
-                                  levelLabels[index],
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                    color: colorPair[1],
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
                               // 功能图标
                               Container(
                                 padding: const EdgeInsets.all(8),
@@ -734,15 +698,6 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
                                     color: Colors.white,
                                     height: 1.3,
                                   ),
-                                ),
-                              ),
-                              // 进度指示器
-                              Container(
-                                width: 4,
-                                height: 40,
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.8),
-                                  borderRadius: BorderRadius.circular(2),
                                 ),
                               ),
                             ],
