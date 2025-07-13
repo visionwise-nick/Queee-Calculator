@@ -2939,12 +2939,48 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
      );
    }
 
-   /// 🔧 新增：应用按键背景透明度变化
-   void _applyButtonOpacityChanges() {
-     // 这里可以添加应用按键背景透明度的逻辑
-     // 目前只是保存到状态中，实际应用需要在按键渲染时使用
-     print('🔧 按键背景透明度更新: ${_buttonOpacity}');
-   }
+     /// 🔧 新增：应用按键背景透明度变化
+  void _applyButtonOpacityChanges() {
+    // 🔧 应用按键背景透明度到APP背景配置
+    final newAppBackground = widget.currentConfig.appBackground?.copyWith(
+      buttonOpacity: _buttonOpacity,
+    ) ?? AppBackgroundConfig(
+      buttonOpacity: _buttonOpacity,
+    );
+
+    final updatedConfig = CalculatorConfig(
+      id: widget.currentConfig.id,
+      name: widget.currentConfig.name,
+      description: widget.currentConfig.description,
+      theme: widget.currentConfig.theme,
+      layout: widget.currentConfig.layout,
+      appBackground: newAppBackground,
+      version: widget.currentConfig.version,
+      createdAt: widget.currentConfig.createdAt,
+      authorPrompt: widget.currentConfig.authorPrompt,
+      thinkingProcess: widget.currentConfig.thinkingProcess,
+      aiResponse: widget.currentConfig.aiResponse,
+    );
+
+    // 🔧 强制更新provider配置
+    final provider = Provider.of<CalculatorProvider>(context, listen: false);
+    provider.applyConfig(updatedConfig);
+    
+    // 🔧 同时更新父组件配置
+    widget.onConfigUpdated(updatedConfig);
+    
+    print('🔧 按键背景透明度已应用: ${_buttonOpacity}');
+    
+    // 显示成功消息
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('✅ 按键背景透明度已应用！透明度: ${(_buttonOpacity * 100).round()}%'),
+          backgroundColor: Colors.orange.shade600,
+        ),
+      );
+    }
+  }
 
    /// 🔧 新增：显示区背景透明度控制
    Widget _buildDisplayBgOpacityControl() {
@@ -3084,10 +3120,46 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
      );
    }
 
-   /// 🔧 新增：应用显示区背景透明度变化
-   void _applyDisplayOpacityChanges() {
-     // 这里可以添加应用显示区背景透明度的逻辑
-     // 目前只是保存到状态中，实际应用需要在显示区渲染时使用
-     print('🔧 显示区背景透明度更新: ${_displayOpacity}');
-   }
+     /// 🔧 新增：应用显示区背景透明度变化
+  void _applyDisplayOpacityChanges() {
+    // 🔧 应用显示区背景透明度到APP背景配置
+    final newAppBackground = widget.currentConfig.appBackground?.copyWith(
+      displayOpacity: _displayOpacity,
+    ) ?? AppBackgroundConfig(
+      displayOpacity: _displayOpacity,
+    );
+
+    final updatedConfig = CalculatorConfig(
+      id: widget.currentConfig.id,
+      name: widget.currentConfig.name,
+      description: widget.currentConfig.description,
+      theme: widget.currentConfig.theme,
+      layout: widget.currentConfig.layout,
+      appBackground: newAppBackground,
+      version: widget.currentConfig.version,
+      createdAt: widget.currentConfig.createdAt,
+      authorPrompt: widget.currentConfig.authorPrompt,
+      thinkingProcess: widget.currentConfig.thinkingProcess,
+      aiResponse: widget.currentConfig.aiResponse,
+    );
+
+    // 🔧 强制更新provider配置
+    final provider = Provider.of<CalculatorProvider>(context, listen: false);
+    provider.applyConfig(updatedConfig);
+    
+    // 🔧 同时更新父组件配置
+    widget.onConfigUpdated(updatedConfig);
+    
+    print('🔧 显示区背景透明度已应用: ${_displayOpacity}');
+    
+    // 显示成功消息
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('✅ 显示区背景透明度已应用！透明度: ${(_displayOpacity * 100).round()}%'),
+          backgroundColor: Colors.green.shade600,
+        ),
+      );
+    }
+  }
  }  
