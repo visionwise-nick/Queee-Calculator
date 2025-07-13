@@ -40,6 +40,7 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
   // 🔧 修正透明度控制变量概念
   double _buttonOpacity = 0.7;     // 按键透明度 - 让背景图可以透过来
   double _displayOpacity = 0.7;    // 显示区域透明度 - 让背景图可以透过来
+  double _appBgOpacity = 1.0;      // 🔧 新增：APP背景图透明度 - 独立控制
 
   // 按键背景图相关状态
   Set<String> _selectedButtonBgIds = {}; // 多选按键ID集合（按键背景图）
@@ -67,11 +68,12 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
     if (appBackground != null) {
       _buttonOpacity = appBackground.buttonOpacity ?? 0.7;
       _displayOpacity = appBackground.displayOpacity ?? 0.7;
+      _appBgOpacity = appBackground.backgroundOpacity ?? 1.0; // 🔧 新增：加载APP背景图透明度
       _generatedAppBgUrl = appBackground.backgroundImageUrl; // 加载现有背景图
     }
     
     // 🔧 添加调试信息
-    print('🔧 透明度初始化：按键透明度=${_buttonOpacity}，显示区域透明度=${_displayOpacity}');
+    print('🔧 透明度初始化：按键透明度=${_buttonOpacity}，显示区域透明度=${_displayOpacity}，APP背景透明度=${_appBgOpacity}');
     print('🔧 现有背景图：${_generatedAppBgUrl != null ? "存在(${_generatedAppBgUrl!.length}字符)" : "无"}');
   }
 
@@ -1654,7 +1656,7 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
-                        '${(_buttonOpacity * 100).round()}%',
+                        '${(_appBgOpacity * 100).round()}%', // 🔧 使用APP背景透明度变量
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
@@ -1673,13 +1675,13 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
                     overlayColor: Colors.blue.shade100,
                   ),
                   child: Slider(
-                    value: _buttonOpacity,
+                    value: _appBgOpacity, // 🔧 使用APP背景透明度变量
                     min: 0.1,
                     max: 1.0,
                     divisions: 18,
                     onChanged: (value) {
                       setState(() {
-                        _buttonOpacity = value;
+                        _appBgOpacity = value; // 🔧 更新APP背景透明度变量
                       });
                     },
                   ),
@@ -1725,12 +1727,13 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
     final provider = Provider.of<CalculatorProvider>(context, listen: false);
     
     // 🔧 创建或更新APP背景配置，设置APP背景图透明度
+    final currentAppBackground = widget.currentConfig.appBackground;
     final updatedAppBackground = AppBackgroundConfig(
       backgroundImageUrl: _generatedAppBgUrl,
       backgroundType: 'image',
-      backgroundOpacity: _buttonOpacity,    // 🔧 使用_buttonOpacity作为APP背景图透明度
-      buttonOpacity: 1.0,                  // 🔧 按键透明度由按键模块控制
-      displayOpacity: 1.0,                 // 🔧 显示区透明度由显示区模块控制
+      backgroundOpacity: _appBgOpacity,    // 🔧 使用_appBgOpacity作为APP背景图透明度
+      buttonOpacity: currentAppBackground?.buttonOpacity ?? _buttonOpacity,     // 🔧 保持现有按键透明度
+      displayOpacity: currentAppBackground?.displayOpacity ?? _displayOpacity,  // 🔧 保持现有显示区透明度
     );
 
     final updatedConfig = CalculatorConfig(
@@ -1755,12 +1758,12 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
     _saveConfigToStorage(updatedConfig);
     
     // 🔧 添加调试信息
-    print('🔧 APP背景图透明度应用成功：${_buttonOpacity}');
+    print('🔧 APP背景图透明度应用成功：${_appBgOpacity}');
     
     // 🔧 显示成功消息
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('✅ APP背景图透明度已应用！透明度: ${(_buttonOpacity * 100).round()}%'),
+        content: Text('✅ APP背景图透明度已应用！透明度: ${(_appBgOpacity * 100).round()}%'),
         backgroundColor: Colors.green,
       ),
     );
