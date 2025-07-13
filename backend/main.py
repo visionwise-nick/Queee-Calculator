@@ -1185,12 +1185,14 @@ AI设计师只能修改按钮功能逻辑，不能覆盖工坊生成的图像内
             # 🧹 首先清理无效按键
             final_config = clean_invalid_buttons(final_config)
             
-            # 运行修复和验证程序
-            fixed_config = await fix_calculator_config(
-                request.user_input, 
-                request.current_config, # 传入旧配置以供参考
-                final_config # 传入清理并合并后的配置进行修复
-            )
+            # 🚀 优化：去掉二次核验环节以提升生成速度
+            # fixed_config = await fix_calculator_config(
+            #     request.user_input, 
+            #     request.current_config, # 传入旧配置以供参考
+            #     final_config # 传入清理并合并后的配置进行修复
+            # )
+            fixed_config = final_config  # 直接使用清理后的配置
+            print("🚀 已跳过二次核验环节，直接使用AI生成结果以提升速度")
             
             # 🛡️ 重新应用保护逻辑（防止fix_calculator_config覆盖保护字段）
             if request.current_config and protected_fields:
@@ -2809,12 +2811,14 @@ def process_customize_task(task_id: str, request_data: Dict[str, Any]) -> Dict[s
         
         generated_config = clean_invalid_buttons(generated_config, existing_button_ids)
 
-        try:
-            if current_config:
-                import asyncio
-                generated_config = asyncio.run(fix_calculator_config(user_input, current_config, generated_config))
-        except Exception as fix_error:
-            print(f"⚠️ AI修复失败，使用原始生成结果: {fix_error}")
+        # 🚀 优化：去掉二次核验环节以提升生成速度
+        # try:
+        #     if current_config:
+        #         import asyncio
+        #         generated_config = asyncio.run(fix_calculator_config(user_input, current_config, generated_config))
+        # except Exception as fix_error:
+        #     print(f"⚠️ AI修复失败，使用原始生成结果: {fix_error}")
+        print("🚀 已跳过二次核验环节，直接使用AI生成结果以提升速度")
 
         # 🔧 强制合并现有配置中的背景图像数据，确保不被AI覆盖
         if current_config:
