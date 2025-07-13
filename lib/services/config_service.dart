@@ -6,6 +6,12 @@ import '../models/calculator_dsl.dart';
 class ConfigService {
   static const String _currentConfigKey = 'current_calculator_config';
   static const String _customConfigsKey = 'custom_calculator_configs';
+  // 🔧 新增：历史记录存储键
+  static const String _appBackgroundHistoryKey = 'app_background_history';
+  static const String _buttonPatternHistoryKey = 'button_pattern_history';
+  
+  // 🔧 新增：历史记录项模型
+  static const int _maxHistoryItems = 20; // 最多保存20条历史记录
 
   /// 加载预设主题配置
   static Future<CalculatorConfig> loadPresetConfig(String configName) async {
@@ -125,6 +131,171 @@ class ConfigService {
     } catch (e) {
       print('Failed to import config: $e');
       return null;
+    }
+  }
+
+  // 🔧 新增：APP背景历史记录管理
+  
+  /// 保存APP背景历史记录
+  static Future<void> saveAppBackgroundHistory(String prompt, String? imageUrl) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final historyList = await loadAppBackgroundHistory();
+      
+      // 创建新的历史记录项
+      final newItem = {
+        'prompt': prompt,
+        'imageUrl': imageUrl,
+        'timestamp': DateTime.now().millisecondsSinceEpoch,
+        'id': DateTime.now().millisecondsSinceEpoch.toString(),
+      };
+      
+      // 检查是否已存在相同的提示词，如果存在则更新
+      final existingIndex = historyList.indexWhere((item) => item['prompt'] == prompt);
+      if (existingIndex >= 0) {
+        historyList[existingIndex] = newItem;
+      } else {
+        historyList.insert(0, newItem); // 插入到开头
+      }
+      
+      // 限制历史记录数量
+      if (historyList.length > _maxHistoryItems) {
+        historyList.removeRange(_maxHistoryItems, historyList.length);
+      }
+      
+      final historyJson = json.encode(historyList);
+      await prefs.setString(_appBackgroundHistoryKey, historyJson);
+      
+      print('📝 APP背景历史记录已保存：$prompt');
+    } catch (e) {
+      print('❌ 保存APP背景历史记录失败: $e');
+    }
+  }
+  
+  /// 加载APP背景历史记录
+  static Future<List<Map<String, dynamic>>> loadAppBackgroundHistory() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final historyJson = prefs.getString(_appBackgroundHistoryKey);
+      
+      if (historyJson != null) {
+        final historyList = json.decode(historyJson) as List;
+        return historyList.cast<Map<String, dynamic>>();
+      }
+    } catch (e) {
+      print('❌ 加载APP背景历史记录失败: $e');
+    }
+    
+    return [];
+  }
+  
+  /// 删除APP背景历史记录项
+  static Future<void> deleteAppBackgroundHistoryItem(String itemId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final historyList = await loadAppBackgroundHistory();
+      
+      historyList.removeWhere((item) => item['id'] == itemId);
+      
+      final historyJson = json.encode(historyList);
+      await prefs.setString(_appBackgroundHistoryKey, historyJson);
+      
+      print('🗑️ APP背景历史记录项已删除：$itemId');
+    } catch (e) {
+      print('❌ 删除APP背景历史记录项失败: $e');
+    }
+  }
+  
+  /// 清空APP背景历史记录
+  static Future<void> clearAppBackgroundHistory() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_appBackgroundHistoryKey);
+      print('🧹 APP背景历史记录已清空');
+    } catch (e) {
+      print('❌ 清空APP背景历史记录失败: $e');
+    }
+  }
+
+  // 🔧 新增：按键背景图案历史记录管理
+  
+  /// 保存按键背景图案历史记录
+  static Future<void> saveButtonPatternHistory(String prompt) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final historyList = await loadButtonPatternHistory();
+      
+      // 创建新的历史记录项
+      final newItem = {
+        'prompt': prompt,
+        'timestamp': DateTime.now().millisecondsSinceEpoch,
+        'id': DateTime.now().millisecondsSinceEpoch.toString(),
+      };
+      
+      // 检查是否已存在相同的提示词，如果存在则更新时间戳
+      final existingIndex = historyList.indexWhere((item) => item['prompt'] == prompt);
+      if (existingIndex >= 0) {
+        historyList[existingIndex] = newItem;
+      } else {
+        historyList.insert(0, newItem); // 插入到开头
+      }
+      
+      // 限制历史记录数量
+      if (historyList.length > _maxHistoryItems) {
+        historyList.removeRange(_maxHistoryItems, historyList.length);
+      }
+      
+      final historyJson = json.encode(historyList);
+      await prefs.setString(_buttonPatternHistoryKey, historyJson);
+      
+      print('📝 按键背景图案历史记录已保存：$prompt');
+    } catch (e) {
+      print('❌ 保存按键背景图案历史记录失败: $e');
+    }
+  }
+  
+  /// 加载按键背景图案历史记录
+  static Future<List<Map<String, dynamic>>> loadButtonPatternHistory() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final historyJson = prefs.getString(_buttonPatternHistoryKey);
+      
+      if (historyJson != null) {
+        final historyList = json.decode(historyJson) as List;
+        return historyList.cast<Map<String, dynamic>>();
+      }
+    } catch (e) {
+      print('❌ 加载按键背景图案历史记录失败: $e');
+    }
+    
+    return [];
+  }
+  
+  /// 删除按键背景图案历史记录项
+  static Future<void> deleteButtonPatternHistoryItem(String itemId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final historyList = await loadButtonPatternHistory();
+      
+      historyList.removeWhere((item) => item['id'] == itemId);
+      
+      final historyJson = json.encode(historyList);
+      await prefs.setString(_buttonPatternHistoryKey, historyJson);
+      
+      print('🗑️ 按键背景图案历史记录项已删除：$itemId');
+    } catch (e) {
+      print('❌ 删除按键背景图案历史记录项失败: $e');
+    }
+  }
+  
+  /// 清空按键背景图案历史记录
+  static Future<void> clearButtonPatternHistory() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_buttonPatternHistoryKey);
+      print('🧹 按键背景图案历史记录已清空');
+    } catch (e) {
+      print('❌ 清空按键背景图案历史记录失败: $e');
     }
   }
 } 

@@ -797,36 +797,62 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
                       width: isSelected ? 2 : 1,
                     ),
                   ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                  child: Stack(
                     children: [
-                      if (isSelected)
-                        Icon(
-                          Icons.check_circle,
-                          color: Colors.orange,
-                          size: 12,
-                        ),
-                      Flexible(
-                        child: Text(
-                          button.label,
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: isSelected
-                                ? Colors.orange
-                                : Colors.grey.shade700,
-                            fontSize: 10,
+                      Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          if (isSelected)
+                            Icon(
+                              Icons.check_circle,
+                              color: Colors.orange,
+                              size: 12,
+                            ),
+                          Flexible(
+                            child: Text(
+                              button.label,
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: isSelected
+                                    ? Colors.orange
+                                    : Colors.grey.shade700,
+                                fontSize: 10,
+                              ),
+                              textAlign: TextAlign.center,
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 2,
+                            ),
                           ),
-                          textAlign: TextAlign.center,
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 2,
-                        ),
+                          if (isSelected)
+                            Text(
+                              '已选择',
+                              style: TextStyle(
+                                fontSize: 6,
+                                color: Colors.orange,
+                              ),
+                            ),
+                        ],
                       ),
-                      if (isSelected)
-                        Text(
-                          '已选择',
-                          style: TextStyle(
-                            fontSize: 6,
-                            color: Colors.orange,
+                      // 🔧 新增：单个按键恢复默认背景按钮
+                      if (button.backgroundImage != null)
+                        Positioned(
+                          top: 2,
+                          right: 2,
+                          child: GestureDetector(
+                            onTap: () => _resetSingleButtonBackground(button!),
+                            child: Container(
+                              width: 16,
+                              height: 16,
+                              decoration: BoxDecoration(
+                                color: Colors.red.shade600,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Icon(
+                                Icons.restore,
+                                color: Colors.white,
+                                size: 10,
+                              ),
+                            ),
                           ),
                         ),
                     ],
@@ -895,12 +921,20 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
                   child: Icon(Icons.edit, color: Colors.blue.shade700),
                 ),
                 const SizedBox(width: 12),
-                const Text(
-                  '自定义生成',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
+                const Expanded(
+                  child: Text(
+                    '自定义生成',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
+                ),
+                // 🔧 新增：历史记录按钮
+                IconButton(
+                  icon: Icon(Icons.history, color: Colors.grey.shade600),
+                  onPressed: _showButtonPatternHistory,
+                  tooltip: '历史记录',
                 ),
               ],
             ),
@@ -1074,6 +1108,11 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
 
     try {
       await _generateSelectedButtonPatterns();
+      
+      // 🔧 保存到历史记录
+      await ConfigService.saveButtonPatternHistory(
+        _buttonPatternPromptController.text.trim(),
+      );
     } catch (e) {
       // 隐藏进度弹窗
       _progressController.hide();
@@ -1357,6 +1396,12 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
           setState(() {
             _generatedAppBgUrl = result['background_url'];
           });
+          
+          // 🔧 保存到历史记录
+          await ConfigService.saveAppBackgroundHistory(
+            _appBgPromptController.text.trim(),
+            result['background_url'],
+          );
           
           // 生成成功后直接应用背景
           _applyAppBackground();
@@ -1867,5 +1912,287 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
       base64String = base64String.split(',')[1];
     }
     return base64Decode(base64String);
+  }
+
+  // 🔧 新增：显示APP背景历史记录
+  void _showAppBackgroundHistory() async {
+    final historyList = await ConfigService.loadAppBackgroundHistory();
+    
+    if (historyList.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('暂无历史记录')),
+      );
+      return;
+    }
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.history, color: Colors.blue),
+            SizedBox(width: 8),
+            Text('APP背景历史记录'),
+          ],
+        ),
+        content: SizedBox(
+          width: double.maxFinite,
+          height: 400,
+          child: ListView.builder(
+            itemCount: historyList.length,
+            itemBuilder: (context, index) {
+              final item = historyList[index];
+              final prompt = item['prompt'] as String;
+              final timestamp = item['timestamp'] as int;
+              final date = DateTime.fromMillisecondsSinceEpoch(timestamp);
+              
+              return Card(
+                margin: const EdgeInsets.symmetric(vertical: 4),
+                child: ListTile(
+                  leading: const Icon(Icons.wallpaper, color: Colors.blue),
+                  title: Text(
+                    prompt,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  subtitle: Text(
+                    '${date.month}/${date.day} ${date.hour}:${date.minute.toString().padLeft(2, '0')}',
+                    style: TextStyle(color: Colors.grey.shade600),
+                  ),
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    _appBgPromptController.text = prompt;
+                  },
+                  trailing: IconButton(
+                    icon: const Icon(Icons.delete, color: Colors.red),
+                    onPressed: () async {
+                      await ConfigService.deleteAppBackgroundHistoryItem(item['id']);
+                      Navigator.of(context).pop();
+                      _showAppBackgroundHistory();
+                    },
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('关闭'),
+          ),
+          TextButton(
+            onPressed: () async {
+              await ConfigService.clearAppBackgroundHistory();
+              Navigator.of(context).pop();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('历史记录已清空')),
+              );
+            },
+            child: const Text('清空全部', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 🔧 新增：显示按键背景图案历史记录
+  void _showButtonPatternHistory() async {
+    final historyList = await ConfigService.loadButtonPatternHistory();
+    
+    if (historyList.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('暂无历史记录')),
+      );
+      return;
+    }
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.history, color: Colors.purple),
+            SizedBox(width: 8),
+            Text('按键背景历史记录'),
+          ],
+        ),
+        content: SizedBox(
+          width: double.maxFinite,
+          height: 400,
+          child: ListView.builder(
+            itemCount: historyList.length,
+            itemBuilder: (context, index) {
+              final item = historyList[index];
+              final prompt = item['prompt'] as String;
+              final timestamp = item['timestamp'] as int;
+              final date = DateTime.fromMillisecondsSinceEpoch(timestamp);
+              
+              return Card(
+                margin: const EdgeInsets.symmetric(vertical: 4),
+                child: ListTile(
+                  leading: const Icon(Icons.texture, color: Colors.purple),
+                  title: Text(
+                    prompt,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  subtitle: Text(
+                    '${date.month}/${date.day} ${date.hour}:${date.minute.toString().padLeft(2, '0')}',
+                    style: TextStyle(color: Colors.grey.shade600),
+                  ),
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    _buttonPatternPromptController.text = prompt;
+                  },
+                  trailing: IconButton(
+                    icon: const Icon(Icons.delete, color: Colors.red),
+                    onPressed: () async {
+                      await ConfigService.deleteButtonPatternHistoryItem(item['id']);
+                      Navigator.of(context).pop();
+                      _showButtonPatternHistory();
+                    },
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('关闭'),
+          ),
+          TextButton(
+            onPressed: () async {
+              await ConfigService.clearButtonPatternHistory();
+              Navigator.of(context).pop();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('历史记录已清空')),
+              );
+            },
+            child: const Text('清空全部', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 🔧 新增：单个按键恢复默认背景
+  void _resetSingleButtonBackground(CalculatorButton button) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Icon(Icons.restore, color: Colors.orange.shade600),
+            const SizedBox(width: 8),
+            const Text('恢复默认背景'),
+          ],
+        ),
+        content: Text('要恢复按键 "${button.label}" 的默认背景吗？'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text('取消', style: TextStyle(color: Colors.grey.shade600)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _applySingleButtonReset(button);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange.shade600,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: const Text('恢复', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 🔧 新增：应用单个按键恢复默认背景
+  void _applySingleButtonReset(CalculatorButton button) {
+    final provider = Provider.of<CalculatorProvider>(context, listen: false);
+    
+    final updatedButton = CalculatorButton(
+      id: button.id,
+      label: button.label,
+      action: button.action,
+      gridPosition: button.gridPosition,
+      type: button.type,
+      customColor: button.customColor,
+      isWide: button.isWide,
+      widthMultiplier: button.widthMultiplier,
+      heightMultiplier: button.heightMultiplier,
+      gradientColors: button.gradientColors,
+      backgroundImage: null, // 🔧 清除背景图，恢复默认
+      fontSize: button.fontSize,
+      borderRadius: button.borderRadius,
+      elevation: button.elevation,
+      width: button.width,
+      height: button.height,
+      backgroundColor: button.backgroundColor,
+      textColor: button.textColor,
+      borderColor: button.borderColor,
+      borderWidth: button.borderWidth,
+      shadowColor: button.shadowColor,
+      shadowOffset: button.shadowOffset,
+      shadowRadius: button.shadowRadius,
+      opacity: button.opacity,
+      rotation: button.rotation,
+      scale: button.scale,
+      backgroundPattern: button.backgroundPattern,
+      patternColor: button.patternColor,
+      patternOpacity: button.patternOpacity,
+      animation: button.animation,
+      animationDuration: button.animationDuration,
+      customIcon: button.customIcon,
+      iconSize: button.iconSize,
+      iconColor: button.iconColor,
+    );
+
+    final updatedButtons = provider.config.layout.buttons.map((b) {
+      return b.id == button.id ? updatedButton : b;
+    }).toList();
+
+    final updatedLayout = CalculatorLayout(
+      name: provider.config.layout.name,
+      rows: provider.config.layout.rows,
+      columns: provider.config.layout.columns,
+      buttons: updatedButtons,
+      description: provider.config.layout.description,
+      minButtonSize: provider.config.layout.minButtonSize,
+      maxButtonSize: provider.config.layout.maxButtonSize,
+      gridSpacing: provider.config.layout.gridSpacing,
+    );
+
+    final updatedConfig = CalculatorConfig(
+      id: provider.config.id,
+      name: provider.config.name,
+      description: provider.config.description,
+      theme: provider.config.theme,
+      layout: updatedLayout,
+      appBackground: provider.config.appBackground,
+      version: provider.config.version,
+      createdAt: provider.config.createdAt,
+      authorPrompt: provider.config.authorPrompt,
+      thinkingProcess: provider.config.thinkingProcess,
+      aiResponse: provider.config.aiResponse,
+    );
+
+    provider.applyConfig(updatedConfig);
+    widget.onConfigUpdated(updatedConfig);
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('✅ 按键 "${button.label}" 已恢复默认背景'),
+        backgroundColor: Colors.green,
+      ),
+    );
   }
 } 
