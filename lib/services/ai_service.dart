@@ -45,7 +45,7 @@ class TaskResult {
 
 class AIService {
   // Cloud Run 服务的 URL - 更新为新部署的服务
-  static const String _baseUrl = 'https://queee-calculator-ai-backend-685339952769.us-central1.run.app';
+  static const String _baseUrl = 'https://queee-calculator-ai-backend-adecumh2za-uc.a.run.app';
 
   /// 🔧 新增：异步生成计算器配置
   static Future<CalculatorConfig?> generateCalculatorFromPrompt(
@@ -64,8 +64,8 @@ class AIService {
       onStatusUpdate?.call('正在提交任务...');
       onProgress?.call(0.1);
 
-      // 获取对话历史作为上下文
-      final conversationHistory = await _getConversationHistory();
+      // 🔧 优化：减少对话历史数量，避免请求过大
+      final conversationHistory = await _getConversationHistory(maxMessages: 5);
 
       // 构建请求
       final url = Uri.parse('$_baseUrl/tasks/submit/customize');
@@ -78,9 +78,10 @@ class AIService {
         'conversation_history': conversationHistory,
       };
       
-      // 如果有当前配置，添加到请求中
+      // 🔧 优化：简化当前配置，只传递必要信息
       if (currentConfig != null) {
-        requestBody['current_config'] = currentConfig.toJson();
+        final simplifiedConfig = _simplifyCurrentConfig(currentConfig);
+        requestBody['current_config'] = simplifiedConfig;
         
         // 🛡️ 检测并添加图像生成工坊保护参数
         final (hasWorkshopContent, protectedFields) = _detectWorkshopContent(currentConfig);
@@ -94,17 +95,17 @@ class AIService {
       }
       
       final body = json.encode(requestBody);
-
       print('🚀 正在提交异步任务...');
       print('URL: $url');
       print('请求内容: $userPrompt');
+      print('📦 请求体大小: ${body.length} 字节');
 
-      // 提交任务
+      // 🔧 优化：增加提交超时到60秒
       final response = await http.post(
         url,
         headers: headers,
         body: body,
-      ).timeout(const Duration(seconds: 30));
+      ).timeout(const Duration(seconds: 60));
 
       print('📡 收到任务提交响应: ${response.statusCode}');
       
@@ -436,14 +437,14 @@ class AIService {
   }
 
   /// 获取对话历史
-  static Future<List<Map<String, String>>> _getConversationHistory() async {
+  static Future<List<Map<String, String>>> _getConversationHistory({int maxMessages = 10}) async {
     try {
       final session = await ConversationService.getCurrentSession();
       if (session == null) return [];
 
-      // 只取最近的10条消息，避免上下文过长
-      final recentMessages = session.messages.length > 10 
-          ? session.messages.sublist(session.messages.length - 10)
+      // 🔧 优化：使用参数控制消息数量，避免上下文过长
+      final recentMessages = session.messages.length > maxMessages 
+          ? session.messages.sublist(session.messages.length - maxMessages)
           : session.messages;
 
       return recentMessages.map((msg) => {
@@ -453,6 +454,51 @@ class AIService {
     } catch (e) {
       print('获取对话历史失败: $e');
       return [];
+    }
+  }
+
+  /// 🔧 新增：简化当前配置，只保留必要字段
+  static Map<String, dynamic> _simplifyCurrentConfig(CalculatorConfig config) {
+    try {
+      // 只保留AI需要的关键信息，大幅减少数据量
+      final simplified = {
+        'id': config.id,
+        'name': config.name,
+        'description': config.description,
+        'layout': {
+          'rows': config.layout.rows,
+          'columns': config.layout.columns,
+          'buttons': config.layout.buttons.map((button) => {
+            'id': button.id,
+            'label': button.label,
+            'type': button.type,
+            'action': button.action.toJson(),
+            'gridPosition': button.gridPosition.toJson(),
+            // 🔧 只保留影响功能的属性，忽略样式属性
+          }).toList(),
+        },
+        // 🔧 保留主题关键信息但简化
+        'theme': {
+          'name': config.theme.name,
+          // 忽略详细的颜色和样式信息
+        },
+      };
+
+      // 🔧 如果有APP背景，保留关键信息
+      if (config.appBackground != null) {
+        simplified['appBackground'] = {
+          'backgroundType': config.appBackground!.backgroundType,
+          'hasBackgroundImage': config.appBackground!.backgroundImageUrl != null,
+          'buttonOpacity': config.appBackground!.buttonOpacity,
+          'displayOpacity': config.appBackground!.displayOpacity,
+        };
+      }
+
+      print('🔧 配置简化完成：原始 ${json.encode(config.toJson()).length} 字节 → 简化 ${json.encode(simplified).length} 字节');
+      return simplified;
+    } catch (e) {
+      print('❌ 简化配置失败，使用完整配置: $e');
+      return config.toJson();
     }
   }
 
