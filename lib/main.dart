@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'screens/calculator_screen.dart';
-import 'providers/calculator_provider.dart';
+import 'package:queee_calculator/providers/calculator_provider.dart';
+import 'package:queee_calculator/screens/calculator_screen.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(const QueueCalculatorApp());
 }
 
@@ -13,15 +16,21 @@ class QueueCalculatorApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
-      create: (context) => CalculatorProvider()..initialize(),
+      create: (context) => CalculatorProvider(),
       child: MaterialApp(
-        title: 'Queee Calculator',
-        debugShowCheckedModeBanner: false,
+        onGenerateTitle: (context) {
+          return AppLocalizations.of(context)!.appTitle;
+        },
         theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-          useMaterial3: true,
+          brightness: Brightness.dark,
+          // primarySwatch: Colors.blue,
+          visualDensity: VisualDensity.adaptivePlatformDensity,
           fontFamily: 'SF Pro Display',
         ),
+        darkTheme: ThemeData.dark(),
+        // 国际化支持
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: const CalculatorScreen(),
       ),
     );

@@ -11,6 +11,7 @@ import 'image_generation_screen.dart';
 import 'dart:math' as math;
 import 'dart:convert';
 import 'dart:typed_data';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class CalculatorScreen extends StatelessWidget {
   const CalculatorScreen({super.key});
@@ -147,7 +148,7 @@ class CalculatorScreen extends StatelessWidget {
                 end: Alignment.bottomRight,
               ).createShader(bounds),
               child: Text(
-                'Queee Calculator',
+                AppLocalizations.of(context)!.appTitle,
                 style: TextStyle(
                   fontSize: 16, // 🔧 减小字体确保完整显示
                   fontWeight: FontWeight.w800, // 稍微减轻字体粗细
@@ -178,13 +179,13 @@ class CalculatorScreen extends StatelessWidget {
                   showDialog(
                     context: context,
                     barrierDismissible: true,
-                    barrierColor: Colors.black.withValues(alpha: 0.7),
+                    barrierColor: Colors.black.withOpacity(0.7),
                     builder: (context) => CalculationHistoryDialog(
                       steps: provider.calculationHistory,
                     ),
                   );
                 },
-                tooltip: '运算历史',
+                tooltip: AppLocalizations.of(context)!.history,
               ),
               const SizedBox(width: 4),
               // 多参数函数帮助按钮
@@ -196,11 +197,11 @@ class CalculatorScreen extends StatelessWidget {
                   showDialog(
                     context: context,
                     barrierDismissible: true,
-                    barrierColor: Colors.black.withValues(alpha: 0.7),
+                    barrierColor: Colors.black.withOpacity(0.7),
                     builder: (context) => const MultiParamFunctionHelpDialog(),
                   );
                 },
-                tooltip: '多参数函数帮助',
+                tooltip: AppLocalizations.of(context)!.multiParamHelp,
               ),
               const SizedBox(width: 4),
               // AI设计师按钮
@@ -216,7 +217,7 @@ class CalculatorScreen extends StatelessWidget {
                     ),
                   );
                 },
-                tooltip: 'AI设计师',
+                tooltip: AppLocalizations.of(context)!.aiDesigner,
               ),
               const SizedBox(width: 4),
               // 图像生成工坊按钮
@@ -238,7 +239,7 @@ class CalculatorScreen extends StatelessWidget {
                     ),
                   );
                 },
-                tooltip: '图像生成工坊',
+                tooltip: AppLocalizations.of(context)!.imageWorkshop,
               ),
 
             ],

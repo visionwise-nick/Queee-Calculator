@@ -8,12 +8,16 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
   http: ^1.2.1
   cupertino_icons: ^1.0.8
   provider: ^6.1.2
   shared_preferences: ^2.2.3
   math_expressions: ^3.0.0
   audioplayers: ^6.1.0  # 音效播放支持
+  just_audio: ^0.9.36
+  intl: ^0.20.2
 
 dev_dependencies:
   flutter_test:
@@ -21,12 +25,6 @@ dev_dependencies:
   flutter_lints: ^4.0.0
 
 flutter:
-  uses-material-design: true
-  assets:
-    - assets/sounds/
-    - assets/sounds/cyberpunk/
-    - assets/sounds/minimal/
-    - assets/sounds/nature/
-    - assets/themes/
+  generate: true 
 
-# The following adds the Cupertino Icons font to your application. 
+  # The following line ensures that the Material Icons font is 
