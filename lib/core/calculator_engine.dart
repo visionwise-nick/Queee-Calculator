@@ -848,6 +848,33 @@ class CalculatorEngine {
         case 'x^5':
           return math.pow(x, 5).toDouble();
         
+        // 🔧 新增：分数幂函数支持
+        case 'pow(x,2/3)':
+        case 'x^(2/3)':
+          return math.pow(x, 2.0/3.0).toDouble();
+        case 'pow(x,1/3)':
+        case 'x^(1/3)':
+        case 'cbrt(x)':
+          // 立方根，支持负数
+          return x < 0 ? -math.pow(-x, 1/3).toDouble() : math.pow(x, 1/3).toDouble();
+        case 'pow(x,3/2)':
+        case 'x^(3/2)':
+          return math.pow(x, 1.5).toDouble();
+        case 'pow(x,1/2)':
+        case 'x^(1/2)':
+          return math.sqrt(x);
+        
+        // 🔧 新增：指数函数的分数幂支持
+        case 'exp(x/10)':
+        case 'e^(x/10)':
+          return math.exp(x / 10);
+        case 'exp(x/2)':
+        case 'e^(x/2)':
+          return math.exp(x / 2);
+        case 'exp(x/5)':
+        case 'e^(x/5)':
+          return math.exp(x / 5);
+        
         // 根函数
         case 'sqrt(x)':
           if (x < 0) throw Exception('平方根的参数不能为负数');
@@ -1029,6 +1056,22 @@ class CalculatorEngine {
         return _evaluateConditionalExpression(expression, x);
       }
       
+      // 🔧 首先检查是否是带分数的pow函数或exp函数
+      RegExp powFractionPattern = RegExp(r'pow\(x,(\d+)/(\d+)\)');
+      Match? powMatch = powFractionPattern.firstMatch(expression);
+      if (powMatch != null) {
+        double numerator = double.parse(powMatch.group(1)!);
+        double denominator = double.parse(powMatch.group(2)!);
+        return math.pow(x, numerator / denominator).toDouble();
+      }
+      
+      RegExp expFractionPattern = RegExp(r'exp\(x/(\d+)\)');
+      Match? expMatch = expFractionPattern.firstMatch(expression);
+      if (expMatch != null) {
+        double divisor = double.parse(expMatch.group(1)!);
+        return math.exp(x / divisor);
+      }
+      
       // 替换x为实际值
       String evalExpression = expression.replaceAll('x', x.toString());
       
@@ -1062,6 +1105,7 @@ class CalculatorEngine {
       
       return result;
     } catch (e) {
+      print('⚠️ 复杂表达式解析失败：$e');
       // 如果表达式解析失败，尝试简单计算
       return _evaluateSimpleExpression(expression.replaceAll('x', x.toString()));
     }

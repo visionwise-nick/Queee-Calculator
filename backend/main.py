@@ -399,6 +399,8 @@ class CustomizationRequest(BaseModel):
     # 新增：图像生成工坊保护标识
     has_image_workshop_content: Optional[bool] = Field(default=False, description="是否有图像生成工坊生成的内容")
     workshop_protected_fields: Optional[List[str]] = Field(default=[], description="受图像生成工坊保护的字段列表")
+    # 🔧 新增：简化的背景图保护标识
+    preserve_background_images: Optional[bool] = Field(default=False, description="是否保护所有背景图片")
 
 # 修复后的AI系统提示 - 继承式功能设计
 SYSTEM_PROMPT = """你是专业的计算器功能设计大师。你的职责是在现有配置基础上进行精确的增删改，绝不全盘推翻。
@@ -887,7 +889,8 @@ async def customize_calculator(request: CustomizationRequest) -> CalculatorConfi
         protected_fields = []
         workshop_protection_info = ""
         
-        if request.current_config and request.has_image_workshop_content:
+        # 🔧 简化保护机制：支持新的preserve_background_images标志
+        if request.current_config and (request.has_image_workshop_content or request.preserve_background_images):
             # 优先使用用户明确指定的保护字段
             if request.workshop_protected_fields:
                 protected_fields = request.workshop_protected_fields.copy()
@@ -1842,7 +1845,7 @@ class DisplayBackgroundRequest(BaseModel):
 async def generate_image(request: ImageGenerationRequest):
     """使用Gemini 2.0 Flash原生图像生成功能"""
     try:
-        # 构建优化的图像生成提示词
+        # 构建优化的图像生成提示词 - 强调明亮鲜艳的颜色
         enhanced_prompt = f"""
         Generate a high-quality image for calculator theme:
         {request.prompt}
@@ -1850,9 +1853,12 @@ async def generate_image(request: ImageGenerationRequest):
         Style: {request.style}
         Requirements:
         - High resolution and professional quality
+        - Bright, vibrant, and colorful design (avoid dark or muted colors)
+        - Use vivid and cheerful colors that stand out
         - Suitable for calculator app background or button design
-        - Clean, modern aesthetic
-        - Good contrast for readability
+        - Clean, modern aesthetic with excellent visual appeal
+        - Good contrast for readability with energetic color palette
+        - Emphasize brightness and visual impact
         """
         
         print(f"🎨 开始生成图像，提示词: {enhanced_prompt}")
@@ -1929,17 +1935,22 @@ async def generate_image(request: ImageGenerationRequest):
 async def generate_pattern(request: ImageGenerationRequest):
     """使用Gemini 2.0 Flash生成按钮背景图案"""
     try:
-        # 🔧 简化按键背景图生成提示词 - 直接使用用户创意
+        # 🔧 优化按键背景图案生成 - 单一大主体，避免重复元素，确保明亮效果
         pattern_prompt = f"""
-        Create a beautiful background pattern for calculator buttons:
+        Create a clean background pattern for calculator buttons based on this concept:
         {request.prompt}
         
         Requirements:
-        - Rich colors and modern visual effects
-        - Suitable for small button background (128x128 pixels)
-        - No text, symbols, or complex shapes
-        - Focus on pure visual beauty and color richness
-        - Style: {request.style}
+        - {request.style} style with ONE single large main subject/element (not repeated patterns)
+        - If it's an animal/character, show only ONE instance filling most of the space
+        - If it's geometric, use ONE large shape or form, not repeated small elements  
+        - Clear, simple design without text or numbers
+        - Bright, vibrant, and colorful design with vivid and cheerful colors
+        - Use light backgrounds or colorful themes (avoid dark/black backgrounds)
+        - Well-lit appearance with high brightness and saturation
+        - Optimized for small button size (128x128 pixels)
+        - Focus on a single dominant visual element, not repetitive patterns
+        - High contrast and readability-friendly with excellent visibility
         """
         
         print(f"🎨 开始生成图案，提示词: {pattern_prompt}")
@@ -2015,7 +2026,7 @@ async def generate_pattern(request: ImageGenerationRequest):
 async def generate_app_background(request: AppBackgroundRequest):
     """生成APP整体背景图"""
     try:
-        # 构建专门的APP背景图生成提示词
+        # 构建专门的APP背景图生成提示词 - 确保明亮效果
         background_prompt = f"""
         Generate a beautiful background image for a calculator mobile app:
         {request.prompt}
@@ -2025,9 +2036,11 @@ async def generate_app_background(request: AppBackgroundRequest):
         - Style: {request.style} with {request.theme} theme
         - Subtle and elegant, won't interfere with UI elements
         - Good contrast for calculator buttons and display
-        - Professional and modern aesthetic
-        - High quality and resolution
-        - Colors should complement calculator interface
+        - Professional and modern aesthetic with bright, vibrant colors
+        - High quality and resolution with excellent brightness and saturation
+        - Use light backgrounds or colorful themes (avoid dark/black backgrounds)
+        - Well-lit appearance with vivid and cheerful colors
+        - Colors should complement calculator interface while maintaining high visibility
         - Avoid too busy patterns that distract from functionality
         
         Theme context: {request.theme}
@@ -2581,6 +2594,7 @@ def process_customize_task(task_id: str, request_data: Dict[str, Any]) -> Dict[s
         current_config = request_data.get("current_config")
         has_image_workshop_content = request_data.get("has_image_workshop_content", False)
         workshop_protected_fields = request_data.get("workshop_protected_fields", [])
+        preserve_background_images = request_data.get("preserve_background_images", False)
         
         update_task_status(task_id, TaskStatus.PROCESSING, progress=0.2)
         
@@ -2948,17 +2962,22 @@ def process_generate_pattern_task(task_id: str, request_data: Dict[str, Any]) ->
         
         update_task_status(task_id, TaskStatus.PROCESSING, progress=0.2)
         
-        # 🔧 针对小尺寸按键优化的图案生成 - 丰富色彩但简单符号
+        # 🔧 优化按键背景图案生成 - 单一大主体，避免重复元素，确保明亮效果
         pattern_prompt = f"""
-        Create a beautiful background pattern for calculator buttons:
+        Create a clean background pattern for calculator buttons based on this concept:
         {prompt}
         
         Requirements:
-        - Rich colors and modern visual effects
-        - Suitable for small button background (128x128 pixels)
-        - No text, symbols, or complex shapes
-        - Focus on pure visual beauty and color richness
-        - Style: {style}
+        - {style} style with ONE single large main subject/element (not repeated patterns)
+        - If it's an animal/character, show only ONE instance filling most of the space
+        - If it's geometric, use ONE large shape or form, not repeated small elements
+        - Clear, simple design without text or numbers
+        - Bright, vibrant, and colorful design with vivid and cheerful colors
+        - Use light backgrounds or colorful themes (avoid dark/black backgrounds)
+        - Well-lit appearance with high brightness and saturation
+        - Optimized for small button size (128x128 pixels)
+        - Focus on a single dominant visual element, not repetitive patterns
+        - High contrast and readability-friendly with excellent visibility
         """
         
         print(f"🎨 开始生成图案，提示词: {pattern_prompt}")
@@ -3041,7 +3060,7 @@ def process_generate_app_background_task(task_id: str, request_data: Dict[str, A
         
         update_task_status(task_id, TaskStatus.PROCESSING, progress=0.2)
         
-        # 构建专门的APP背景图生成提示词
+        # 构建专门的APP背景图生成提示词 - 确保明亮效果
         background_prompt = f"""
         Generate a beautiful background image for a calculator mobile app:
         {prompt}
@@ -3051,9 +3070,11 @@ def process_generate_app_background_task(task_id: str, request_data: Dict[str, A
         - Style: {style} with {theme} theme
         - Subtle and elegant, won't interfere with UI elements
         - Good contrast for calculator buttons and display
-        - Professional and modern aesthetic
-        - High quality and resolution
-        - Colors should complement calculator interface
+        - Professional and modern aesthetic with bright, vibrant colors
+        - High quality and resolution with excellent brightness and saturation
+        - Use light backgrounds or colorful themes (avoid dark/black backgrounds)
+        - Well-lit appearance with vivid and cheerful colors
+        - Colors should complement calculator interface while maintaining high visibility
         - Avoid too busy patterns that distract from functionality
         
         Theme context: {theme}

@@ -83,15 +83,10 @@ class AIService {
         final simplifiedConfig = _simplifyCurrentConfig(currentConfig);
         requestBody['current_config'] = simplifiedConfig;
         
-        // 🛡️ 检测并添加图像生成工坊保护参数
-        final (hasWorkshopContent, protectedFields) = _detectWorkshopContent(currentConfig);
-        requestBody['has_image_workshop_content'] = hasWorkshopContent;
-        requestBody['workshop_protected_fields'] = protectedFields;
+        // 🛡️ 简化保护机制：只保护背景图URL，因为背景图只在本地保存
+        requestBody['preserve_background_images'] = true;
         
-        if (hasWorkshopContent) {
-          print('🛡️ 检测到图像生成工坊内容，启用保护机制');
-          print('🛡️ 保护字段: $protectedFields');
-        }
+        print('🛡️ 启用背景图保护机制');
       }
       
       final body = json.encode(requestBody);
@@ -474,21 +469,26 @@ class AIService {
             'type': button.type,
             'action': button.action.toJson(),
             'gridPosition': button.gridPosition.toJson(),
-            // 🔧 只保留影响功能的属性，忽略样式属性
+            // 🔧 保留按键背景图信息
+            if (button.backgroundImage != null) 'backgroundImage': button.backgroundImage,
           }).toList(),
         },
         // 🔧 保留主题关键信息但简化
         'theme': {
           'name': config.theme.name,
-          // 忽略详细的颜色和样式信息
+          // 🔧 保留主题背景图
+          if (config.theme.backgroundImage != null) 'backgroundImage': config.theme.backgroundImage,
         },
       };
 
-      // 🔧 如果有APP背景，保留关键信息
+      // 🔧 完整保留APP背景图信息
       if (config.appBackground != null) {
         simplified['appBackground'] = {
           'backgroundType': config.appBackground!.backgroundType,
-          'hasBackgroundImage': config.appBackground!.backgroundImageUrl != null,
+          'backgroundImageUrl': config.appBackground!.backgroundImageUrl,
+          'backgroundColor': config.appBackground!.backgroundColor,
+          'backgroundGradient': config.appBackground!.backgroundGradient,
+          'backgroundOpacity': config.appBackground!.backgroundOpacity,
           'buttonOpacity': config.appBackground!.buttonOpacity,
           'displayOpacity': config.appBackground!.displayOpacity,
         };
@@ -736,69 +736,5 @@ class AIService {
     ];
   }
 
-  /// 🛡️ 检测图像生成工坊内容
-  static (bool, List<String>) _detectWorkshopContent(CalculatorConfig config) {
-    List<String> protectedFields = [];
-    
-    // 检查APP背景图（优先检查appBackground）
-    if (config.appBackground?.backgroundImageUrl != null) {
-      protectedFields.addAll([
-        'appBackground.backgroundImageUrl',
-        'appBackground.backgroundType',
-        'appBackground.backgroundColor',
-        'appBackground.backgroundGradient',
-        'appBackground.backgroundOpacity',
-        'appBackground.buttonOpacity', // 🔧 新增：保护按键透明度
-        'appBackground.displayOpacity', // 🔧 新增：保护显示区域透明度
-      ]);
-    }
-    
-    // 🔧 新增：即使没有背景图，也要保护透明度设置
-    if (config.appBackground?.buttonOpacity != null && config.appBackground!.buttonOpacity! < 1.0) {
-      protectedFields.add('appBackground.buttonOpacity');
-    }
-    if (config.appBackground?.displayOpacity != null && config.appBackground!.displayOpacity! < 1.0) {
-      protectedFields.add('appBackground.displayOpacity');
-    }
-    
-    // 检查主题背景图
-    if (config.theme.backgroundImage != null) {
-      protectedFields.addAll([
-        'theme.backgroundImage',
-        'theme.backgroundColor', 
-        'theme.backgroundGradient'
-      ]);
-    }
-    
-    // 检查按钮背景图和图案
-    for (final button in config.layout.buttons) {
-      if (button.backgroundImage != null) {
-        protectedFields.add('button.${button.id}.backgroundImage');
-        // 🔧 新增：如果按键有背景图，保护更多相关属性
-        protectedFields.addAll([
-          'button.${button.id}.backgroundColor',
-          'button.${button.id}.opacity',
-          'button.${button.id}.borderRadius',
-        ]);
-      }
-      // 检查按钮背景图案
-      if (button.backgroundPattern != null) {
-        protectedFields.addAll([
-          'button.${button.id}.backgroundPattern',
-          'button.${button.id}.patternColor',
-          'button.${button.id}.patternOpacity'
-        ]);
-      }
-    }
-    
-    final hasWorkshopContent = protectedFields.isNotEmpty;
-    
-    // 🔧 新增：如果有工坊内容，添加通配符保护
-    if (hasWorkshopContent) {
-      protectedFields.add('*backgroundImage*'); // 保护所有背景图字段
-      protectedFields.add('*Opacity*'); // 保护所有透明度字段
-    }
-    
-    return (hasWorkshopContent, protectedFields);
-  }
+
 } 
