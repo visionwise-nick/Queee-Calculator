@@ -1,0 +1,116 @@
+{
+  "api": {
+    "title": "Queee计算器AI后端",
+    "version": "3.0.0",
+    "health": {
+      "status": "健康",
+      "message": "AI服务运行正常"
+    },
+    "error": {
+      "invalid_request": "请求数据无效",
+      "ai_service_error": "AI服务错误",
+      "image_generation_failed": "图像生成失败",
+      "task_not_found": "任务未找到",
+      "task_already_completed": "任务已完成",
+      "invalid_model": "指定的模型无效",
+      "model_switch_success": "模型切换成功",
+      "model_switch_failed": "模型切换失败",
+      "task_creation_failed": "任务创建失败: {error}",
+      "task_deletion_failed": "任务删除失败: {error}"
+    },
+    "success": {
+      "task_created": "任务创建成功",
+      "task_completed": "任务完成成功",
+      "image_generated": "图像生成成功",
+      "config_updated": "计算器配置已更新"
+    }
+  },
+  "ai": {
+    "prompt": {
+      "system_role": "你是专业计算器功能设计大师！你专注于为用户设计和扩展计算器的功能逻辑。",
+      "responsibility": "你专门负责：\n• 功能扩展（科学计算、金融工具、单位转换）\n• 智能计算（方程求解、数据分析、统计计算）\n• 实用工具（汇率换算、折扣计算、贷款计算）\n• 按键功能定义（添加新计算按钮和功能）",
+      "note": "注意：你只负责功能设计，不处理外观样式（背景图、颜色、字体等）。如需修改外观，请使用\"图像生成工坊\"！",
+      "examples": {
+        "financial": "金融计算示例：\n\"利率3.5%，贷款30年，输入贷款金额，输出每月房贷\"\n\"4%年利率复利计算，投资期10年\"\n\"美元兑人民币汇率7.2，做货币转换\"",
+        "scientific": "科学计算示例：\n\"添加幂运算、对数、三角函数\"\n\"添加统计功能：平均数、标准差、方差\"\n\"添加组合排列计算\"",
+        "practical": "实用工具示例：\n\"打9折、8.5折、7折的折扣计算器\"\n\"BMI计算器，输入身高体重计算健康指数\"\n\"单位转换：厘米转英寸、公斤转磅\""
+      },
+      "usage_tips": "使用技巧：\n• 描述具体需求，我会自动生成对应按键\n• 说明参数范围，如\"利率3.5%\"会预设参数\n• 提及使用场景，我会优化操作流程"
+    },
+    "response": {
+      "thinking_process": "思考过程",
+      "design_complete": "功能设计完成！已为您自动应用到计算器。",
+      "design_complete_with_name": "{name} 已成功应用！",
+      "sorry_difficulty": "抱歉，我遇到了一些困难。能换个方式描述你的想法吗？",
+      "small_problem": "出现了一个小问题：{error}\n\n不用担心，我们再试一次！"
+    }
+  },
+  "image_generation": {
+    "prompt": {
+      "button_background": "为计算器生成美丽的按键背景",
+      "app_background": "为计算器生成现代的应用背景",
+      "display_background": "为计算器生成干净的显示区背景",
+      "text_image": "为计算器生成创意文字图像"
+    },
+    "style": {
+      "modern": "现代",
+      "classic": "经典",
+      "minimal": "极简",
+      "colorful": "多彩",
+      "dark": "深色",
+      "light": "浅色",
+      "gradient": "渐变",
+      "texture": "纹理"
+    },
+    "status": {
+      "generating": "正在生成图像...",
+      "processing": "正在处理图像...",
+      "completed": "图像生成完成",
+      "failed": "图像生成失败"
+    }
+  },
+  "task": {
+    "status": {
+      "pending": "等待中",
+      "processing": "处理中",
+      "completed": "已完成",
+      "failed": "失败"
+    },
+    "type": {
+      "customize": "计算器定制",
+      "generate_image": "图像生成",
+      "generate_pattern": "图案生成",
+      "generate_app_background": "应用背景生成",
+      "generate_text_image": "文字图像生成",
+      "generate_display_background": "显示区背景生成"
+    },
+    "message": {
+      "created": "任务创建成功",
+      "updated": "任务状态已更新",
+      "deleted": "任务删除成功",
+      "not_found": "任务未找到",
+      "already_completed": "任务已完成"
+    }
+  },
+  "calculator": {
+    "theme": {
+      "default": "默认主题",
+      "dark": "深色主题",
+      "light": "浅色主题",
+      "colorful": "多彩主题",
+      "minimal": "极简主题"
+    },
+    "button": {
+      "primary": "主要按钮",
+      "secondary": "次要按钮",
+      "operator": "运算符按钮",
+      "special": "特殊按钮"
+    },
+    "function": {
+      "basic": "基础功能",
+      "scientific": "科学功能",
+      "financial": "金融功能",
+      "custom": "自定义功能"
+    }
+  }
+} 

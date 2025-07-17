@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../l10n/app_localizations.dart';
 import '../models/calculator_dsl.dart';
 import '../services/ai_service.dart';
 import '../services/config_service.dart'; // 🔧 新增：导入配置服务
@@ -90,18 +91,19 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.palette, color: Color(0xFF6366F1), size: 24),
-            SizedBox(width: 8),
+            const Icon(Icons.palette, color: Color(0xFF6366F1), size: 24),
+            const SizedBox(width: 8),
             Text(
-              '🎨 图像生成工坊',
-              style: TextStyle(
+              l10n.imageWorkshop,
+              style: const TextStyle(
                 color: Color(0xFF1F2937),
                 fontWeight: FontWeight.w600,
               ),
@@ -116,7 +118,7 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
           IconButton(
             icon: Icon(Icons.refresh, color: Colors.orange.shade600),
             onPressed: _showResetDialog,
-            tooltip: '恢复默认',
+            tooltip: l10n.resetToDefault,
           ),
         ],
         bottom: TabBar(
@@ -124,18 +126,18 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
           labelColor: const Color(0xFF6366F1),
           unselectedLabelColor: const Color(0xFF6B7280),
           indicatorColor: const Color(0xFF6366F1),
-          tabs: const [
+          tabs: [
             Tab(
-              icon: Icon(Icons.texture),
-              text: '按键',
+              icon: const Icon(Icons.texture),
+              text: l10n.buttonBackground,
             ),
             Tab(
-              icon: Icon(Icons.wallpaper),
-              text: 'APP背景',
+              icon: const Icon(Icons.wallpaper),
+              text: l10n.appBackground,
             ),
             Tab(
-              icon: Icon(Icons.monitor),
-              text: '显示区',
+              icon: const Icon(Icons.monitor),
+              text: l10n.displayArea,
             ),
           ],
         ),
@@ -201,6 +203,7 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
   }
 
   Widget _buildQuickSelectionCard() {
+    final l10n = AppLocalizations.of(context)!;
     final quickPrompts = [
       {
         'title': '🌟 现代几何',
@@ -257,9 +260,9 @@ class _ImageGenerationScreenState extends State<ImageGenerationScreen>
                   child: Icon(Icons.flash_on, color: Colors.amber.shade700),
                 ),
                 const SizedBox(width: 12),
-                const Text(
-                  '快速选择',
-                  style: TextStyle(
+                Text(
+                  l10n.quickSelection,
+                  style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                   ),

@@ -1,0 +1,116 @@
+{
+  "api": {
+    "title": "[IT] Queee Calculator AI Backend",
+    "version": "[IT] 3.0.0",
+    "health": {
+      "status": "[IT] healthy",
+      "message": "[IT] AI service is running normally"
+    },
+    "error": {
+      "invalid_request": "[IT] Invalid request data",
+      "ai_service_error": "[IT] AI service error",
+      "image_generation_failed": "[IT] Image generation failed",
+      "task_not_found": "[IT] Task not found",
+      "task_already_completed": "[IT] Task already completed",
+      "invalid_model": "[IT] Invalid model specified",
+      "model_switch_success": "[IT] Model switched successfully",
+      "model_switch_failed": "[IT] Failed to switch model",
+      "task_creation_failed": "[IT] Task creation failed: {error}",
+      "task_deletion_failed": "[IT] Task deletion failed: {error}"
+    },
+    "success": {
+      "task_created": "[IT] Task created successfully",
+      "task_completed": "[IT] Task completed successfully",
+      "image_generated": "[IT] Image generated successfully",
+      "config_updated": "[IT] Calculator configuration updated"
+    }
+  },
+  "ai": {
+    "prompt": {
+      "system_role": "[IT] You are a professional calculator function design master! You specialize in designing and extending calculator function logic for users.",
+      "responsibility": "[IT] You are specifically responsible for:\n• Function extension (scientific calculation, financial tools, unit conversion)\n• Smart calculation (equation solving, data analysis, statistical calculation)\n• Practical tools (exchange rate conversion, discount calculation, loan calculation)\n• Button function definition (adding new calculation buttons and functions)",
+      "note": "[IT] Note: You are only responsible for function design, not appearance styling (background images, colors, fonts, etc.). For appearance modifications, please use the \"Image Generation Workshop\"!",
+      "examples": {
+        "financial": "[IT] Financial Calculation Examples:\n\"3.5% interest rate, 30-year loan, input loan amount, output monthly mortgage\"\n\"4% annual interest compound calculation, 10-year investment period\"\n\"USD to CNY exchange rate 7.2, currency conversion\"",
+        "scientific": "[IT] Scientific Calculation Examples:\n\"Add power operations, logarithms, trigonometric functions\"\n\"Add statistical functions: mean, standard deviation, variance\"\n\"Add combination and permutation calculations\"",
+        "practical": "[IT] Practical Tools Examples:\n\"10% off, 15% off, 30% off discount calculator\"\n\"BMI calculator, input height and weight to calculate health index\"\n\"Unit conversion: cm to inches, kg to pounds\""
+      },
+      "usage_tips": "[IT] Usage Tips:\n• Describe specific needs, I'll automatically generate corresponding buttons\n• Specify parameter ranges, such as \"3.5% interest rate\" will preset parameters\n• Mention usage scenarios, I'll optimize the operation process"
+    },
+    "response": {
+      "thinking_process": "[IT] Thinking Process",
+      "design_complete": "[IT] Function design completed! Automatically applied to calculator.",
+      "design_complete_with_name": "[IT] {name} successfully applied!",
+      "sorry_difficulty": "[IT] Sorry, I encountered some difficulties. Can you describe your idea in a different way?",
+      "small_problem": "[IT] There was a small problem: {error}\n\nDon't worry, let's try again!"
+    }
+  },
+  "image_generation": {
+    "prompt": {
+      "button_background": "[IT] Generate a beautiful button background for calculator",
+      "app_background": "[IT] Generate a modern app background for calculator",
+      "display_background": "[IT] Generate a clean display area background for calculator",
+      "text_image": "[IT] Generate creative text image for calculator"
+    },
+    "style": {
+      "modern": "[IT] Modern",
+      "classic": "[IT] Classic",
+      "minimal": "[IT] Minimal",
+      "colorful": "[IT] Colorful",
+      "dark": "[IT] Dark",
+      "light": "[IT] Light",
+      "gradient": "[IT] Gradient",
+      "texture": "[IT] Texture"
+    },
+    "status": {
+      "generating": "[IT] Generating image...",
+      "processing": "[IT] Processing image...",
+      "completed": "[IT] Image generation completed",
+      "failed": "[IT] Image generation failed"
+    }
+  },
+  "task": {
+    "status": {
+      "pending": "[IT] Pending",
+      "processing": "[IT] Processing",
+      "completed": "[IT] Completed",
+      "failed": "[IT] Failed"
+    },
+    "type": {
+      "customize": "[IT] Calculator Customization",
+      "generate_image": "[IT] Image Generation",
+      "generate_pattern": "[IT] Pattern Generation",
+      "generate_app_background": "[IT] App Background Generation",
+      "generate_text_image": "[IT] Text Image Generation",
+      "generate_display_background": "[IT] Display Background Generation"
+    },
+    "message": {
+      "created": "[IT] Task created successfully",
+      "updated": "[IT] Task status updated",
+      "deleted": "[IT] Task deleted successfully",
+      "not_found": "[IT] Task not found",
+      "already_completed": "[IT] Task already completed"
+    }
+  },
+  "calculator": {
+    "theme": {
+      "default": "[IT] Default Theme",
+      "dark": "[IT] Dark Theme",
+      "light": "[IT] Light Theme",
+      "colorful": "[IT] Colorful Theme",
+      "minimal": "[IT] Minimal Theme"
+    },
+    "button": {
+      "primary": "[IT] Primary Button",
+      "secondary": "[IT] Secondary Button",
+      "operator": "[IT] Operator Button",
+      "special": "[IT] Special Button"
+    },
+    "function": {
+      "basic": "[IT] Basic Function",
+      "scientific": "[IT] Scientific Function",
+      "financial": "[IT] Financial Function",
+      "custom": "[IT] Custom Function"
+    }
+  }
+}

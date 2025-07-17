@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import '../l10n/app_localizations.dart';
 import '../providers/calculator_provider.dart';
 import '../services/ai_service.dart';
 import '../services/conversation_service.dart';
@@ -82,10 +83,11 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
   }
 
   Future<void> _addWelcomeMessages() async {
+    final l10n = AppLocalizations.of(context)!;
     final welcomeMessages = [
-      '👋 你好！我是你的专属计算器功能设计师',
-      '✨ 我是专业计算器功能设计大师！我专注于为你设计和扩展计算器的功能逻辑！\n\n🚀 我专门负责：\n• 功能扩展（科学计算、金融工具、单位转换）\n• 智能计算（方程求解、数据分析、统计计算）\n• 实用工具（汇率换算、折扣计算、贷款计算）\n• 按键功能定义（添加新计算按钮和功能）\n\n⚠️ 注意：我只负责功能设计，不处理外观样式（背景图、颜色、字体等）。如需修改外观，请使用"图像生成工坊"！',
-      '💡 **快速上手案例**：\n\n🏦 **金融计算**：\n"利率3.5%，贷款30年，输入贷款金额，输出每月房贷"\n"4%年利率复利计算，投资期10年"\n"美元兑人民币汇率7.2，做货币转换"\n\n🔬 **科学计算**：\n"添加幂运算、对数、三角函数"\n"添加统计功能：平均数、标准差、方差"\n"添加组合排列计算"\n\n💼 **实用工具**：\n"打9折、8.5折、7折的折扣计算器"\n"BMI计算器，输入身高体重计算健康指数"\n"单位转换：厘米转英寸、公斤转磅"\n\n🎯 **使用技巧**：\n• 描述具体需求，我会自动生成对应按键\n• 说明参数范围，如"利率3.5%"会预设参数\n• 提及使用场景，我会优化操作流程',
+      l10n.welcomeMessage1,
+      l10n.welcomeMessage2,
+      l10n.welcomeMessage3,
     ];
 
     for (int i = 0; i < welcomeMessages.length; i++) {
@@ -193,9 +195,10 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
     });
 
     // 🔧 显示强制性进度弹窗
+    final l10n = AppLocalizations.of(context)!;
     _progressController.show(
-      title: '🎯 AI设计师正在工作',
-      description: '正在为您设计专属的计算器功能...',
+      title: l10n.aiDesignerWorking,
+      description: l10n.aiDesignerWorkingDesc,
       taskType: 'customize',
       allowCancel: false,
     );
@@ -240,16 +243,16 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
       if (config != null) {
         await provider.applyConfig(config);
         await _reloadSession();
-        await _addAssistantMessage('✅ 功能设计完成！已为您自动应用到计算器。');
+        await _addAssistantMessage(l10n.designComplete);
         
         // 显示成功提示
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('🎉 ${config.name} 已成功应用！'),
+              content: Text(l10n.designCompleteWithName(config.name)),
               backgroundColor: Colors.green,
               action: SnackBarAction(
-                label: '查看',
+                label: l10n.view,
                 textColor: Colors.white,
                 onPressed: () {
                   Navigator.of(context).pop(); // 返回计算器界面
@@ -259,14 +262,14 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
           );
         }
       } else {
-        await _addAssistantMessage('😅 抱歉，我遇到了一些困难。能换个方式描述你的想法吗？');
+        await _addAssistantMessage(l10n.sorryDifficulty);
       }
       
     } catch (e) {
       // 隐藏进度弹窗
       _progressController.hide();
       
-      await _addAssistantMessage('😓 出现了一个小问题：$e\n\n不用担心，我们再试一次！');
+      await _addAssistantMessage(l10n.smallProblem(e.toString()));
     } finally {
       if (mounted) {
         setState(() {
@@ -352,23 +355,24 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
 
   /// 测试网络连接
   Future<void> _testConnection() async {
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.network_check, color: Colors.blue),
-            SizedBox(width: 8),
-            Text('网络连接测试'),
+            const Icon(Icons.network_check, color: Colors.blue),
+            const SizedBox(width: 8),
+            Text(l10n.networkTest),
           ],
         ),
-        content: const Column(
+        content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            CircularProgressIndicator(),
-            SizedBox(height: 16),
-            Text('正在测试AI服务连接...'),
+            const CircularProgressIndicator(),
+            const SizedBox(height: 16),
+            Text(l10n.testingConnection),
           ],
         ),
       ),
@@ -388,18 +392,18 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
                 color: isConnected ? Colors.green : Colors.red,
               ),
               const SizedBox(width: 8),
-              Text(isConnected ? '连接成功' : '连接失败'),
+              Text(isConnected ? l10n.connectionSuccess : l10n.connectionFailed),
             ],
           ),
           content: Text(
             isConnected 
-                ? '✅ AI服务连接正常，可以正常使用AI定制功能。'
-                : '❌ 无法连接到AI服务。请检查网络连接或稍后重试。\n\n可能的原因：\n• 网络连接问题\n• 防火墙阻止\n• 服务暂时不可用',
+                ? l10n.connectionSuccessDesc
+                : l10n.connectionFailedDesc,
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('确定'),
+              child: Text(l10n.confirm),
             ),
             if (!isConnected)
               TextButton(
@@ -407,7 +411,7 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
                   Navigator.of(context).pop();
                   _testConnection(); // 重新测试
                 },
-                child: const Text('重新测试'),
+                child: Text(l10n.retry),
               ),
           ],
         ),
@@ -418,25 +422,25 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
-          title: const Row(
+          title: Row(
             children: [
-              Icon(Icons.error, color: Colors.red),
-              SizedBox(width: 8),
-              Text('测试失败'),
+              const Icon(Icons.error, color: Colors.red),
+              const SizedBox(width: 8),
+              Text(l10n.testFailed),
             ],
           ),
-          content: Text('测试过程中发生错误：\n$e'),
+          content: Text(l10n.testFailedDesc(e.toString())),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('确定'),
+              child: Text(l10n.confirm),
             ),
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
                 _testConnection(); // 重新测试
               },
-              child: const Text('重新测试'),
+              child: Text(l10n.retry),
             ),
           ],
         ),
@@ -460,6 +464,7 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
   }
 
   void _showQuickReplies() {
+    final l10n = AppLocalizations.of(context)!;
     final quickReplies = [
       // 🎯 简单实用个性化案例 - 放到最前面
       '添加"log₉"按键，计算以9为底的对数：log₉(x) = log(x)/log(9)，适合特定数学计算需求',
@@ -546,17 +551,17 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
                     child: const Icon(Icons.auto_awesome, color: Colors.white),
                   ),
                   const SizedBox(width: 12),
-                  const Expanded(
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          '🎯 实用个性化案例库',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                          l10n.quickRepliesTitle,
+                          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                         ),
                         Text(
-                          '简单实用，但充满个性化的计算功能',
-                          style: TextStyle(fontSize: 12, color: Colors.grey),
+                          l10n.quickRepliesSubtitle,
+                          style: const TextStyle(fontSize: 12, color: Colors.grey),
                         ),
                       ],
                     ),
@@ -726,19 +731,19 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
                       children: [
                         Icon(Icons.lightbulb_outline, color: Colors.blue.shade600),
                         const SizedBox(width: 8),
-                        const Text(
-                          '💡 递进式设计理念',
-              style: TextStyle(
+                        Text(
+                          l10n.progressiveDesign,
+                          style: const TextStyle(
                             fontWeight: FontWeight.bold,
-                fontSize: 14,
+                            fontSize: 14,
                           ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 8),
-                    const Text(
-                      '每个级别都在前面基础上增加新功能，Level 1→Level 20 逐步构建功能完整的专业计算器',
-                      style: TextStyle(
+                    Text(
+                      l10n.progressiveDesignDesc,
+                      style: const TextStyle(
                         fontSize: 12,
                         color: Colors.grey,
                         height: 1.3,
@@ -755,22 +760,23 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
   }
 
   void _clearConversation() {
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.refresh, color: Colors.orange),
-            SizedBox(width: 8),
-            Text('开始新对话'),
+            const Icon(Icons.refresh, color: Colors.orange),
+            const SizedBox(width: 8),
+            Text(l10n.startNewConversation),
           ],
         ),
-        content: const Text('要开始一个全新的设计对话吗？\n\n计算器将重置为默认样式。'),
+        content: Text(l10n.startNewConversationDesc),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: Text('取消', style: TextStyle(color: Colors.grey.shade600)),
+            child: Text(l10n.cancel, style: TextStyle(color: Colors.grey.shade600)),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -868,7 +874,7 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: const Text('✅ 已重置为默认计算器功能，保留了图像工坊的背景图！'),
+                    content: Text(l10n.resetSuccess),
                     backgroundColor: Colors.green.shade600,
                     duration: const Duration(seconds: 2),
                   ),
@@ -879,7 +885,7 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
               backgroundColor: Colors.orange,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
-            child: const Text('开始新对话', style: TextStyle(color: Colors.white)),
+            child: Text(l10n.startNewConversation, style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -887,6 +893,7 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
   }
 
   Widget _buildMessageBubble(ConversationMessage message, int index) {
+    final l10n = AppLocalizations.of(context)!;
     final isUser = message.type == MessageType.user;
     final isSystem = message.type == MessageType.system;
     final isFirst = index == 0 || _messages[index - 1].type != message.type;
@@ -913,8 +920,8 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
                     Padding(
                       padding: const EdgeInsets.only(bottom: 4, left: 12, right: 12),
                       child: Text(
-                        isUser ? '你' : '🤖 AI助手',
-                  style: TextStyle(
+                        isUser ? l10n.you : l10n.aiAssistant,
+                        style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
                           color: Colors.grey.shade600,
@@ -1047,6 +1054,7 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
 
   /// 显示消息选项菜单（编辑、复制等）
   void _showMessageOptions(ConversationMessage message, int index) {
+    final l10n = AppLocalizations.of(context)!;
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -1073,7 +1081,7 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Text(
-                  '消息选项',
+                  l10n.messageOptions,
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
@@ -1084,7 +1092,7 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
               const SizedBox(height: 16),
               ListTile(
                 leading: Icon(Icons.copy, color: Colors.blue.shade600),
-                title: const Text('复制消息'),
+                title: Text(l10n.copyMessage),
                 onTap: () {
                   Navigator.pop(context);
                   _copyMessage(message);
@@ -1093,7 +1101,7 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
               if (message.type == MessageType.user) ...[
                 ListTile(
                   leading: Icon(Icons.edit, color: Colors.orange.shade600),
-                  title: const Text('编辑消息'),
+                  title: Text(l10n.editMessage),
                   onTap: () {
                     Navigator.pop(context);
                     _editMessage(message, index);
@@ -1102,7 +1110,7 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
               ],
               ListTile(
                 leading: Icon(Icons.delete, color: Colors.red.shade600),
-                title: const Text('删除消息'),
+                title: Text(l10n.deleteMessage),
                 onTap: () {
                   Navigator.pop(context);
                   _deleteMessage(index);
@@ -1118,10 +1126,11 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
 
   /// 复制消息内容
   void _copyMessage(ConversationMessage message) {
+    final l10n = AppLocalizations.of(context)!;
     Clipboard.setData(ClipboardData(text: message.content));
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: const Text('消息已复制到剪贴板'),
+        content: Text(l10n.messageCopied),
         backgroundColor: Colors.green.shade600,
         duration: const Duration(seconds: 2),
       ),
@@ -1130,24 +1139,25 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
 
   /// 编辑用户消息
   void _editMessage(ConversationMessage message, int index) {
+    final l10n = AppLocalizations.of(context)!;
     final controller = TextEditingController(text: message.content);
     
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('编辑消息'),
+        title: Text(l10n.editMessageTitle),
         content: TextField(
           controller: controller,
           maxLines: null,
-          decoration: const InputDecoration(
-            hintText: '输入新的消息内容...',
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            hintText: l10n.editMessageHint,
+            border: const OutlineInputBorder(),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('取消'),
+            child: Text(l10n.cancel),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -1159,7 +1169,7 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
                 Navigator.pop(context);
               }
             },
-            child: const Text('保存'),
+            child: Text(l10n.save),
           ),
         ],
       ),
@@ -1168,6 +1178,7 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
 
   /// 更新消息内容
   Future<void> _updateMessage(int index, String newContent) async {
+    final l10n = AppLocalizations.of(context)!;
     try {
       final oldMessage = _messages[index];
       final updatedMessage = ConversationMessage(
@@ -1188,7 +1199,7 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('消息已更新'),
+          content: Text(l10n.messageUpdated),
           backgroundColor: Colors.blue.shade600,
           duration: const Duration(seconds: 2),
         ),
@@ -1196,7 +1207,7 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('更新失败: $e'),
+          content: Text(l10n.updateFailed(e.toString())),
           backgroundColor: Colors.red.shade600,
           duration: const Duration(seconds: 3),
         ),
@@ -1206,15 +1217,16 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
 
   /// 删除消息
   Future<void> _deleteMessage(int index) async {
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('删除消息'),
-        content: const Text('确定要删除这条消息吗？此操作无法撤销。'),
+        title: Text(l10n.deleteMessageTitle),
+        content: Text(l10n.deleteMessageDesc),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('取消'),
+            child: Text(l10n.cancel),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -1232,7 +1244,7 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
 
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: const Text('消息已删除'),
+                    content: Text(l10n.messageDeleted),
                     backgroundColor: Colors.orange.shade600,
                     duration: const Duration(seconds: 2),
                   ),
@@ -1240,7 +1252,7 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
               } catch (e) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text('删除失败: $e'),
+                    content: Text(l10n.deleteFailed(e.toString())),
                     backgroundColor: Colors.red.shade600,
                     duration: const Duration(seconds: 3),
                   ),
@@ -1248,7 +1260,7 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
               }
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('删除', style: TextStyle(color: Colors.white)),
+            child: Text(l10n.delete, style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -1296,6 +1308,7 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
   }
 
   Widget _buildTypingIndicator() {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       margin: const EdgeInsets.only(left: 16, right: 64, top: 8, bottom: 8),
       child: Container(
@@ -1324,7 +1337,7 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
                   ),
                   const SizedBox(width: 12),
             Text(
-              '正在设计中...',
+              l10n.designing,
               style: TextStyle(
                 color: Colors.grey.shade600,
                 fontSize: 14,
@@ -1338,18 +1351,19 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        title: const Row(
-              children: [
-            Icon(Icons.chat_bubble_outline, color: Color(0xFF6366F1), size: 24),
-            SizedBox(width: 8),
-                Text(
-              'AI设计师',
-                  style: TextStyle(
+        title: Row(
+          children: [
+            const Icon(Icons.chat_bubble_outline, color: Color(0xFF6366F1), size: 24),
+            const SizedBox(width: 8),
+            Text(
+              l10n.aiDesignerScreenTitle,
+              style: const TextStyle(
                 color: Color(0xFF1F2937),
                 fontWeight: FontWeight.w600,
               ),
@@ -1364,13 +1378,13 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
           IconButton(
             icon: Icon(Icons.lightbulb_outline, color: Colors.amber.shade600),
             onPressed: _showQuickReplies,
-            tooltip: '快速想法',
+            tooltip: l10n.quickIdeas,
           ),
 
           IconButton(
             icon: Icon(Icons.refresh, color: Colors.orange.shade600),
             onPressed: _clearConversation,
-            tooltip: '新对话',
+            tooltip: l10n.newConversation,
           ),
         ],
       ),
@@ -1423,11 +1437,11 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
                             maxLines: null,
                             textInputAction: TextInputAction.send,
                             style: const TextStyle(fontSize: 16),
-                            decoration: const InputDecoration(
-                              hintText: '描述你想要的计算器...',
-                              hintStyle: TextStyle(color: Color(0xFF9CA3AF)),
+                            decoration: InputDecoration(
+                              hintText: l10n.describeCalculator,
+                              hintStyle: const TextStyle(color: Color(0xFF9CA3AF)),
                               border: InputBorder.none,
-                              contentPadding: EdgeInsets.symmetric(
+                              contentPadding: const EdgeInsets.symmetric(
                                 horizontal: 20,
                                 vertical: 14,
                               ),
@@ -1446,7 +1460,7 @@ class _AICustomizeScreenState extends State<AICustomizeScreen>
                           foregroundColor: Colors.grey.shade600,
                           padding: const EdgeInsets.all(12),
                         ),
-                        tooltip: '测试网络连接',
+                        tooltip: l10n.testNetworkConnection,
                       ),
                       const SizedBox(width: 4),
                       AnimatedContainer(

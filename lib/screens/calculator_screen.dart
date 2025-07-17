@@ -11,7 +11,7 @@ import 'image_generation_screen.dart';
 import 'dart:math' as math;
 import 'dart:convert';
 import 'dart:typed_data';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import '../l10n/app_localizations.dart';
 
 class CalculatorScreen extends StatelessWidget {
   const CalculatorScreen({super.key});

@@ -1,0 +1,116 @@
+{
+  "api": {
+    "title": "[SK] Queee Calculator AI Backend",
+    "version": "[SK] 3.0.0",
+    "health": {
+      "status": "[SK] healthy",
+      "message": "[SK] AI service is running normally"
+    },
+    "error": {
+      "invalid_request": "[SK] Invalid request data",
+      "ai_service_error": "[SK] AI service error",
+      "image_generation_failed": "[SK] Image generation failed",
+      "task_not_found": "[SK] Task not found",
+      "task_already_completed": "[SK] Task already completed",
+      "invalid_model": "[SK] Invalid model specified",
+      "model_switch_success": "[SK] Model switched successfully",
+      "model_switch_failed": "[SK] Failed to switch model",
+      "task_creation_failed": "[SK] Task creation failed: {error}",
+      "task_deletion_failed": "[SK] Task deletion failed: {error}"
+    },
+    "success": {
+      "task_created": "[SK] Task created successfully",
+      "task_completed": "[SK] Task completed successfully",
+      "image_generated": "[SK] Image generated successfully",
+      "config_updated": "[SK] Calculator configuration updated"
+    }
+  },
+  "ai": {
+    "prompt": {
+      "system_role": "[SK] You are a professional calculator function design master! You specialize in designing and extending calculator function logic for users.",
+      "responsibility": "[SK] You are specifically responsible for:\n• Function extension (scientific calculation, financial tools, unit conversion)\n• Smart calculation (equation solving, data analysis, statistical calculation)\n• Practical tools (exchange rate conversion, discount calculation, loan calculation)\n• Button function definition (adding new calculation buttons and functions)",
+      "note": "[SK] Note: You are only responsible for function design, not appearance styling (background images, colors, fonts, etc.). For appearance modifications, please use the \"Image Generation Workshop\"!",
+      "examples": {
+        "financial": "[SK] Financial Calculation Examples:\n\"3.5% interest rate, 30-year loan, input loan amount, output monthly mortgage\"\n\"4% annual interest compound calculation, 10-year investment period\"\n\"USD to CNY exchange rate 7.2, currency conversion\"",
+        "scientific": "[SK] Scientific Calculation Examples:\n\"Add power operations, logarithms, trigonometric functions\"\n\"Add statistical functions: mean, standard deviation, variance\"\n\"Add combination and permutation calculations\"",
+        "practical": "[SK] Practical Tools Examples:\n\"10% off, 15% off, 30% off discount calculator\"\n\"BMI calculator, input height and weight to calculate health index\"\n\"Unit conversion: cm to inches, kg to pounds\""
+      },
+      "usage_tips": "[SK] Usage Tips:\n• Describe specific needs, I'll automatically generate corresponding buttons\n• Specify parameter ranges, such as \"3.5% interest rate\" will preset parameters\n• Mention usage scenarios, I'll optimize the operation process"
+    },
+    "response": {
+      "thinking_process": "[SK] Thinking Process",
+      "design_complete": "[SK] Function design completed! Automatically applied to calculator.",
+      "design_complete_with_name": "[SK] {name} successfully applied!",
+      "sorry_difficulty": "[SK] Sorry, I encountered some difficulties. Can you describe your idea in a different way?",
+      "small_problem": "[SK] There was a small problem: {error}\n\nDon't worry, let's try again!"
+    }
+  },
+  "image_generation": {
+    "prompt": {
+      "button_background": "[SK] Generate a beautiful button background for calculator",
+      "app_background": "[SK] Generate a modern app background for calculator",
+      "display_background": "[SK] Generate a clean display area background for calculator",
+      "text_image": "[SK] Generate creative text image for calculator"
+    },
+    "style": {
+      "modern": "[SK] Modern",
+      "classic": "[SK] Classic",
+      "minimal": "[SK] Minimal",
+      "colorful": "[SK] Colorful",
+      "dark": "[SK] Dark",
+      "light": "[SK] Light",
+      "gradient": "[SK] Gradient",
+      "texture": "[SK] Texture"
+    },
+    "status": {
+      "generating": "[SK] Generating image...",
+      "processing": "[SK] Processing image...",
+      "completed": "[SK] Image generation completed",
+      "failed": "[SK] Image generation failed"
+    }
+  },
+  "task": {
+    "status": {
+      "pending": "[SK] Pending",
+      "processing": "[SK] Processing",
+      "completed": "[SK] Completed",
+      "failed": "[SK] Failed"
+    },
+    "type": {
+      "customize": "[SK] Calculator Customization",
+      "generate_image": "[SK] Image Generation",
+      "generate_pattern": "[SK] Pattern Generation",
+      "generate_app_background": "[SK] App Background Generation",
+      "generate_text_image": "[SK] Text Image Generation",
+      "generate_display_background": "[SK] Display Background Generation"
+    },
+    "message": {
+      "created": "[SK] Task created successfully",
+      "updated": "[SK] Task status updated",
+      "deleted": "[SK] Task deleted successfully",
+      "not_found": "[SK] Task not found",
+      "already_completed": "[SK] Task already completed"
+    }
+  },
+  "calculator": {
+    "theme": {
+      "default": "[SK] Default Theme",
+      "dark": "[SK] Dark Theme",
+      "light": "[SK] Light Theme",
+      "colorful": "[SK] Colorful Theme",
+      "minimal": "[SK] Minimal Theme"
+    },
+    "button": {
+      "primary": "[SK] Primary Button",
+      "secondary": "[SK] Secondary Button",
+      "operator": "[SK] Operator Button",
+      "special": "[SK] Special Button"
+    },
+    "function": {
+      "basic": "[SK] Basic Function",
+      "scientific": "[SK] Scientific Function",
+      "financial": "[SK] Financial Function",
+      "custom": "[SK] Custom Function"
+    }
+  }
+}

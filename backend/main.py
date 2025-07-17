@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, BackgroundTasks
+from fastapi import FastAPI, HTTPException, BackgroundTasks, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any
@@ -27,6 +27,51 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# 多语言支持
+I18N = {}
+I18N_DIR = os.path.join(os.path.dirname(__file__), 'i18n')
+
+def load_i18n():
+    """加载多语言文件"""
+    global I18N
+    for fname in os.listdir(I18N_DIR):
+        if fname.endswith('.json'):
+            lang = fname.split('.')[0]
+            with open(os.path.join(I18N_DIR, fname), encoding='utf-8') as f:
+                I18N[lang] = json.load(f)
+    print(f"✅ 已加载 {len(I18N)} 种语言")
+
+def get_locale(request: Request) -> str:
+    """获取语言设置"""
+    accept = request.headers.get('accept-language', 'en')
+    lang = accept.split(',')[0].split('-')[0]
+    return lang if lang in I18N else 'en'
+
+def t(request: Request, key_path: str, **kwargs) -> str:
+    """获取翻译文本"""
+    lang = get_locale(request)
+    keys = key_path.split('.')
+    value = I18N.get(lang, I18N.get('en', {}))
+    
+    for key in keys:
+        if isinstance(value, dict) and key in value:
+            value = value[key]
+        else:
+            # 如果找不到翻译，返回英文或key
+            value = I18N.get('en', {}).get(key_path, key_path)
+            break
+    
+    if isinstance(value, str):
+        # 替换参数
+        for k, v in kwargs.items():
+            value = value.replace(f"{{{k}}}", str(v))
+        return value
+    
+    return key_path
+
+# 加载多语言文件
+load_i18n()
 
 # 🔧 新增：任务状态枚举
 class TaskStatus(str, Enum):
@@ -841,12 +886,13 @@ VALIDATION_PROMPT = """你是配置修复专家。检查并修复生成的计算
 返回修复后的完整JSON配置。"""
 
 @app.get("/health")
-async def health_check():
+async def health_check(request: Request):
     return {
-        "status": "healthy", 
-        "version": "2.0.0",
+        "status": t(request, "api.health.status"), 
+        "version": t(request, "api.version"),
         "current_model": AVAILABLE_MODELS[current_model_key]["display_name"],
-        "model_key": current_model_key
+        "model_key": current_model_key,
+        "message": t(request, "api.health.message")
     }
 
 @app.get("/models")
@@ -858,12 +904,12 @@ async def get_available_models():
     }
 
 @app.post("/switch-model/{model_key}")
-async def switch_model(model_key: str):
+async def switch_model(model_key: str, request: Request):
     """切换AI模型"""
     global current_model_key
     
     if model_key not in AVAILABLE_MODELS:
-        raise HTTPException(status_code=400, detail=f"不支持的模型: {model_key}")
+        raise HTTPException(status_code=400, detail=t(request, "api.error.invalid_model"))
     
     old_model = current_model_key
     current_model_key = model_key
@@ -872,7 +918,7 @@ async def switch_model(model_key: str):
     try:
         initialize_genai()
         return {
-            "message": f"成功切换模型: {old_model} → {model_key}",
+            "message": t(request, "api.success.model_switch_success"),
             "old_model": AVAILABLE_MODELS[old_model]["name"],
             "new_model": AVAILABLE_MODELS[model_key]["name"],
             "model_key": model_key
@@ -880,7 +926,7 @@ async def switch_model(model_key: str):
     except Exception as e:
         # 如果切换失败，回滚到原模型
         current_model_key = old_model
-        raise HTTPException(status_code=500, detail=f"切换模型失败: {str(e)}")
+        raise HTTPException(status_code=500, detail=t(request, "api.error.model_switch_failed"))
 
 @app.post("/customize")
 async def customize_calculator(request: CustomizationRequest) -> CalculatorConfig:
@@ -2197,7 +2243,7 @@ async def generate_display_background(request: DisplayBackgroundRequest):
             print(f"🤖 AI响应: {response.text}")
             
         # 如果没有生成图像，返回错误
-        raise HTTPException(status_code=500, detail="未能生成显示区背景，请检查提示词或稍后重试")
+        raise Exception("未能生成显示区背景，请检查提示词或稍后重试")
         
     except Exception as e:
         print(f"显示区背景生成失败: {str(e)}")
@@ -2419,7 +2465,7 @@ async def generate_text_image(request: TextImageRequest):
 
 # 🔧 新增：异步任务端点
 @app.post("/tasks/submit/customize")
-async def submit_customize_task(request: CustomizationRequest, background_tasks: BackgroundTasks) -> TaskResponse:
+async def submit_customize_task(request: CustomizationRequest, background_tasks: BackgroundTasks, req: Request) -> TaskResponse:
     """提交计算器定制任务"""
     try:
         # 清理过期任务
@@ -2434,13 +2480,13 @@ async def submit_customize_task(request: CustomizationRequest, background_tasks:
         return TaskResponse(
             task_id=task_id,
             status=TaskStatus.PENDING,
-            message="计算器定制任务已提交，正在后台处理..."
+            message=t(req, "task.message.created")
         )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"提交任务失败: {str(e)}")
+        raise HTTPException(status_code=500, detail=t(req, "api.error.task_creation_failed", error=str(e)))
 
 @app.post("/tasks/submit/generate-image")
-async def submit_generate_image_task(request: ImageGenerationRequest, background_tasks: BackgroundTasks) -> TaskResponse:
+async def submit_generate_image_task(request: ImageGenerationRequest, background_tasks: BackgroundTasks, req: Request) -> TaskResponse:
     """提交图像生成任务"""
     try:
         cleanup_old_tasks()
@@ -2450,13 +2496,13 @@ async def submit_generate_image_task(request: ImageGenerationRequest, background
         return TaskResponse(
             task_id=task_id,
             status=TaskStatus.PENDING,
-            message="图像生成任务已提交，正在后台处理..."
+            message=t(req, "task.message.created")
         )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"提交任务失败: {str(e)}")
+        raise HTTPException(status_code=500, detail=t(req, "api.error.task_creation_failed", error=str(e)))
 
 @app.post("/tasks/submit/generate-pattern")
-async def submit_generate_pattern_task(request: ImageGenerationRequest, background_tasks: BackgroundTasks) -> TaskResponse:
+async def submit_generate_pattern_task(request: ImageGenerationRequest, background_tasks: BackgroundTasks, req: Request) -> TaskResponse:
     """提交按键背景图生成任务"""
     try:
         cleanup_old_tasks()
@@ -2466,13 +2512,13 @@ async def submit_generate_pattern_task(request: ImageGenerationRequest, backgrou
         return TaskResponse(
             task_id=task_id,
             status=TaskStatus.PENDING,
-            message="按键背景图生成任务已提交，正在后台处理..."
+            message=t(req, "task.message.created")
         )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"提交任务失败: {str(e)}")
+        raise HTTPException(status_code=500, detail=t(req, "api.error.task_creation_failed", error=str(e)))
 
 @app.post("/tasks/submit/generate-app-background")
-async def submit_generate_app_background_task(request: AppBackgroundRequest, background_tasks: BackgroundTasks) -> TaskResponse:
+async def submit_generate_app_background_task(request: AppBackgroundRequest, background_tasks: BackgroundTasks, req: Request) -> TaskResponse:
     """提交APP背景图生成任务"""
     try:
         cleanup_old_tasks()
@@ -2482,13 +2528,13 @@ async def submit_generate_app_background_task(request: AppBackgroundRequest, bac
         return TaskResponse(
             task_id=task_id,
             status=TaskStatus.PENDING,
-            message="APP背景图生成任务已提交，正在后台处理..."
+            message=t(req, "task.message.created")
         )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"提交任务失败: {str(e)}")
+        raise HTTPException(status_code=500, detail=t(req, "api.error.task_creation_failed", error=str(e)))
 
 @app.post("/tasks/submit/generate-text-image")
-async def submit_generate_text_image_task(request: TextImageRequest, background_tasks: BackgroundTasks) -> TaskResponse:
+async def submit_generate_text_image_task(request: TextImageRequest, background_tasks: BackgroundTasks, req: Request) -> TaskResponse:
     """提交文字图像生成任务"""
     try:
         cleanup_old_tasks()
@@ -2498,13 +2544,13 @@ async def submit_generate_text_image_task(request: TextImageRequest, background_
         return TaskResponse(
             task_id=task_id,
             status=TaskStatus.PENDING,
-            message="文字图像生成任务已提交，正在后台处理..."
+            message=t(req, "task.message.created")
         )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"提交任务失败: {str(e)}")
+        raise HTTPException(status_code=500, detail=t(req, "api.error.task_creation_failed", error=str(e)))
 
 @app.post("/tasks/submit/generate-display-background")
-async def submit_generate_display_background_task(request: DisplayBackgroundRequest, background_tasks: BackgroundTasks) -> TaskResponse:
+async def submit_generate_display_background_task(request: DisplayBackgroundRequest, background_tasks: BackgroundTasks, req: Request) -> TaskResponse:
     """提交显示区背景生成任务"""
     try:
         cleanup_old_tasks()
@@ -2514,17 +2560,17 @@ async def submit_generate_display_background_task(request: DisplayBackgroundRequ
         return TaskResponse(
             task_id=task_id,
             status=TaskStatus.PENDING,
-            message="显示区背景生成任务已提交，正在后台处理..."
+            message=t(req, "task.message.created")
         )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"提交任务失败: {str(e)}")
+        raise HTTPException(status_code=500, detail=t(req, "api.error.task_creation_failed", error=str(e)))
 
 @app.get("/tasks/{task_id}/status")
-async def get_task_status(task_id: str) -> TaskStatusResponse:
+async def get_task_status(task_id: str, req: Request) -> TaskStatusResponse:
     """查询任务状态"""
     task = get_task(task_id)
     if not task:
-        raise HTTPException(status_code=404, detail="任务不存在")
+        raise HTTPException(status_code=404, detail=t(req, "api.error.task_not_found"))
     
     return TaskStatusResponse(
         task_id=task.id,
@@ -2537,7 +2583,7 @@ async def get_task_status(task_id: str) -> TaskStatusResponse:
     )
 
 @app.get("/tasks")
-async def list_tasks() -> Dict[str, Any]:
+async def list_tasks(req: Request) -> Dict[str, Any]:
     """列出所有任务（调试用）"""
     try:
         tasks = []
@@ -2571,19 +2617,19 @@ async def list_tasks() -> Dict[str, Any]:
         return {"total_tasks": 0, "tasks": []}
 
 @app.delete("/tasks/{task_id}")
-async def delete_task(task_id: str) -> Dict[str, str]:
+async def delete_task(task_id: str, req: Request) -> Dict[str, str]:
     """删除任务"""
     task_file = os.path.join(TASKS_DIR, f"{task_id}.json")
     
     if not os.path.exists(task_file):
-        raise HTTPException(status_code=404, detail="任务不存在")
+        raise HTTPException(status_code=404, detail=t(req, "api.error.task_not_found"))
     
     try:
         with tasks_lock:
             os.remove(task_file)
-        return {"message": f"任务 {task_id} 已删除"}
+        return {"message": t(req, "task.message.deleted")}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"删除任务失败: {e}")
+        raise HTTPException(status_code=500, detail=t(req, "api.error.task_deletion_failed", error=str(e)))
 
 # 🔧 新增：具体的任务处理函数
 def process_customize_task(task_id: str, request_data: Dict[str, Any]) -> Dict[str, Any]:
